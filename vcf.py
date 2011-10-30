@@ -91,6 +91,7 @@ For example::
 '''
 import collections
 import re
+import csv
 
 
 # Metadata parsers/constants
@@ -207,10 +208,20 @@ class _meta_info(object):
         '''Return the function's docstring.'''
         return self.func.__doc__
 
-_Record = collections.namedtuple('Record', [
-    'CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT',
-    'samples'
-])
+
+class _Record(object):
+    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, samples):
+        self.CHROM = CHROM
+        self.POS = POS
+        self.ID = ID
+        self.REF = REF
+        self.ALT = ALT 
+        self.QUAL = QUAL
+        self.FILTER = FILTER
+        self.INFO = INFO
+        self.FORMAT = FORMAT
+        self.samples = samples
+
 
 
 class VCFReader(object):
@@ -412,6 +423,43 @@ class VCFReader(object):
                          samples)
         return record
 
+
+class VCFWriter(object):
+    
+    fixed_fields = "#CHROM POS ID REF ALT QUAL FILTER INFO FORMAT".split()
+    
+    def __init__(self, stream, template):
+        self.writer = csv.writer(stream, delimiter="\t")
+        self.template = template
+        self.write_header()
+        
+    def write_header(self):
+        # TODO: write INFO, etc
+        self.writer.writerow(self.fixed_fields + self.template.samples)
+
+    def write_record(self, record):
+        ffs = [record.CHROM, record.POS, record.ID, record.REF, self._format_alt(record.ALT), 
+            record.QUAL, record.FILTER, self._format_info(record.INFO), record.FORMAT]
+        
+        samples = [self._format_sample(record.FORMAT, sample) 
+            for sample in record.samples]
+        self.writer.writerow(ffs + samples)
+
+    def _format_alt(self, alt):
+        return ','.join(alt)
+    
+    def _format_info(self, info):
+        return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.items()])
+
+    def _format_sample(self, fmt, sample):
+        if sample["GT"] == ".":
+            return "."
+        return ':'.join((str(self._stringify(sample[f])) for f in fmt.split(':')))
+
+    def _stringify(self, x):
+        if type(x) == type([]): 
+            return ','.join(map(str, x))
+        return str(x)
 
 def main():
     '''Parse the example VCF file from the specification and print every
