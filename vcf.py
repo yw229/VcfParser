@@ -222,8 +222,26 @@ class _Record(object):
         self.FORMAT = FORMAT
         self.samples = samples
 
+    def __str__(self):
+        return "%(CHROM)s\t%(POS)s\t%(REF)s\t%(ALT)s" % self.__dict__
 
+    def sample_lookup(self):
+        return dict(((x['name'], x) for x in self.samples))
+        
+    def add_format(self, fmt):
+        self.FORMAT = self.FORMAT + ':' + fmt
 
+    def add_filter(self, flt):
+        if self.FILTER == '.':
+            self.FILTER = ''
+        else: 
+            self.FILTER = self.FILTER + ';'
+        self.FILTER = self.FILTER + flt
+    
+    def add_info(self, info, value=True):
+        self.INFO[info] = value
+
+        
 class VCFReader(object):
     '''Read and parse a VCF v 4.0 file'''
     def __init__(self, fsock, aggressive=False):
@@ -235,6 +253,7 @@ class VCFReader(object):
         self._formats = None
         self._samples = None
         self.reader = fsock
+        self._header_lines = []
         if aggressive:
             self._mapper = self._none_map
         else:
@@ -285,7 +304,9 @@ class VCFReader(object):
 
         line = self.reader.next()
         while line.startswith('##'):
+            self._header_lines.append(line)
             line = line.strip()
+            
             if line.startswith('##INFO'):
                 key, val = parser.read_info(line)
                 self._infos[key] = val
@@ -387,7 +408,11 @@ class VCFReader(object):
 
         for name, data in zip(self.samples, samp_data):
             data['name'] = name
-
+            if data['GT'] != '.':
+                data['_GT'] = int(data['GT'][0]), int(data['GT'][-1])
+            else: 
+                data['_GT'] = None
+                
         return samp_data
 
     def next(self):
@@ -431,6 +456,11 @@ class VCFWriter(object):
     def __init__(self, stream, template):
         self.writer = csv.writer(stream, delimiter="\t")
         self.template = template
+        # TODO: shouldnt have to poke the parser to get the meta
+        if template._samples is None: 
+            template._parse_metainfo()
+        for line in template._header_lines: 
+            stream.write(line)
         self.write_header()
         
     def write_header(self):

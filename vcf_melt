@@ -17,7 +17,7 @@ reader = vcf.VCFReader(sys.stdin)
 formats = reader.formats.keys()
 infos = reader.infos.keys()
 
-header = ["SAMPLE"] + formats + ['info.'+ x for x in infos]
+header = ["SAMPLE"] + formats + ['FILTER', 'CHROM', 'POS', 'REF', 'ALT', 'ID'] + ['info.'+ x for x in infos]
 
 
 out.writerow(header)    
@@ -29,9 +29,12 @@ def flatten(x):
 
 for record in reader: 
     info_row = [flatten(record.INFO.get(x, None)) for x in infos]
+    fixed = [record.CHROM, record.POS, record.REF, record.ALT, record.ID]
+    
     for sample in record.samples: 
         row = [sample['name']]
         row += [flatten(sample.get(x, None)) for x in formats]
-                
+        row += [record.FILTER or '.']
+        row += fixed
         row += info_row
         out.writerow(row)
