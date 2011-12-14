@@ -120,7 +120,7 @@ class _vcf_metadata_parser(object):
         self.aggro = aggressive
         self.info_pattern = re.compile(r'''\#\#INFO=<
             ID=(?P<id>[^,]+),
-            Number=(?P<number>\d+|\.|[AG]),
+            Number=(?P<number>-?\d+|\.|[AG]),
             Type=(?P<type>Integer|Float|Flag|Character|String),
             Description="(?P<desc>[^"]*)"
             >''', re.VERBOSE)
@@ -130,7 +130,7 @@ class _vcf_metadata_parser(object):
             >''', re.VERBOSE)
         self.format_pattern = re.compile(r'''\#\#FORMAT=<
             ID=(?P<id>.+),
-            Number=(?P<number>\d+|\.|[AG]),
+            Number=(?P<number>-?\d+|\.|[AG]),
             Type=(?P<type>.+),
             Description="(?P<desc>.*)"
             >''', re.VERBOSE)
@@ -145,6 +145,8 @@ class _vcf_metadata_parser(object):
 
         try:
             num = int(match.group('number'))
+            if num < 0:
+                num = None if self.aggro else '.'
         except ValueError:
             num = None if self.aggro else '.'
 
@@ -175,6 +177,8 @@ class _vcf_metadata_parser(object):
 
         try:
             num = int(match.group('number'))
+            if num < 0:
+                num = None if self.aggro else '.'
         except ValueError:
             num = None if self.aggro else '.'
 
