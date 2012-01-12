@@ -86,3 +86,8 @@ For example::
     's50': Filter(id='s50', desc='Less than 50% of samples have data')}
     >>> vcf_reader.infos['AA'].desc
     Ancestral Allele
+
+History
+=======
+
+Project started by @jdoughertyii and taken over by @jamescasbon on 12th January 2011.
