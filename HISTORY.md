@@ -3,7 +3,7 @@
 
 * Changed ``Record`` to use an ordered dict of samples called ``genotypes``.
 * Added test code
-
+* Added VCFWriter class
 
 Contributions
 -------------

@@ -493,8 +493,8 @@ class VCFWriter(object):
         return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.items()])
 
     def _format_sample(self, fmt, sample):
-        if sample["GT"] == ".":
-            return "."
+        if sample["GT"] == "./.":
+            return "./."
         return ':'.join((str(self._stringify(sample[f])) for f in fmt.split(':')))
 
     def _stringify(self, x):

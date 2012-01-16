@@ -1,6 +1,7 @@
 import unittest
 import doctest
 import os
+from StringIO import StringIO
 
 import vcf
 
@@ -65,8 +66,34 @@ class TestFreebayesOutput(TestGatkOutput):
     n_calls = 104
 
 
+class TestWriter(unittest.TestCase):
+
+    def testWrite(self):
+
+        reader = vcf.VCFReader(fh('gatk.vcf'))
+        out = StringIO()
+        writer = vcf.VCFWriter(out, reader)
+
+        records = list(reader)
+
+        map(writer.write_record, records)
+        out.seek(0)
+        reader2 = vcf.VCFReader(out)
+
+        self.assertEquals(reader.samples, reader2.samples)
+        self.assertEquals(reader.formats, reader2.formats)
+        self.assertEquals(reader.infos, reader2.infos)
+
+        for l, r in zip(records, reader2):
+            self.assertEquals(l.samples, r.samples)
+
+
+
+
+
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFreebayesOutput))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriter))
 
 
 
