@@ -224,8 +224,23 @@ class _meta_info(object):
         return self.func.__doc__
 
 
+class _Call(object):
+
+    def __init__(self, site, sample, data):
+        self.site = site
+        self.sample = sample
+        self.data = data
+
+    def called(self):
+        return self.GT != './.'
+
+    @property
+    def GT(self):
+        return self.data['GT']
+
+
 class _Record(object):
-    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, genotypes):
+    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, genotypes=None):
         self.CHROM = CHROM
         self.POS = POS
         self.ID = ID
@@ -397,7 +412,7 @@ class VCFReader(object):
 
         return retdict
 
-    def _parse_samples(self, samples, samp_fmt):
+    def _parse_samples(self, samples, samp_fmt, site):
         '''Parse a sample entry according to the format specified in the FORMAT
         column.'''
         samp_data = OrderedDict()
@@ -421,8 +436,7 @@ class VCFReader(object):
                 elif sampdict[fmt] == './.' and self.aggro:
                     sampdict[fmt] = None
 
-            sampdict['name'] = name
-            samp_data[name] = sampdict
+            samp_data[name] = _Call(site, name, sampdict)
 
         return samp_data
 
@@ -447,16 +461,18 @@ class VCFReader(object):
             filt = None
         info = self._parse_info(row[7])
 
+
+
         try:
             fmt = row[8]
         except IndexError:
             fmt = None
-            samples = None
-        else:
-            samples = self._parse_samples(row[9:], fmt)
 
-        record = _Record(chrom, pos, ID, ref, alt, qual, filt, info, fmt,
-                         samples)
+        record = _Record(chrom, pos, ID, ref, alt, qual, filt, info, fmt)
+
+        if fmt is not None:
+            samples = self._parse_samples(row[9:], fmt, record)
+            record.genotypes = samples
         return record
 
 

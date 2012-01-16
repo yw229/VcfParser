@@ -43,12 +43,13 @@ class TestGatkOutput(unittest.TestCase):
             n += 1
             self.assertEqual(len(site.samples), len(self.samples))
 
-            # check sample ordering is preserved:
-            self.assertEqual([x['name'] for x in site.samples], self.samples)
 
             # check sample name lookup
             for s in self.samples:
                 assert s in site.genotypes
+
+            # check ordered access
+            self.assertEqual([x.sample for x in site.samples], self.samples)
 
         self.assertEqual(n,  self.n_calls)
 
