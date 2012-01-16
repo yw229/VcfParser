@@ -219,7 +219,7 @@ class _Record(object):
         self.POS = POS
         self.ID = ID
         self.REF = REF
-        self.ALT = ALT 
+        self.ALT = ALT
         self.QUAL = QUAL
         self.FILTER = FILTER
         self.INFO = INFO
@@ -231,21 +231,21 @@ class _Record(object):
 
     def sample_lookup(self):
         return dict(((x['name'], x) for x in self.samples))
-        
+
     def add_format(self, fmt):
         self.FORMAT = self.FORMAT + ':' + fmt
 
     def add_filter(self, flt):
         if self.FILTER == '.':
             self.FILTER = ''
-        else: 
+        else:
             self.FILTER = self.FILTER + ';'
         self.FILTER = self.FILTER + flt
-    
+
     def add_info(self, info, value=True):
         self.INFO[info] = value
 
-        
+
 class VCFReader(object):
     '''Read and parse a VCF v 4.0 file'''
     def __init__(self, fsock, aggressive=False):
@@ -310,7 +310,7 @@ class VCFReader(object):
         while line.startswith('##'):
             self._header_lines.append(line)
             line = line.strip()
-            
+
             if line.startswith('##INFO'):
                 key, val = parser.read_info(line)
                 self._infos[key] = val
@@ -412,11 +412,11 @@ class VCFReader(object):
 
         for name, data in zip(self.samples, samp_data):
             data['name'] = name
-            if data['GT'] != '.':
+            try:
                 data['_GT'] = int(data['GT'][0]), int(data['GT'][-1])
-            else: 
-                data['_GT'] = None
-                
+            except ValueError:
+                pass
+
         return samp_data
 
     def next(self):
@@ -454,34 +454,34 @@ class VCFReader(object):
 
 
 class VCFWriter(object):
-    
+
     fixed_fields = "#CHROM POS ID REF ALT QUAL FILTER INFO FORMAT".split()
-    
+
     def __init__(self, stream, template):
         self.writer = csv.writer(stream, delimiter="\t")
         self.template = template
         # TODO: shouldnt have to poke the parser to get the meta
-        if template._samples is None: 
+        if template._samples is None:
             template._parse_metainfo()
-        for line in template._header_lines: 
+        for line in template._header_lines:
             stream.write(line)
         self.write_header()
-        
+
     def write_header(self):
         # TODO: write INFO, etc
         self.writer.writerow(self.fixed_fields + self.template.samples)
 
     def write_record(self, record):
-        ffs = [record.CHROM, record.POS, record.ID, record.REF, self._format_alt(record.ALT), 
+        ffs = [record.CHROM, record.POS, record.ID, record.REF, self._format_alt(record.ALT),
             record.QUAL, record.FILTER, self._format_info(record.INFO), record.FORMAT]
-        
-        samples = [self._format_sample(record.FORMAT, sample) 
+
+        samples = [self._format_sample(record.FORMAT, sample)
             for sample in record.samples]
         self.writer.writerow(ffs + samples)
 
     def _format_alt(self, alt):
         return ','.join(alt)
-    
+
     def _format_info(self, info):
         return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.items()])
 
@@ -491,7 +491,7 @@ class VCFWriter(object):
         return ':'.join((str(self._stringify(sample[f])) for f in fmt.split(':')))
 
     def _stringify(self, x):
-        if type(x) == type([]): 
+        if type(x) == type([]):
             return ','.join(map(str, x))
         return str(x)
 
