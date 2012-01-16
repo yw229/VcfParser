@@ -35,12 +35,13 @@ more.  That is:
     * ``Record.FILTER``
     * ``Record.INFO``
 
-plus two more attributes to handle genotype information:
+plus three more attributes to handle genotype information:
 
     * ``Record.FORMAT``
     * ``Record.samples``
+    * ``Record.genotypes``
 
-``samples``, not being the title of any column, is left lowercase.  The format
+``samples`` and ``genotypes``, not being the title of any column, is left lowercase.  The format
 of the fixed fields is from the spec.  Comma-separated lists in the VCF are
 converted to lists.  In particular, one-entry VCF lists are converted to
 one-entry Python lists (see, e.g., ``Record.ALT``).  Semicolon-delimited lists
@@ -58,7 +59,8 @@ a ``True`` value. Integers and floats are handled exactly as you'd expect::
 ``record.FORMAT`` will be a string specifying the format of the genotype
 fields.  In case the FORMAT column does not exist, ``record.FORMAT`` is
 ``None``.  Finally, ``record.samples`` is a list of dictionaries containing the
-parsed sample column::
+parsed sample column and ``record.genotypes`` is a dictionary of sample names
+to genotype data::
 
     >>> record = vcf_reader.next()
     >>> for sample in record.samples:
@@ -220,7 +222,7 @@ class _meta_info(object):
 
 
 class _Record(object):
-    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, samples):
+    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, genotypes):
         self.CHROM = CHROM
         self.POS = POS
         self.ID = ID
@@ -230,7 +232,7 @@ class _Record(object):
         self.FILTER = FILTER
         self.INFO = INFO
         self.FORMAT = FORMAT
-        self.samples = samples
+        self.genotypes = genotypes
 
     def __str__(self):
         return "%(CHROM)s\t%(POS)s\t%(REF)s\t%(ALT)s" % self.__dict__
@@ -247,6 +249,11 @@ class _Record(object):
 
     def add_info(self, info, value=True):
         self.INFO[info] = value
+
+    @property
+    def samples(self):
+        """ return a list of samples, added for backwards compatibility """
+        return self.genotypes.values()
 
 
 class VCFReader(object):
