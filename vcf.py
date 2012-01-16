@@ -66,11 +66,11 @@ to genotype data::
 
     >>> record = vcf_reader.next()
     >>> for sample in record.samples:
-    ...     print sample['GT']
+    ...     print sample.GT
     0|0
     0|1
     0/0
-    >>> print record.genotypes['NA00001']['GT']
+    >>> print record.genotypes['NA00001'].GT
     0|0
 
 Metadata regarding the VCF file itself can be investigated through the
