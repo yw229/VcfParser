@@ -9,11 +9,11 @@ specified in the meta-information lines --  specifically the ##INFO and
 against the reserved types mentioned in the spec.  Failing that, it will just
 return strings.
 
-There is currently one piece of interface: ``VCFReader``.  It takes a file-like
+There is currently one piece of interface: ``Reader``.  It takes a file-like
 object and acts as a reader::
 
     >>> import vcf
-    >>> vcf_reader = vcf.VCFReader(open('test/example.vcf', 'rb'))
+    >>> vcf_reader = vcf.Reader(open('test/example.vcf', 'rb'))
     >>> for record in vcf_reader:
     ...     print record
     Record(CHROM=20, POS=14370, REF=G, ALT=['A'])
@@ -49,7 +49,7 @@ one-entry Python lists (see, e.g., ``Record.ALT``).  Semicolon-delimited lists
 of key=value pairs are converted to Python dictionaries, with flags being given
 a ``True`` value. Integers and floats are handled exactly as you'd expect::
 
-    >>> vcf_reader = vcf.VCFReader(open('test/example.vcf', 'rb'))
+    >>> vcf_reader = vcf.Reader(open('test/example.vcf', 'rb'))
     >>> record = vcf_reader.next()
     >>> print record.POS
     14370
