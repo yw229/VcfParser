@@ -93,6 +93,12 @@ import collections
 import re
 import csv
 
+try:
+    from ordereddict import OrderedDict
+except ImportError:
+    from collections import OrderedDict
+
+
 
 # Metadata parsers/constants
 RESERVED_INFO = {
@@ -387,9 +393,9 @@ class VCFReader(object):
     def _parse_samples(self, samples, samp_fmt):
         '''Parse a sample entry according to the format specified in the FORMAT
         column.'''
-        samp_data = []
+        samp_data = OrderedDict()
         samp_fmt = samp_fmt.split(':')
-        for sample in samples:
+        for name, sample in zip(self.samples, samples):
             sampdict = dict(zip(samp_fmt, sample.split(':')))
             for fmt in sampdict:
                 vals = sampdict[fmt].split(',')
@@ -408,14 +414,8 @@ class VCFReader(object):
                 elif sampdict[fmt] == './.' and self.aggro:
                     sampdict[fmt] = None
 
-            samp_data.append(sampdict)
-
-        for name, data in zip(self.samples, samp_data):
-            data['name'] = name
-            try:
-                data['_GT'] = int(data['GT'][0]), int(data['GT'][-1])
-            except ValueError:
-                pass
+            sampdict['name'] = name
+            samp_data[name] = sampdict
 
         return samp_data
 

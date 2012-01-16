@@ -40,6 +40,9 @@ class TestGatkOutput(unittest.TestCase):
             n += 1
             self.assertEqual(len(site.samples), len(self.samples))
 
+            # check sample ordering is preserved:
+            self.assertEqual([x['name'] for x in site.samples.values()], self.samples)
+
         self.assertEqual(n,  self.n_calls)
 
 
