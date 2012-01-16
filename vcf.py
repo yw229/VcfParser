@@ -13,14 +13,15 @@ There is currently one piece of interface: ``VCFReader``.  It takes a file-like
 object and acts as a reader::
 
     >>> import vcf
-    >>> vcf_reader = vcf.VCFReader(open('example.vcf', 'rb'))
+    >>> vcf_reader = vcf.VCFReader(open('test/example.vcf', 'rb'))
     >>> for record in vcf_reader:
     ...     print record
-    Record(CHROM='20', POS=14370, ID='rs6054257', REF='G', ALT=['A'], QUAL=29,
-    FILTER='PASS', INFO={'H2': True, 'NS': 3, 'DB': True, 'DP': 14, 'AF': [0.5]
-    }, FORMAT='GT:GQ:DP:HQ', samples=[{'GT': '0', 'HQ': [58, 50], 'DP': 3, 'GQ'
-    : 49, 'name': 'NA00001'}, {'GT': '0', 'HQ': [65, 3], 'DP': 5, 'GQ': 3, 'nam
-    e' : 'NA00002'}, {'GT': '0', 'DP': 3, 'GQ': 41, 'name': 'NA00003'}])
+    Record(CHROM=20, POS=14370, REF=G, ALT=['A'])
+    Record(CHROM=20, POS=17330, REF=T, ALT=['A'])
+    Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
+    Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
+    Record(CHROM=20, POS=1234567, REF=GTCT, ALT=['G', 'GTACT'])
+
 
 This produces a great deal of information, but it is conveniently accessed.
 The attributes of a Record are the 8 fixed fields from the VCF spec plus two
@@ -48,13 +49,14 @@ one-entry Python lists (see, e.g., ``Record.ALT``).  Semicolon-delimited lists
 of key=value pairs are converted to Python dictionaries, with flags being given
 a ``True`` value. Integers and floats are handled exactly as you'd expect::
 
+    >>> vcf_reader = vcf.VCFReader(open('test/example.vcf', 'rb'))
     >>> record = vcf_reader.next()
     >>> print record.POS
-    17330
+    14370
     >>> print record.ALT
     ['A']
     >>> print record.INFO['AF']
-    [0.017]
+    [0.5]
 
 ``record.FORMAT`` will be a string specifying the format of the genotype
 fields.  In case the FORMAT column does not exist, ``record.FORMAT`` is
@@ -65,9 +67,11 @@ to genotype data::
     >>> record = vcf_reader.next()
     >>> for sample in record.samples:
     ...     print sample['GT']
-    '1|2'
-    '2|1'
-    '2/2'
+    0|0
+    0|1
+    0/0
+    >>> print record.genotypes['NA00001']['GT']
+    0|0
 
 Metadata regarding the VCF file itself can be investigated through the
 following attributes:
@@ -81,14 +85,13 @@ following attributes:
 For example::
 
     >>> vcf_reader.metadata['fileDate']
-    20090805
+    '20090805'
     >>> vcf_reader.samples
     ['NA00001', 'NA00002', 'NA00003']
     >>> vcf_reader.filters
-    {'q10': Filter(id='q10', desc='Quality below 10'),
-    's50': Filter(id='s50', desc='Less than 50% of samples have data')}
+    {'q10': Filter(id='q10', desc='Quality below 10'), 's50': Filter(id='s50', desc='Less than 50% of samples have data')}
     >>> vcf_reader.infos['AA'].desc
-    Ancestral Allele
+    'Ancestral Allele'
 
 '''
 import collections
@@ -235,7 +238,7 @@ class _Record(object):
         self.genotypes = genotypes
 
     def __str__(self):
-        return "%(CHROM)s\t%(POS)s\t%(REF)s\t%(ALT)s" % self.__dict__
+        return "Record(CHROM=%(CHROM)s, POS=%(POS)s, REF=%(REF)s, ALT=%(ALT)s)" % self.__dict__
 
     def add_format(self, fmt):
         self.FORMAT = self.FORMAT + ':' + fmt
@@ -499,43 +502,8 @@ class VCFWriter(object):
             return ','.join(map(str, x))
         return str(x)
 
-def main():
-    '''Parse the example VCF file from the specification and print every
-    record.'''
-    import contextlib
-    import StringIO
-    import textwrap
-    buff = '''\
-        ##fileformat=VCFv4.0
-        ##fileDate=20090805
-        ##source=myImputationProgramV3.1
-        ##reference=1000GenomesPilot-NCBI36
-        ##phasing=partial
-        ##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of Samples With Data">
-        ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
-        ##INFO=<ID=AF,Number=.,Type=Float,Description="Allele Frequency">
-        ##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">
-        ##INFO=<ID=DB,Number=0,Type=Flag,Description="dbSNP membership, build 129">
-        ##INFO=<ID=H2,Number=0,Type=Flag,Description="HapMap2 membership">
-        ##INFO=<ID=AC,Number=A,Type=Integer,Description="Total number of alternate alleles in called genotypes">
-        ##FILTER=<ID=q10,Description="Quality below 10">
-        ##FILTER=<ID=s50,Description="Less than 50% of samples have data">
-        ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-        ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
-        ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth">
-        ##FORMAT=<ID=HQ,Number=2,Type=Integer,Description="Haplotype Quality">
-        #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA00001\tNA00002\tNA00003
-        20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.
-        20\t17330\t.\tT\tA\t3\tq10\tNS=3;DP=11;AF=0.017\tGT:GQ:DP:HQ\t0|0:49:3:58,50\t0|1:3:5:65,3\t0/0:41:3
-        20\t1110696\trs6040355\tA\tG,T\t67\tPASS\tNS=2;DP=10;AF=0.333,0.667;AA=T;DB\tGT:GQ:DP:HQ\t1|2:21:6:23,27\t2|1:2:0:18,2\t2/2:35:4
-        20\t1230237\t.\tT\t.\t47\tPASS\tNS=3;DP=13;AA=T\tGT:GQ:DP:HQ\t0|0:54:7:56,60\t0|0:48:4:51,51\t0/0:61:2
-        20\t1234567\tmicrosat1\tGTCT\tG,GTACT\t50\tPASS\tNS=3;DP=9;AA=G\tGT:GQ:DP\t./.:35:4\t0/2:17:2\t1/1:40:3
-        '''
-    with contextlib.closing(StringIO.StringIO(textwrap.dedent(buff))) as sock:
-        vcf_file = VCFReader(sock, aggressive=True)
-        for record in vcf_file:
-            print record
 
+def __update_readme():
+    import sys
+    file('README.rst', 'w').write(sys.modules[__name__].__doc__)
 
-if __name__ == '__main__':
-    main()
