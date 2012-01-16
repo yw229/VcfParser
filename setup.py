@@ -15,6 +15,6 @@ setup(
     author='James Casbon',
     author_email='casbon@gmail.com',
     description='Variant Call Format (VCF) parser for python',
-    test_suite='test',
+    test_suite='test.test_vcf.suite',
     requires=requires
 )

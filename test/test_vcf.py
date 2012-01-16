@@ -1,7 +1,10 @@
 import unittest
+import doctest
 import os
 
 import vcf
+
+suite = doctest.DocTestSuite(vcf)
 
 
 def fh(fname):
@@ -62,7 +65,9 @@ class TestFreebayesOutput(TestGatkOutput):
     n_calls = 104
 
 
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFreebayesOutput))
 
-if __name__ == '__main__':
-    unittest.main()
+
+
 
