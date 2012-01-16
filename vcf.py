@@ -235,9 +235,6 @@ class _Record(object):
     def __str__(self):
         return "%(CHROM)s\t%(POS)s\t%(REF)s\t%(ALT)s" % self.__dict__
 
-    def sample_lookup(self):
-        return dict(((x['name'], x) for x in self.samples))
-
     def add_format(self, fmt):
         self.FORMAT = self.FORMAT + ':' + fmt
 
