@@ -259,7 +259,7 @@ class _Record(object):
         return self.genotypes.values()
 
 
-class VCFReader(object):
+class Reader(object):
     '''Read and parse a VCF v 4.0 file'''
     def __init__(self, fsock, aggressive=False):
         super(VCFReader, self).__init__()
@@ -460,7 +460,7 @@ class VCFReader(object):
         return record
 
 
-class VCFWriter(object):
+class Writer(object):
 
     fixed_fields = "#CHROM POS ID REF ALT QUAL FILTER INFO FORMAT".split()
 
@@ -506,4 +506,9 @@ class VCFWriter(object):
 def __update_readme():
     import sys
     file('README.rst', 'w').write(sys.modules[__name__].__doc__)
+
+
+# backwards compatibility
+VCFReader = Reader
+VCFWriter = Writer
 

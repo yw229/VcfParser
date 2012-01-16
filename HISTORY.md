@@ -4,6 +4,8 @@
 * Changed ``Record`` to use an ordered dict of samples called ``genotypes``.
 * Added test code
 * Added VCFWriter class
+* Allow negative number in ``INFO`` and ``FORMAT`` fields (thanks @martijnvermaat)
+* Prefer ``vcf.Reader`` to ``vcf.VCFReader``
 
 Contributions
 -------------

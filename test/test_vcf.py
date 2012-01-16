@@ -25,7 +25,7 @@ class TestGatkOutput(unittest.TestCase):
     n_calls = 37
 
     def setUp(self):
-        self.reader = vcf.VCFReader(fh(self.filename))
+        self.reader = vcf.Reader(fh(self.filename))
 
     def testSamples(self):
         self.assertEqual(self.reader.samples, self.samples)
@@ -70,15 +70,15 @@ class TestWriter(unittest.TestCase):
 
     def testWrite(self):
 
-        reader = vcf.VCFReader(fh('gatk.vcf'))
+        reader = vcf.Reader(fh('gatk.vcf'))
         out = StringIO()
-        writer = vcf.VCFWriter(out, reader)
+        writer = vcf.Writer(out, reader)
 
         records = list(reader)
 
         map(writer.write_record, records)
         out.seek(0)
-        reader2 = vcf.VCFReader(out)
+        reader2 = vcf.Reader(out)
 
         self.assertEquals(reader.samples, reader2.samples)
         self.assertEquals(reader.formats, reader2.formats)
