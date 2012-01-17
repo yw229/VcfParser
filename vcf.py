@@ -94,7 +94,7 @@ For example::
     'Ancestral Allele'
 
 Random access is supported for files with tabix indexes.  Simply call fetch for the
-region you are interested in:
+region you are interested in::
 
     >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
     >>> for record in vcf_reader.fetch('20', 1110696-1, 1230237):
