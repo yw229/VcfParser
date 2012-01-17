@@ -89,12 +89,43 @@ class TestWriter(unittest.TestCase):
 
 
 
+class TestTabix(unittest.TestCase):
+
+    def setUp(self):
+        self.reader = vcf.Reader(fh('tb.vcf.gz'))
+
+    def testHeader(self):
+        print self.reader.samples
+        assert self.reader.samples
+
+
+class TestOpenMethods(unittest.TestCase):
+
+    samples = 'NA00001 NA00002 NA00003'.split()
+
+    def testOpenFilehandle(self):
+        r = vcf.Reader(fh('example.vcf'))
+        self.assertEqual(self.samples, r.samples)
+        self.assertEqual('example.vcf', os.path.split(r.filename)[1])
+
+    def testOpenFilename(self):
+        r = vcf.Reader(filename='test/example.vcf')
+        self.assertEqual(self.samples, r.samples)
+
+    def testOpenFilehandleGzipped(self):
+        r = vcf.Reader(fh('tb.vcf.gz'))
+        self.assertEqual(self.samples, r.samples)
+
+    def testOpenFilenameGzipped(self):
+        r = vcf.Reader(filename='test/tb.vcf.gz')
+        self.assertEqual(self.samples, r.samples)
 
 
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFreebayesOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriter))
+#suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
 
-
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
 
 

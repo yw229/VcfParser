@@ -97,6 +97,7 @@ For example::
 import collections
 import re
 import csv
+import gzip
 
 try:
     from ordereddict import OrderedDict
@@ -261,15 +262,34 @@ class _Record(object):
 
 class Reader(object):
     '''Read and parse a VCF v 4.0 file'''
-    def __init__(self, fsock, aggressive=False):
+    def __init__(self, fsock=None, filename=None, aggressive=False, compressed=False):
         super(VCFReader, self).__init__()
+
+        if not (fsock or filename):
+            raise Exception('You must provide at least fsock or filename')
+
+        if filename:
+            self.filename = filename
+            if fsock is None:
+                self.reader = file(filename)
+
+
+        if fsock:
+            self.reader = fsock
+            if filename is None:
+                if hasattr(fsock, 'name'):
+                    filename = fsock.name
+            self.filename = filename
+
+        if compressed or (filename and filename.endswith('.gz')):
+            self.reader = gzip.GzipFile(fileobj=self.reader)
+
         self.aggro = aggressive
         self._metadata = None
         self._infos = None
         self._filters = None
         self._formats = None
         self._samples = None
-        self.reader = fsock
         self._header_lines = []
         if aggressive:
             self._mapper = self._none_map
