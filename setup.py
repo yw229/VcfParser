@@ -20,6 +20,7 @@ setup(
     entry_points = {
         'vcf.filters': [
             'site_quality = vcf_filter:SiteQuality',
+            'vgq = vcf_filter:VariantGenotypeQuality',
         ]
     }
 )

@@ -530,6 +530,25 @@ class Writer(object):
         return str(x)
 
 
+
+class Filter(object):
+    name = 'filter'
+    description = 'VCF filter base class'
+    short_name = 'f'
+
+    @classmethod
+    def customize_parser(self):
+        pass
+
+    def __init__(self, args):
+        pass
+
+    def __call__(self):
+        raise NotImplementedError('Filters must implement this method')
+
+
+
+
 def __update_readme():
     import sys
     file('README.rst', 'w').write(sys.modules[__name__].__doc__)
