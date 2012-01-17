@@ -237,7 +237,7 @@ class _Record(object):
         self.FORMAT = self.FORMAT + ':' + fmt
 
     def add_filter(self, flt):
-        if self.FILTER == '.':
+        if self.FILTER == '.' or self.FILTER == 'PASS':
             self.FILTER = ''
         else:
             self.FILTER = self.FILTER + ';'
