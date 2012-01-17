@@ -76,11 +76,11 @@ to genotype data::
 Metadata regarding the VCF file itself can be investigated through the
 following attributes:
 
-    * ``VCFReader.metadata``
-    * ``VCFReader.infos``
-    * ``VCFReader.filters``
-    * ``VCFReader.formats``
-    * ``VCFReader.samples``
+    * ``Reader.metadata``
+    * ``Reader.infos``
+    * ``Reader.filters``
+    * ``Reader.formats``
+    * ``Reader.samples``
 
 For example::
 
@@ -93,6 +93,16 @@ For example::
     >>> vcf_reader.infos['AA'].desc
     'Ancestral Allele'
 
+Random access is supported for files with tabix indexes.  Simply call fetch for the
+region you are interested in:
+
+    >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
+    >>> for record in vcf_reader.fetch('20', 1110696-1, 1230237):
+    ...     print record
+    Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
+    Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
+
+
 '''
 import collections
 import re
@@ -104,6 +114,10 @@ try:
 except ImportError:
     from collections import OrderedDict
 
+try:
+    import pysam
+except ImportError:
+    pysam = None
 
 
 # Metadata parsers/constants
@@ -273,7 +287,6 @@ class Reader(object):
             if fsock is None:
                 self.reader = file(filename)
 
-
         if fsock:
             self.reader = fsock
             if filename is None:
@@ -291,13 +304,12 @@ class Reader(object):
         self._formats = None
         self._samples = None
         self._header_lines = []
+        self._tabix = None
         if aggressive:
             self._mapper = self._none_map
         else:
             self._mapper = self._pass_map
         self._parse_metainfo()
-
-
 
     def __iter__(self):
         return self
@@ -480,6 +492,18 @@ class Reader(object):
                          samples)
         return record
 
+    def fetch(self, chrom, start, end):
+        if not pysam:
+            raise Exception('pysam not available, try "pip install pysam"?')
+
+        if not self.filename:
+            raise Exception('Please provide a filename (or a "normal" fsock)')
+
+        if not self._tabix:
+            self._tabix = pysam.Tabixfile(self.filename)
+
+        self.reader = self._tabix.fetch(chrom, start, end)
+        return self
 
 class Writer(object):
 

@@ -75,11 +75,11 @@ to genotype data::
 Metadata regarding the VCF file itself can be investigated through the
 following attributes:
 
-    * ``VCFReader.metadata``
-    * ``VCFReader.infos``
-    * ``VCFReader.filters``
-    * ``VCFReader.formats``
-    * ``VCFReader.samples``
+    * ``Reader.metadata``
+    * ``Reader.infos``
+    * ``Reader.filters``
+    * ``Reader.formats``
+    * ``Reader.samples``
 
 For example::
 
@@ -91,4 +91,14 @@ For example::
     {'q10': Filter(id='q10', desc='Quality below 10'), 's50': Filter(id='s50', desc='Less than 50% of samples have data')}
     >>> vcf_reader.infos['AA'].desc
     'Ancestral Allele'
+
+Random access is supported for files with tabix indexes.  Simply call fetch for the
+region you are interested in:
+
+    >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
+    >>> for record in vcf_reader.fetch('20', 1110696-1, 1230237):
+    ...     print record
+    Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
+    Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
+
 

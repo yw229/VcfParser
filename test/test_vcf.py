@@ -94,9 +94,19 @@ class TestTabix(unittest.TestCase):
     def setUp(self):
         self.reader = vcf.Reader(fh('tb.vcf.gz'))
 
-    def testHeader(self):
-        print self.reader.samples
-        assert self.reader.samples
+    def testFetch(self):
+        lines = list(self.reader.fetch('20', 14370-1, 14370+1))
+        self.assertEquals(len(lines), 1)
+        self.assertEqual(lines[0].POS, 14370)
+
+        lines = list(self.reader.fetch('20', 14370-1, 17330+1))
+        self.assertEquals(len(lines), 2)
+        self.assertEqual(lines[0].POS, 14370)
+        self.assertEqual(lines[1].POS, 17330)
+
+
+        lines = list(self.reader.fetch('20', 1110695, 1234567))
+        self.assertEquals(len(lines), 3)
 
 
 class TestOpenMethods(unittest.TestCase):
@@ -124,8 +134,7 @@ class TestOpenMethods(unittest.TestCase):
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFreebayesOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriter))
-#suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
-
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
 
 
