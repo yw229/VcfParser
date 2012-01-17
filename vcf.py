@@ -275,6 +275,9 @@ class Reader(object):
             self._mapper = self._none_map
         else:
             self._mapper = self._pass_map
+        self._parse_metainfo()
+
+
 
     def __iter__(self):
         return self
@@ -428,8 +431,6 @@ class Reader(object):
 
     def next(self):
         '''Return the next record in the file.'''
-        if self._samples is None:
-            self._parse_metainfo()
         row = self.reader.next().split()
         chrom = row[0]
         pos = int(row[1])
@@ -467,9 +468,6 @@ class Writer(object):
     def __init__(self, stream, template):
         self.writer = csv.writer(stream, delimiter="\t")
         self.template = template
-        # TODO: shouldnt have to poke the parser to get the meta
-        if template._samples is None:
-            template._parse_metainfo()
         for line in template._header_lines:
             stream.write(line)
         self.write_header()
