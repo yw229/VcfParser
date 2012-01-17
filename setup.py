@@ -6,7 +6,7 @@ requires = []
 # install ordereddict for python < 2.7
 py_version = sys.version_info
 if py_version.major == 2 and py_version.minor < 7:
-    pass
+    requires.append('argparse')
 
 setup(
     name='PyVCF',
