@@ -66,6 +66,16 @@ class TestFreebayesOutput(TestGatkOutput):
     n_calls = 104
 
 
+class Test1kg(unittest.TestCase):
+
+    def testParse(self):
+        reader = vcf.Reader(fh('1kg.vcf.gz'))
+
+        self.assertEqual(len(reader.samples), 629)
+        for _ in reader:
+            pass
+
+
 class TestWriter(unittest.TestCase):
 
     def testWrite(self):
@@ -137,4 +147,5 @@ suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
 
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
 

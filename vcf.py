@@ -474,7 +474,11 @@ class Reader(object):
 
         ref = row[3]
         alt = self._mapper(str, row[4].split(','))
-        qual = float(row[5]) if '.' in row[5] else int(row[5])
+
+        if row[5] == '.':
+            qual = '.'
+        else:
+            qual = float(row[5]) if '.' in row[5] else int(row[5])
         filt = row[6].split(';') if ';' in row[6] else row[6]
         if filt == 'PASS' and self.aggro:
             filt = None
