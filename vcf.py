@@ -218,26 +218,6 @@ class _vcf_metadata_parser(object):
         return match.group('key'), match.group('val')
 
 
-# Reader class
-class _meta_info(object):
-    '''Decorator for a property stored in the header info.'''
-    def __init__(self, func):
-        self.func = func
-
-    def __call__(self, fself):
-        if getattr(fself, "_%s" % self.func.__name__) is None:
-            fself._parse_metainfo()
-
-        return self.func(fself)
-
-    def __repr__(self):
-        '''Return the function's docstring.'''
-        return self.func.__doc__
-
-    def __doc__(self):
-        '''Return the function's docstring.'''
-        return self.func.__doc__
-
 
 class _Record(object):
     def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, genotypes):
@@ -315,31 +295,26 @@ class Reader(object):
         return self
 
     @property
-    @_meta_info
     def metadata(self):
         '''Return the information from lines starting "##"'''
         return self._metadata
 
     @property
-    @_meta_info
     def infos(self):
         '''Return the information from lines starting "##INFO"'''
         return self._infos
 
     @property
-    @_meta_info
     def filters(self):
         '''Return the information from lines starting "##FILTER"'''
         return self._filters
 
     @property
-    @_meta_info
     def formats(self):
         '''Return the information from lines starting "##FORMAT"'''
         return self._formats
 
     @property
-    @_meta_info
     def samples(self):
         '''Return the names of the genotype fields.'''
         return self._samples
