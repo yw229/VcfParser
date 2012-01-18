@@ -108,6 +108,7 @@ import collections
 import re
 import csv
 import gzip
+import itertools
 
 try:
     from ordereddict import OrderedDict
@@ -278,11 +279,11 @@ class Reader(object):
             self.reader = gzip.GzipFile(fileobj=self.reader)
 
         self.aggro = aggressive
-        self._metadata = None
-        self._infos = None
-        self._filters = None
-        self._formats = None
-        self._samples = None
+        self.metadata = None
+        self.infos = None
+        self.filters = None
+        self.formats = None
+        self.samples = None
         self._header_lines = []
         self._tabix = None
         if aggressive:
@@ -294,37 +295,12 @@ class Reader(object):
     def __iter__(self):
         return self
 
-    @property
-    def metadata(self):
-        '''Return the information from lines starting "##"'''
-        return self._metadata
-
-    @property
-    def infos(self):
-        '''Return the information from lines starting "##INFO"'''
-        return self._infos
-
-    @property
-    def filters(self):
-        '''Return the information from lines starting "##FILTER"'''
-        return self._filters
-
-    @property
-    def formats(self):
-        '''Return the information from lines starting "##FORMAT"'''
-        return self._formats
-
-    @property
-    def samples(self):
-        '''Return the names of the genotype fields.'''
-        return self._samples
-
     def _parse_metainfo(self):
         '''Parse the information stored in the metainfo of the VCF.
 
         The end user shouldn't have to use this.  She can access the metainfo
         directly with ``self.metadata``.'''
-        for attr in ('_metadata', '_infos', '_filters', '_formats'):
+        for attr in ('metadata', 'infos', 'filters', 'formats'):
             setattr(self, attr, {})
 
         parser = _vcf_metadata_parser()
@@ -336,24 +312,24 @@ class Reader(object):
 
             if line.startswith('##INFO'):
                 key, val = parser.read_info(line)
-                self._infos[key] = val
+                self.infos[key] = val
 
             elif line.startswith('##FILTER'):
                 key, val = parser.read_filter(line)
-                self._filters[key] = val
+                self.filters[key] = val
 
             elif line.startswith('##FORMAT'):
                 key, val = parser.read_format(line)
-                self._formats[key] = val
+                self.formats[key] = val
 
             else:
                 key, val = parser.read_meta(line.strip())
-                self._metadata[key] = val
+                self.metadata[key] = val
 
             line = self.reader.next()
 
         fields = line.split()
-        self._samples = fields[9:]
+        self.samples = fields[9:]
 
     def _none_map(self, func, iterable, bad='.'):
         '''``map``, but make bad values None.'''
@@ -410,14 +386,19 @@ class Reader(object):
     def _parse_samples(self, samples, samp_fmt):
         '''Parse a sample entry according to the format specified in the FORMAT
         column.'''
-        samp_data = OrderedDict()
+        samp_data = []# OrderedDict()
         samp_fmt = samp_fmt.split(':')
-        for name, sample in zip(self.samples, samples):
-            sampdict = dict(zip(samp_fmt, sample.split(':')))
+
+        # cache ref to speed loop
+        formats = self.formats
+        mapper = self._mapper
+
+        for name, sample in itertools.izip(self.samples, samples):
+            sampdict = dict(itertools.izip(samp_fmt, sample.split(':')))
             for fmt in sampdict:
                 vals = sampdict[fmt].split(',')
                 try:
-                    entry_type = self.formats[fmt].type
+                    entry_type = formats[fmt].type
                 except KeyError:
                     try:
                         entry_type = RESERVED_FORMAT[fmt]
@@ -425,14 +406,16 @@ class Reader(object):
                         entry_type = 'String'
 
                 if entry_type == 'Integer':
-                    sampdict[fmt] = self._mapper(int, vals)
+                    sampdict[fmt] = mapper(int, vals)
                 elif entry_type == 'Float' or entry_type == 'Numeric':
-                    sampdict[fmt] = self._mapper(float, vals)
+                    sampdict[fmt] = mapper(float, vals)
                 elif sampdict[fmt] == './.' and self.aggro:
                     sampdict[fmt] = None
 
             sampdict['name'] = name
-            samp_data[name] = sampdict
+            samp_data.append(sampdict)
+
+        samp_data = OrderedDict(((x['name'], x) for x in samp_data))
 
         return samp_data
 

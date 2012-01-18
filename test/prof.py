@@ -11,5 +11,5 @@ cProfile.run('parse_1kg()', '1kg.prof')
 import pstats
 p = pstats.Stats('1kg.prof')
 
-p.strip_dirs().sort_stats('cumulative').print_stats()
+p.strip_dirs().sort_stats('time').print_stats()
 
