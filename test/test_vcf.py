@@ -49,7 +49,7 @@ class TestGatkOutput(unittest.TestCase):
 
             # check sample name lookup
             for s in self.samples:
-                assert s in site.genotypes
+                assert site.genotype(s)
 
         self.assertEqual(n,  self.n_calls)
 

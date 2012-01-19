@@ -40,7 +40,7 @@ plus three more attributes to handle genotype information:
 
     * ``Record.FORMAT``
     * ``Record.samples``
-    * ``Record.genotypes``
+    * ``Record.genotype``
 
 ``samples`` and ``genotypes``, not being the title of any column, is left lowercase.  The format
 of the fixed fields is from the spec.  Comma-separated lists in the VCF are
@@ -61,8 +61,8 @@ a ``True`` value. Integers and floats are handled exactly as you'd expect::
 ``record.FORMAT`` will be a string specifying the format of the genotype
 fields.  In case the FORMAT column does not exist, ``record.FORMAT`` is
 ``None``.  Finally, ``record.samples`` is a list of dictionaries containing the
-parsed sample column and ``record.genotypes`` is a dictionary of sample names
-to genotype data::
+parsed sample column and ``record.genotype`` is a way of looking up genotypes
+by sample name::
 
     >>> record = vcf_reader.next()
     >>> for sample in record.samples:
@@ -70,7 +70,7 @@ to genotype data::
     0|0
     0|1
     0/0
-    >>> print record.genotypes['NA00001']['GT']
+    >>> print record.genotype('NA00001')['GT']
     0|0
 
 Metadata regarding the VCF file itself can be investigated through the
@@ -110,10 +110,6 @@ import csv
 import gzip
 import itertools
 
-try:
-    from ordereddict import OrderedDict
-except ImportError:
-    from collections import OrderedDict
 
 try:
     import pysam
@@ -221,7 +217,7 @@ class _vcf_metadata_parser(object):
 
 
 class _Record(object):
-    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, genotypes):
+    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, samples, sample_indexes):
         self.CHROM = CHROM
         self.POS = POS
         self.ID = ID
@@ -231,7 +227,8 @@ class _Record(object):
         self.FILTER = FILTER
         self.INFO = INFO
         self.FORMAT = FORMAT
-        self.genotypes = genotypes
+        self.samples = samples
+        self._sample_indexes = sample_indexes
 
     def __str__(self):
         return "Record(CHROM=%(CHROM)s, POS=%(POS)s, REF=%(REF)s, ALT=%(ALT)s)" % self.__dict__
@@ -249,10 +246,9 @@ class _Record(object):
     def add_info(self, info, value=True):
         self.INFO[info] = value
 
-    @property
-    def samples(self):
-        """ return a list of samples, added for backwards compatibility """
-        return self.genotypes.values()
+
+    def genotype(self, name):
+        return self.samples[self._sample_indexes[name]]
 
 
 class Reader(object):
@@ -284,6 +280,7 @@ class Reader(object):
         self.filters = None
         self.formats = None
         self.samples = None
+        self._sample_indexes = None
         self._header_lines = []
         self._tabix = None
         if aggressive:
@@ -330,6 +327,7 @@ class Reader(object):
 
         fields = line.split()
         self.samples = fields[9:]
+        self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
 
     def _none_map(self, func, iterable, bad='.'):
         '''``map``, but make bad values None.'''
@@ -415,8 +413,6 @@ class Reader(object):
             sampdict['name'] = name
             samp_data.append(sampdict)
 
-        samp_data = OrderedDict(((x['name'], x) for x in samp_data))
-
         return samp_data
 
     def next(self):
@@ -451,7 +447,7 @@ class Reader(object):
             samples = self._parse_samples(row[9:], fmt)
 
         record = _Record(chrom, pos, ID, ref, alt, qual, filt, info, fmt,
-                         samples)
+                         samples, self._sample_indexes)
         return record
 
     def fetch(self, chrom, start, end):
