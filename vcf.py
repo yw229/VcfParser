@@ -258,6 +258,7 @@ class _Call(object):
             (a1, phase, a2) = list(self.gt_nums)
             if (int(a1) == 0) and (int(a2) == 0): return 0
             elif (int(a1) == 0) and (int(a2) >= 1): return 1
+            elif (int(a2) == 0) and (int(a1) >= 1): return 1
             elif (int(a1) >= 1) and (int(a2) >= 1): return 2
             else: return -1
         else:
