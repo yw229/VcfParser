@@ -239,7 +239,7 @@ class _Call(object):
            E.g. if VCF genotype is 0/1, return A/G
         '''
         # extract the numeric alleles of the gt string 
-        (a1, phase, a2) = list(self.gt_nums)
+        (a1, phase, a2) = list(self.gt_nums) # FIXME
         # lookup and return the actual DNA alleles
         return self.site.alleles[int(a1)] + \
                phase + \
@@ -315,6 +315,52 @@ class _Record(object):
     def samples(self):
         """ return a list of samples, added for backwards compatibility """
         return self.genotypes.values()
+
+    @property
+    def call_rate(self):
+        """ return the fraction of genotypes that were actually called. """
+        return float(sum(self.genotypes[s].called for s in self.genotypes)) \
+               / float(len(self.genotypes))
+
+    @property
+    def num_hom_ref(self):
+        """ return the number of homozygous for ref allele genotypes"""
+        return len([s for s in self.genotypes \
+                          if self.genotypes[s].gt_type == 0])
+
+    @property
+    def num_hom_alt(self):
+        """ return the number of homozygous for alt allele genotypes"""
+        return len([s for s in self.genotypes \
+                          if self.genotypes[s].gt_type == 2])
+
+    @property
+    def num_het(self):
+        """ return the number of heterozygous genotypes"""
+        return len([s for s in self.genotypes \
+                          if self.genotypes[s].gt_type == 1])
+
+    @property
+    def num_unknown(self):
+        """ return the number of unknown genotypes"""
+        return len([s for s in self.genotypes if self.genotypes[s].gt_type is None])
+    
+    @property
+    def nucl_diversity(self):
+        """
+        Calculate pi_hat (estimation of nucleotide diversity) for the site.
+        Derived from: 
+        \"Population Genetics: A Concise Guide, 2nd ed., p.45\"
+          John Gillespie.
+        """
+        hom_ref = self.num_hom_ref
+        het = self.num_het
+        hom_alt = self.num_hom_alt
+        
+        num_chroms = float(2.0*(hom_ref + het + hom_alt))
+        p = float(het + 2*hom_alt)/float(num_chroms)
+        q = 1.0-p
+        return float(num_chroms/(num_chroms-1.0)) * (2.0 * p * q)
 
 
 class VCFReader(object):
