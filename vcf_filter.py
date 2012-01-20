@@ -63,6 +63,11 @@ class VariantGenotypeQuality(vcf.Filter):
 
 
 if __name__ == '__main__':
+    # TODO: allow filter specification by short name
+    # TODO: flag that writes filter output into INFO column
+    # TODO: argument use implies filter use
+    # TODO: parallelize
+
 
     # dynamically build the list of available filters
     filters = {}
