@@ -230,13 +230,47 @@ class _Call(object):
         self.site = site
         self.sample = sample
         self.data = data
-
-    def called(self):
-        return self.GT != './.'
+        self.gt_nums = self.data['GT']
+        self.called = self.gt_nums is not None
 
     @property
-    def GT(self):
-        return self.data['GT']
+    def gt_bases(self):
+        '''Return the actual genotype alleles.
+           E.g. if VCF genotype is 0/1, return A/G
+        '''
+        # extract the numeric alleles of the gt string 
+        (a1, phase, a2) = list(self.gt_nums)
+        # lookup and return the actual DNA alleles
+        return self.site.alleles[int(a1)] + \
+               phase + \
+               self.site.alleles[int(a2)]
+
+    @property
+    def gt_type(self):
+        '''Return the type of genotype.
+           hom_ref  = 0
+           het      = 1
+           hom_alt  = 2  (we don;t track _which+ ALT)
+           uncalled = None
+        '''
+        # extract the numeric alleles of the gt string
+        if self.called:
+            (a1, phase, a2) = list(self.gt_nums)
+            if (int(a1) == 0) and (int(a2) == 0): return 0
+            elif (int(a1) == 0) and (int(a2) >= 1): return 1
+            elif (int(a1) >= 1) and (int(a2) >= 1): return 2
+            else: return -1
+        else:
+            return None
+            
+    @property
+    def phased(self):
+        '''Return a boolean indicating whether or not
+           the genotype is phased for this sample
+        '''
+        return self.data['GT'].find("|") >= 0
+
+
 
 
 class _Record(object):
@@ -251,7 +285,10 @@ class _Record(object):
         self.INFO = INFO
         self.FORMAT = FORMAT
         self.genotypes = genotypes
-
+        # create a list of alleles. [0] = REF, [1:] = ALTS
+        self.alleles = [self.REF]
+        self.alleles.extend(self.ALT)
+        
     def __str__(self):
         return "Record(CHROM=%(CHROM)s, POS=%(POS)s, REF=%(REF)s, ALT=%(ALT)s)" % self.__dict__
 
