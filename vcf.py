@@ -349,6 +349,10 @@ class _Record(object):
     def nucl_diversity(self):
         """
         Calculate pi_hat (estimation of nucleotide diversity) for the site.
+        This metric can be summed across multiple sites to compute regional
+        nucleotide diversity estimates.  For example, pi_hat for all variants
+        in a given gene.
+        
         Derived from: 
         \"Population Genetics: A Concise Guide, 2nd ed., p.45\"
           John Gillespie.
