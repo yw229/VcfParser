@@ -9,11 +9,14 @@ parser = argparse.ArgumentParser(description='Filter a VCF file',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         )
 parser.add_argument('input', metavar='input', type=str, nargs=1,
-                   help='File to process (use - for STDIN)')
+        help='File to process (use - for STDIN)')
 parser.add_argument('filters', metavar='filter', type=str, nargs='+',
-                   help='Filters to use')
+        help='Filters to use')
 parser.add_argument('--no-short-circuit', action='store_true',
-                   help='Do not stop filter processing on a site if a single filter fails.')
+        help='Do not stop filter processing on a site if a single filter fails.')
+parser.add_argument('--output', action='store', default=sys.stdout,
+        help='Filename to output (default stdout)')
+
 
 
 class SiteQuality(vcf.Filter):
@@ -24,7 +27,7 @@ class SiteQuality(vcf.Filter):
 
     @classmethod
     def customize_parser(self, parser):
-        parser.add_argument('--site-quality', type=float, default=30,
+        parser.add_argument('--site-quality', type=int, default=30,
                 help='Filter sites below this quality')
 
     def __init__(self, args):
@@ -35,15 +38,16 @@ class SiteQuality(vcf.Filter):
             return record.QUAL
 
 
+
 class VariantGenotypeQuality(vcf.Filter):
 
     description = 'Demand a minimum quality associated with a non reference call'
-    name = 'var_genotype_quality'
-    short_name = 'vgq'
+    name = 'min_genotype_quality'
+    short_name = 'mgq'
 
     @classmethod
     def customize_parser(self, parser):
-        parser.add_argument('--genotype-quality', type=float, default=50,
+        parser.add_argument('--genotype-quality', type=int, default=50,
                 help='Filter sites with no genotypes above this quality')
 
     def __init__(self, args):
@@ -82,12 +86,10 @@ if __name__ == '__main__':
     for name in args.filters:
         f = filters[name](args)
         chain.append(f)
-        inp._filters[f.short_name] = vcf._Filter(f.short_name, f.description)
+        inp.filters[f.filter_name()] = vcf._Filter(f.filter_name(), f.description)
 
 
-    print inp._filters
-    # create readers and writers
-    oup = vcf.Writer(sys.stdout, inp)
+    oup = vcf.Writer(args.output, inp)
 
     # apply filters
     short_circuit = not args.no_short_circuit
@@ -96,7 +98,7 @@ if __name__ == '__main__':
         for filt in chain:
             result = filt(record)
             if result:
-                record.add_filter(filt.short_name + str(result))
+                record.add_filter(filt.filter_name())
                 if short_circuit:
                     break
         oup.write_record(record)

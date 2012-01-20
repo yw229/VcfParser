@@ -1,9 +1,12 @@
 import unittest
 import doctest
 import os
+import commands
 from StringIO import StringIO
 
 import vcf
+import vcf_filter
+
 
 suite = doctest.DocTestSuite(vcf)
 
@@ -141,11 +144,52 @@ class TestOpenMethods(unittest.TestCase):
         self.assertEqual(self.samples, r.samples)
 
 
+class TestFilter(unittest.TestCase):
+
+
+    def testApplyFilter(self):
+        out = commands.getoutput('python vcf_filter.py --site-quality 30 test/example.vcf site_quality')
+        #print out
+        buf = StringIO()
+        buf.write(out)
+        buf.seek(0)
+        reader = vcf.Reader(buf)
+
+        # check filter got into output file
+        assert 'sq30' in reader.filters
+
+        # check sites were filtered
+        n = 0
+        for r in reader:
+            if r.QUAL < 30:
+                assert 'sq30' in r.FILTER
+                n += 1
+            else:
+                assert 'sq30' not in r.FILTER
+        assert n == 2
+
+
+    def testApplyMultipleFilters(self):
+        out = commands.getoutput('python vcf_filter.py --site-quality 30 '
+        '--genotype-quality 50 test/example.vcf site_quality min_genotype_quality')
+        #print out
+        buf = StringIO()
+        buf.write(out)
+        buf.seek(0)
+        reader = vcf.Reader(buf)
+
+        assert 'mgq50' in reader.filters
+        assert 'sq30' in reader.filters
+
+
+
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFreebayesOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFilter))
+
 
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
 

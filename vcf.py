@@ -541,12 +541,13 @@ class Filter(object):
         pass
 
     def __init__(self, args):
-        pass
+        self.threshold = 0
 
     def __call__(self):
         raise NotImplementedError('Filters must implement this method')
 
-
+    def filter_name(self):
+        return '%s%s' % (self.short_name, self.threshold)
 
 
 def __update_readme():
