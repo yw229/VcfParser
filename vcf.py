@@ -470,8 +470,35 @@ class Writer(object):
     def __init__(self, stream, template):
         self.writer = csv.writer(stream, delimiter="\t")
         self.template = template
-        for line in template._header_lines:
-            stream.write(line)
+
+        for line in template.metadata.items():
+            stream.write('##%s=%s\n' % line)
+        for line in template.infos.values():
+            stream.write('##INFO=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % line)
+        for line in template.formats.values():
+            stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % line)
+
+        for line in template.filters.values():
+            stream.write('##FILTER=<ID=%s,Description="%s">\n' % line)
+
+        self.info_pattern = re.compile(r'''\#\#INFO=<
+            ID=(?P<id>[^,]+),
+            Number=(?P<number>-?\d+|\.|[AG]),
+            Type=(?P<type>Integer|Float|Flag|Character|String),
+            Description="(?P<desc>[^"]*)"
+            >''', re.VERBOSE)
+        self.filter_pattern = re.compile(r'''\#\#FILTER=<
+            ID=(?P<id>[^,]+),
+            Description="(?P<desc>[^"]*)"
+            >''', re.VERBOSE)
+        self.format_pattern = re.compile(r'''\#\#FORMAT=<
+            ID=(?P<id>.+),
+            Number=(?P<number>-?\d+|\.|[AG]),
+            Type=(?P<type>.+),
+            Description="(?P<desc>.*)"
+            >''', re.VERBOSE)
+        self.meta_pattern = re.compile(r'''##(?P<key>.+)=(?P<val>.+)''')
+
         self.write_header()
 
     def write_header(self):

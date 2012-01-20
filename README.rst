@@ -39,7 +39,7 @@ plus three more attributes to handle genotype information:
 
     * ``Record.FORMAT``
     * ``Record.samples``
-    * ``Record.genotypes``
+    * ``Record.genotype``
 
 ``samples`` and ``genotypes``, not being the title of any column, is left lowercase.  The format
 of the fixed fields is from the spec.  Comma-separated lists in the VCF are
@@ -60,8 +60,8 @@ a ``True`` value. Integers and floats are handled exactly as you'd expect::
 ``record.FORMAT`` will be a string specifying the format of the genotype
 fields.  In case the FORMAT column does not exist, ``record.FORMAT`` is
 ``None``.  Finally, ``record.samples`` is a list of dictionaries containing the
-parsed sample column and ``record.genotypes`` is a dictionary of sample names
-to genotype data::
+parsed sample column and ``record.genotype`` is a way of looking up genotypes
+by sample name::
 
     >>> record = vcf_reader.next()
     >>> for sample in record.samples:
@@ -69,7 +69,7 @@ to genotype data::
     0|0
     0|1
     0/0
-    >>> print record.genotypes['NA00001']['GT']
+    >>> print record.genotype('NA00001')['GT']
     0|0
 
 Metadata regarding the VCF file itself can be investigated through the
@@ -93,7 +93,7 @@ For example::
     'Ancestral Allele'
 
 Random access is supported for files with tabix indexes.  Simply call fetch for the
-region you are interested in:
+region you are interested in::
 
     >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
     >>> for record in vcf_reader.fetch('20', 1110696-1, 1230237):
