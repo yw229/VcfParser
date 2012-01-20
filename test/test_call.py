@@ -12,6 +12,8 @@ for var in vcf_reader:
                   var.genotypes[sample].gt_bases, \
                   var.genotypes[sample].gt_type, \
                   var.genotypes[sample].phased
+        else:
+            print "\t", sample, " uncalled"
     print
 
 
