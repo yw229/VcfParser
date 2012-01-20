@@ -12,7 +12,7 @@ setup(
     name='PyVCF',
     py_modules=['vcf', 'vcf_filter'],
     scripts=['vcf_melt', 'vcf_filter.py'],
-    author='James Casbon',
+    author='James Casbon and @jdoughertyii',
     author_email='casbon@gmail.com',
     description='Variant Call Format (VCF) parser for python',
     test_suite='test.test_vcf.suite',
@@ -22,5 +22,6 @@ setup(
             'site_quality = vcf_filter:SiteQuality',
             'vgq = vcf_filter:VariantGenotypeQuality',
         ]
-    }
+    },
+    url='https://github.com/jamescasbon/PyVCF'
 )

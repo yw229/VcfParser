@@ -103,6 +103,10 @@ region you are interested in::
     Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
 
 
+An extensible script is available to filter vcf files in vcf_filter.py.  VCF filters
+declared by other packages will be available for use in this script.  Please
+see FILTERS.md for full description.
+
 '''
 import collections
 import re
