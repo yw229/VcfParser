@@ -2,7 +2,7 @@
 -----------
 
 * Added test code
-* Added VCFWriter class
+* Added Writer class
 * Allow negative number in ``INFO`` and ``FORMAT`` fields (thanks @martijnvermaat)
 * Prefer ``vcf.Reader`` to ``vcf.VCFReader``
 * Support compressed files with guessing where filename is available on fsock
