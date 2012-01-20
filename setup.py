@@ -23,5 +23,6 @@ setup(
             'vgq = vcf_filter:VariantGenotypeQuality',
         ]
     },
-    url='https://github.com/jamescasbon/PyVCF'
+    url='https://github.com/jamescasbon/PyVCF',
+    version='0.1'
 )
