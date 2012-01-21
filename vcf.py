@@ -375,6 +375,22 @@ class _Record(object):
         q = 1.0-p
         return float(num_chroms/(num_chroms-1.0)) * (2.0 * p * q)
 
+    def get_hom_refs(self):
+        """ return the list of hom ref genotypes"""
+        return [s for s in self.samples if s.gt_type == 0]
+
+    def get_hom_alts(self):
+        """ return the list of hom alt genotypes"""
+        return [s for s in self.samples if s.gt_type == 2]
+
+    def get_hets(self):
+        """ return the list of het genotypes"""
+        return [s for s in self.samples if s.gt_type == 1]
+
+    def get_unknowns(self):
+        """ return the list of unknown genotypes"""
+        return [s for s in self.samples if s.gt_type is None]
+
 
 class Reader(object):
     '''Read and parse a VCF v 4.0 file'''
