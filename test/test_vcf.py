@@ -100,9 +100,108 @@ class TestWriter(unittest.TestCase):
 
         for l, r in zip(records, reader2):
             self.assertEquals(l.samples, r.samples)
+            
+class TestRecord(unittest.TestCase):
 
+    def test_num_calls(self):
+        reader = vcf.Reader(fh('example.vcf'))
+        for var in reader:
+            num_calls = (var.num_hom_ref + var.num_hom_alt + \
+                         var.num_het + var.num_unknown)
+            self.assertEqual(len(var.samples), num_calls)
 
+    def test_call_rate(self):
+        reader = vcf.Reader(fh('example.vcf'))
+        for var in reader:
+            call_rate = var.call_rate
+            if var.POS == 14370:
+                self.assertEqual(3.0/3.0, call_rate)
+            if var.POS == 17330:
+                self.assertEqual(3.0/3.0, call_rate)
+            if var.POS == 1110696:
+                self.assertEqual(3.0/3.0, call_rate)
+            if var.POS == 1230237:
+                self.assertEqual(3.0/3.0, call_rate)
+            elif var.POS == 1234567:
+                self.assertEqual(2.0/3.0, call_rate)
 
+    def test_aaf(self):
+        reader = vcf.Reader(fh('example.vcf'))
+        for var in reader:
+            aaf = var.aaf
+            if var.POS == 14370:
+                self.assertEqual(3.0/6.0, aaf)
+            if var.POS == 17330:
+                self.assertEqual(1.0/6.0, aaf)
+            if var.POS == 1110696:
+                self.assertEqual(None, aaf)
+            if var.POS == 1230237:
+                self.assertEqual(0.0/6.0, aaf)
+            elif var.POS == 1234567:
+                self.assertEqual(None, aaf)
+
+    def test_pi(self):
+        reader = vcf.Reader(fh('example.vcf'))
+        for var in reader:
+            pi = var.nucl_diversity
+            if var.POS == 14370:
+                self.assertEqual(6.0/10.0, pi)
+            if var.POS == 17330:
+                self.assertEqual(1.0/3.0, pi)
+            if var.POS == 1110696:
+                self.assertEqual(None, pi)
+            if var.POS == 1230237:
+                self.assertEqual(0.0/6.0, pi)
+            elif var.POS == 1234567:
+                self.assertEqual(None, pi)
+
+class TestCall(unittest.TestCase):
+
+    def test_phased(self):
+        reader = vcf.Reader(fh('example.vcf'))
+        for var in reader:
+            phases = [s.phased for s in var.samples] 
+            if var.POS == 14370:
+                self.assertEqual([True, True, False], phases)
+            if var.POS == 17330:
+                self.assertEqual([True, True, False], phases)
+            if var.POS == 1110696:
+                self.assertEqual([True, True, False], phases)
+            if var.POS == 1230237:
+                self.assertEqual([True, True, False], phases)
+            elif var.POS == 1234567:
+                self.assertEqual([False, False, False], phases)
+
+    def test_gt_bases(self):
+        reader = vcf.Reader(fh('example.vcf'))
+        for var in reader:
+            gt_bases = [s.gt_bases for s in var.samples]
+            if var.POS == 14370:
+                self.assertEqual(['G|G', 'A|G', 'A/A'], gt_bases)
+            elif var.POS == 17330:
+                self.assertEqual(['T|T', 'T|A', 'T/T'], gt_bases)
+            elif var.POS == 1110696:
+                self.assertEqual(['G|T', 'T|G', 'T/T'], gt_bases)
+            elif var.POS == 1230237:
+                self.assertEqual(['T|T', 'T|T', 'T/T'], gt_bases)
+            elif var.POS == 1234567:
+                self.assertEqual([None, 'GTCT/GTACT', 'G/G'], gt_bases)
+                
+    def test_gt_types(self):
+        reader = vcf.Reader(fh('example.vcf'))
+        for var in reader:
+            gt_types = [s.gt_type for s in var.samples]
+            if var.POS == 14370:
+                self.assertEqual([0,1,2], gt_types)
+            elif var.POS == 17330:
+                self.assertEqual([0,1,0], gt_types)
+            elif var.POS == 1110696:
+                self.assertEqual([1,1,2], gt_types)
+            elif var.POS == 1230237:
+                self.assertEqual([0,0,0], gt_types)
+            elif var.POS == 1234567:
+                self.assertEqual([None,1,2], gt_types)
+                
 class TestTabix(unittest.TestCase):
 
     def setUp(self):
@@ -190,7 +289,6 @@ suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFilter))
-
-
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
-
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRecord))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCall))
