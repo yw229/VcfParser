@@ -227,6 +227,7 @@ class _Call(object):
         self.sample = sample
         self.data = data
         self.gt_nums = self.data['GT']
+        # FIXME: this assumes aggro is True
         self.called = self.gt_nums is not None
 
     def __repr__(self):
