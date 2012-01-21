@@ -66,11 +66,11 @@ by sample name::
 
     >>> record = vcf_reader.next()
     >>> for sample in record.samples:
-    ...     print sample.data['GT']
+    ...     print sample['GT']
     0|0
     0|1
     0/0
-    >>> print record.genotype('NA00001').data['GT']
+    >>> print record.genotype('NA00001')['GT']
     0|0
 
 Metadata regarding the VCF file itself can be investigated through the
@@ -279,7 +279,9 @@ class _Call(object):
         '''
         return self.data['GT'].find("|") >= 0
 
-
+    def __getitem__(self, key):
+        """ Lookup value, backwards compatibility """
+        return self.data[key]
 
 
 class _Record(object):
