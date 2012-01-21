@@ -112,6 +112,7 @@ import collections
 import re
 import csv
 import gzip
+import sys
 import itertools
 
 
@@ -227,7 +228,7 @@ class _Call(object):
         self.sample = sample
         self.data = data
         self.gt_nums = self.data['GT']
-        self.called = self.gt_nums is not None and self.gt_nums is not "./."
+        self.called = self.gt_nums is not None and self.gt_nums != "./."
 
     def __repr__(self):
         return "Call(sample=%s, GT=%s)" % (self.sample, self.gt_nums)
@@ -241,22 +242,22 @@ class _Call(object):
            E.g. if VCF genotype is 0/1, return A/G
         '''
         # nothing to do if no genotype call
-        if self.gt_nums is None or self.gt_nums == "./.":
-            return None
-        # grab the numeric alleles of the gt string; tokenize by phasing
-        phase_char = "/"
-        (a1, a2) = self.gt_nums.split(phase_char)
-        if self.phased:
-            phase_char = "|"
+        if self.called:
+            # grab the numeric alleles of the gt string; tokenize by phasing
+            phase_char = "/"
             (a1, a2) = self.gt_nums.split(phase_char)
-        # lookup and return the actual DNA alleles
-        try:
-            return self.site.alleles[int(a1)] + \
-                   phase_char + \
-                   self.site.alleles[int(a2)]
-        except:
-            sys.stderr.write("Allele number not found in list of alleles\n")
-            exit(1)
+            if self.phased:
+                phase_char = "|"
+                (a1, a2) = self.gt_nums.split(phase_char)
+            # lookup and return the actual DNA alleles
+            try:
+                return self.site.alleles[int(a1)] + \
+                       phase_char + \
+                       self.site.alleles[int(a2)]
+            except:
+                sys.stderr.write("Allele number not found in list of alleles\n")
+        else:
+            return None
 
     @property
     def gt_type(self):
@@ -337,22 +338,22 @@ class _Record(object):
     @property
     def num_hom_ref(self):
         """ return the number of homozygous for ref allele genotypes"""
-        return len([s for s in self.genotypes if s.gt_type == 0])
+        return len([s for s in self.samples if s.gt_type == 0])
 
     @property
     def num_hom_alt(self):
         """ return the number of homozygous for alt allele genotypes"""
-        return len([s for s in self.genotypes if s.gt_type == 2])
+        return len([s for s in self.samples if s.gt_type == 2])
 
     @property
     def num_het(self):
         """ return the number of heterozygous genotypes"""
-        return len([s for s in self.genotypes if s.gt_type == 1])
+        return len([s for s in self.samples if s.gt_type == 1])
 
     @property
     def num_unknown(self):
         """ return the number of unknown genotypes"""
-        return len([s for s in self.genotypes if s.gt_type is None])
+        return len([s for s in self.samples if s.gt_type is None])
 
     @property
     def nucl_diversity(self):
