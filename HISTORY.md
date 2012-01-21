@@ -9,6 +9,7 @@
 * Allow opening by filename as well as filesocket
 * Support fetching rows for tabixed indexed files
 * Performance improvements (see ``test/prof.py``)
+* Added extensible filter script (see FILTERS.md), vcf_filter.py 
 
 Contributions
 -------------
