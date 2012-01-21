@@ -4,16 +4,17 @@ import vcf
 
 vcf_reader = vcf.VCFReader(open(sys.argv[1]), 'rb')
 for var in vcf_reader:
-    print var.CHROM, var.POS, var.REF, var.ALT
-    for sample in vcf_reader.samples:
-        if var.genotypes[sample].called:
-            print "\t", sample, \
-                  var.genotypes[sample].gt_nums, \
-                  var.genotypes[sample].gt_bases, \
-                  var.genotypes[sample].gt_type, \
-                  var.genotypes[sample].phased
+    print var.CHROM, var.POS, var.REF, var.ALT, len(var.samples), \
+          var.num_het, var.num_hom_ref, var.num_hom_alt, var.num_unknown
+    for s in var.samples:
+        if s.called:
+            print "\t", s.sample, \
+                  s.gt_nums, \
+                  s.gt_bases, \
+                  s.gt_type, \
+                  s.phased
         else:
-            print "\t", sample, " uncalled"
+            print "\t", s.sample, " uncalled"
     print
 
 
