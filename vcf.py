@@ -506,32 +506,46 @@ class Reader(object):
         samp_data = []# OrderedDict()
         samp_fmt = samp_fmt.split(':')
 
-        # cache ref to speed loop
-        formats = self.formats
-        mapper = self._mapper
+        samp_fmt_types = []
+
+        for fmt in samp_fmt:
+            try:
+                entry_type = self.formats[fmt].type
+            except KeyError:
+                try:
+                    entry_type = RESERVED_FORMAT[fmt]
+                except KeyError:
+                    entry_type = 'String'
+            samp_fmt_types.append(entry_type)
 
         for name, sample in itertools.izip(self.samples, samples):
-            sampdict = dict(itertools.izip(samp_fmt, sample.split(':')))
-            for fmt in sampdict:
-                vals = sampdict[fmt].split(',')
-                try:
-                    entry_type = formats[fmt].type
-                except KeyError:
-                    try:
-                        entry_type = RESERVED_FORMAT[fmt]
-                    except KeyError:
-                        entry_type = 'String'
+            sampdict = self._parse_sample(sample, samp_fmt, samp_fmt_types)
+            samp_data.append(_Call(site, name, sampdict))
 
+        return samp_data
+
+    def _parse_sample(self, sample, samp_fmt, samp_fmt_types):
+        mapper = self._mapper
+
+        sampdict = dict([(x, None) for x in samp_fmt])
+
+        for fmt, entry_type, vals in itertools.izip(samp_fmt, samp_fmt_types, sample.split(':')):
+            vals = vals.split(',')
+
+            if fmt == 'GT':
+                gt = vals[0]
+                if self.aggro and gt == './.':
+                    gt = None
+                sampdict[fmt] = gt
+                break
+            else:
                 if entry_type == 'Integer':
                     sampdict[fmt] = mapper(int, vals)
                 elif entry_type == 'Float' or entry_type == 'Numeric':
                     sampdict[fmt] = mapper(float, vals)
-                elif sampdict[fmt] == './.' and self.aggro:
-                    sampdict[fmt] = None
-
-            samp_data.append(_Call(site, name, sampdict))
-
-        return samp_data
+                else:
+                    sampdict[fmt] = vals
+        return sampdict
 
     def next(self):
         '''Return the next record in the file.'''
