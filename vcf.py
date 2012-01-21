@@ -227,8 +227,7 @@ class _Call(object):
         self.sample = sample
         self.data = data
         self.gt_nums = self.data['GT']
-        # FIXME: this assumes aggro is True
-        self.called = self.gt_nums is not None
+        self.called = self.gt_nums is not None and self.gt_nums is not "./."
 
     def __repr__(self):
         return "Call(sample=%s, GT=%s)" % (self.sample, self.gt_nums)
