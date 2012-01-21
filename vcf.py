@@ -240,12 +240,23 @@ class _Call(object):
         '''Return the actual genotype alleles.
            E.g. if VCF genotype is 0/1, return A/G
         '''
-        # extract the numeric alleles of the gt string
-        (a1, phase, a2) = list(self.gt_nums) # FIXME
+        # nothing to do if no genotype call
+        if self.gt_nums is None or self.gt_nums == "./.":
+            return None
+        # grab the numeric alleles of the gt string; tokenize by phasing
+        phase_char = "/"
+        (a1, a2) = self.gt_nums.split(phase_char)
+        if self.phased:
+            phase_char = "|"
+            (a1, a2) = self.gt_nums.split(phase_char)
         # lookup and return the actual DNA alleles
-        return self.site.alleles[int(a1)] + \
-               phase + \
-               self.site.alleles[int(a2)]
+        try:
+            return self.site.alleles[int(a1)] + \
+                   phase_char + \
+                   self.site.alleles[int(a2)]
+        except:
+            sys.stderr.write("Allele number not found in list of alleles\n")
+            exit(1)
 
     @property
     def gt_type(self):
@@ -257,12 +268,10 @@ class _Call(object):
         '''
         # extract the numeric alleles of the gt string
         if self.called:
-            ##
-            ##  Converting the genotype string to a list
-            ##  of individual characters is a hack.
-            ##  TODO: Use a REGEX.
-            ##
-            (a1, phase, a2) = list(self.gt_nums) # FIXME
+            # grab the numeric alleles of the gt string; tokenize by phasing
+            (a1, a2) = self.gt_nums.split("/") \
+                if not self.phased else self.gt_nums.split("|")
+            # infer genotype type from allele numbers
             if (int(a1) == 0) and (int(a2) == 0): return 0
             elif (int(a1) == 0) and (int(a2) >= 1): return 1
             elif (int(a2) == 0) and (int(a1) >= 1): return 1
