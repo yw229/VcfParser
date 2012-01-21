@@ -9,11 +9,11 @@ specified in the meta-information lines --  specifically the ##INFO and
 against the reserved types mentioned in the spec.  Failing that, it will just
 return strings.
 
-There is currently one piece of interface: ``VCFReader``.  It takes a file-like
+There is currently one piece of interface: ``Reader``.  It takes a file-like
 object and acts as a reader::
 
     >>> import vcf
-    >>> vcf_reader = vcf.VCFReader(open('test/example.vcf', 'rb'))
+    >>> vcf_reader = vcf.Reader(open('test/example.vcf', 'rb'))
     >>> for record in vcf_reader:
     ...     print record
     Record(CHROM=20, POS=14370, REF=G, ALT=['A'])
@@ -40,7 +40,7 @@ plus three more attributes to handle genotype information:
 
     * ``Record.FORMAT``
     * ``Record.samples``
-    * ``Record.genotypes``
+    * ``Record.genotype``
 
 ``samples`` and ``genotypes``, not being the title of any column, is left lowercase.  The format
 of the fixed fields is from the spec.  Comma-separated lists in the VCF are
@@ -49,7 +49,7 @@ one-entry Python lists (see, e.g., ``Record.ALT``).  Semicolon-delimited lists
 of key=value pairs are converted to Python dictionaries, with flags being given
 a ``True`` value. Integers and floats are handled exactly as you'd expect::
 
-    >>> vcf_reader = vcf.VCFReader(open('test/example.vcf', 'rb'))
+    >>> vcf_reader = vcf.Reader(open('test/example.vcf', 'rb'))
     >>> record = vcf_reader.next()
     >>> print record.POS
     14370
@@ -61,26 +61,26 @@ a ``True`` value. Integers and floats are handled exactly as you'd expect::
 ``record.FORMAT`` will be a string specifying the format of the genotype
 fields.  In case the FORMAT column does not exist, ``record.FORMAT`` is
 ``None``.  Finally, ``record.samples`` is a list of dictionaries containing the
-parsed sample column and ``record.genotypes`` is a dictionary of sample names
-to genotype data::
+parsed sample column and ``record.genotype`` is a way of looking up genotypes
+by sample name::
 
     >>> record = vcf_reader.next()
     >>> for sample in record.samples:
-    ...     print sample.GT
+    ...     print sample.data['GT']
     0|0
     0|1
     0/0
-    >>> print record.genotypes['NA00001'].GT
+    >>> print record.genotype('NA00001').data['GT']
     0|0
 
 Metadata regarding the VCF file itself can be investigated through the
 following attributes:
 
-    * ``VCFReader.metadata``
-    * ``VCFReader.infos``
-    * ``VCFReader.filters``
-    * ``VCFReader.formats``
-    * ``VCFReader.samples``
+    * ``Reader.metadata``
+    * ``Reader.infos``
+    * ``Reader.filters``
+    * ``Reader.formats``
+    * ``Reader.samples``
 
 For example::
 
@@ -93,16 +93,32 @@ For example::
     >>> vcf_reader.infos['AA'].desc
     'Ancestral Allele'
 
+Random access is supported for files with tabix indexes.  Simply call fetch for the
+region you are interested in::
+
+    >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
+    >>> for record in vcf_reader.fetch('20', 1110696-1, 1230237):
+    ...     print record
+    Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
+    Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
+
+
+An extensible script is available to filter vcf files in vcf_filter.py.  VCF filters
+declared by other packages will be available for use in this script.  Please
+see FILTERS.md for full description.
+
 '''
 import collections
 import re
 import csv
+import gzip
+import itertools
+
 
 try:
-    from ordereddict import OrderedDict
+    import pysam
 except ImportError:
-    from collections import OrderedDict
-
+    pysam = None
 
 
 # Metadata parsers/constants
@@ -203,26 +219,6 @@ class _vcf_metadata_parser(object):
         return match.group('key'), match.group('val')
 
 
-# Reader class
-class _meta_info(object):
-    '''Decorator for a property stored in the header info.'''
-    def __init__(self, func):
-        self.func = func
-
-    def __call__(self, fself):
-        if getattr(fself, "_%s" % self.func.__name__) is None:
-            fself._parse_metainfo()
-
-        return self.func(fself)
-
-    def __repr__(self):
-        '''Return the function's docstring.'''
-        return self.func.__doc__
-
-    def __doc__(self):
-        '''Return the function's docstring.'''
-        return self.func.__doc__
-
 
 class _Call(object):
 
@@ -233,12 +229,18 @@ class _Call(object):
         self.gt_nums = self.data['GT']
         self.called = self.gt_nums is not None
 
+    def __repr__(self):
+        return "Call(sample=%s, GT=%s)" % (self.sample, self.gt_nums)
+
+    def __eq__(self, other):
+        return (self.sample == other.sample and self.data == other.data)
+
     @property
     def gt_bases(self):
         '''Return the actual genotype alleles.
            E.g. if VCF genotype is 0/1, return A/G
         '''
-        # extract the numeric alleles of the gt string 
+        # extract the numeric alleles of the gt string
         (a1, phase, a2) = list(self.gt_nums) # FIXME
         # lookup and return the actual DNA alleles
         return self.site.alleles[int(a1)] + \
@@ -268,7 +270,7 @@ class _Call(object):
             else: return -1
         else:
             return None
-            
+
     @property
     def phased(self):
         '''Return a boolean indicating whether or not
@@ -280,7 +282,8 @@ class _Call(object):
 
 
 class _Record(object):
-    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, genotypes=None):
+
+    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, sample_indexes, samples=None):
         self.CHROM = CHROM
         self.POS = POS
         self.ID = ID
@@ -290,11 +293,12 @@ class _Record(object):
         self.FILTER = FILTER
         self.INFO = INFO
         self.FORMAT = FORMAT
-        self.genotypes = genotypes
         # create a list of alleles. [0] = REF, [1:] = ALTS
         self.alleles = [self.REF]
         self.alleles.extend(self.ALT)
-        
+        self.samples = samples
+        self._sample_indexes = sample_indexes
+
     def __str__(self):
         return "Record(CHROM=%(CHROM)s, POS=%(POS)s, REF=%(REF)s, ALT=%(ALT)s)" % self.__dict__
 
@@ -302,7 +306,7 @@ class _Record(object):
         self.FORMAT = self.FORMAT + ':' + fmt
 
     def add_filter(self, flt):
-        if self.FILTER == '.':
+        if self.FILTER == '.' or self.FILTER == 'PASS':
             self.FILTER = ''
         else:
             self.FILTER = self.FILTER + ';'
@@ -311,10 +315,9 @@ class _Record(object):
     def add_info(self, info, value=True):
         self.INFO[info] = value
 
-    @property
-    def samples(self):
-        """ return a list of samples, added for backwards compatibility """
-        return self.genotypes.values()
+
+    def genotype(self, name):
+        return self.samples[self._sample_indexes[name]]
 
     @property
     def call_rate(self):
@@ -344,7 +347,7 @@ class _Record(object):
     def num_unknown(self):
         """ return the number of unknown genotypes"""
         return len([s for s in self.genotypes if self.genotypes[s].gt_type is None])
-    
+
     @property
     def nucl_diversity(self):
         """
@@ -352,77 +355,68 @@ class _Record(object):
         This metric can be summed across multiple sites to compute regional
         nucleotide diversity estimates.  For example, pi_hat for all variants
         in a given gene.
-        
-        Derived from: 
+
+        Derived from:
         \"Population Genetics: A Concise Guide, 2nd ed., p.45\"
           John Gillespie.
         """
         hom_ref = self.num_hom_ref
         het = self.num_het
         hom_alt = self.num_hom_alt
-        
+
         num_chroms = float(2.0*(hom_ref + het + hom_alt))
         p = float(het + 2*hom_alt)/float(num_chroms)
         q = 1.0-p
         return float(num_chroms/(num_chroms-1.0)) * (2.0 * p * q)
 
 
-class VCFReader(object):
+class Reader(object):
     '''Read and parse a VCF v 4.0 file'''
-    def __init__(self, fsock, aggressive=False):
+    def __init__(self, fsock=None, filename=None, aggressive=False, compressed=False):
         super(VCFReader, self).__init__()
+
+        if not (fsock or filename):
+            raise Exception('You must provide at least fsock or filename')
+
+        if filename:
+            self.filename = filename
+            if fsock is None:
+                self.reader = file(filename)
+
+        if fsock:
+            self.reader = fsock
+            if filename is None:
+                if hasattr(fsock, 'name'):
+                    filename = fsock.name
+            self.filename = filename
+
+        if compressed or (filename and filename.endswith('.gz')):
+            self.reader = gzip.GzipFile(fileobj=self.reader)
+
         self.aggro = aggressive
-        self._metadata = None
-        self._infos = None
-        self._filters = None
-        self._formats = None
-        self._samples = None
-        self.reader = fsock
+        self.metadata = None
+        self.infos = None
+        self.filters = None
+        self.formats = None
+        self.samples = None
+        self._sample_indexes = None
         self._header_lines = []
+        self._tabix = None
         if aggressive:
             self._mapper = self._none_map
         else:
             self._mapper = self._pass_map
+        self._parse_metainfo()
 
     def __iter__(self):
         return self
-
-    @property
-    @_meta_info
-    def metadata(self):
-        '''Return the information from lines starting "##"'''
-        return self._metadata
-
-    @property
-    @_meta_info
-    def infos(self):
-        '''Return the information from lines starting "##INFO"'''
-        return self._infos
-
-    @property
-    @_meta_info
-    def filters(self):
-        '''Return the information from lines starting "##FILTER"'''
-        return self._filters
-
-    @property
-    @_meta_info
-    def formats(self):
-        '''Return the information from lines starting "##FORMAT"'''
-        return self._formats
-
-    @property
-    @_meta_info
-    def samples(self):
-        '''Return the names of the genotype fields.'''
-        return self._samples
 
     def _parse_metainfo(self):
         '''Parse the information stored in the metainfo of the VCF.
 
         The end user shouldn't have to use this.  She can access the metainfo
         directly with ``self.metadata``.'''
-        for attr in ('_metadata', '_infos', '_filters', '_formats'):
+        for attr in ('metadata', 'infos', 'filters', 'formats'):
             setattr(self, attr, {})
 
         parser = _vcf_metadata_parser()
@@ -434,24 +428,25 @@ class VCFReader(object):
 
             if line.startswith('##INFO'):
                 key, val = parser.read_info(line)
-                self._infos[key] = val
+                self.infos[key] = val
 
             elif line.startswith('##FILTER'):
                 key, val = parser.read_filter(line)
-                self._filters[key] = val
+                self.filters[key] = val
 
             elif line.startswith('##FORMAT'):
                 key, val = parser.read_format(line)
-                self._formats[key] = val
+                self.formats[key] = val
 
             else:
                 key, val = parser.read_meta(line.strip())
-                self._metadata[key] = val
+                self.metadata[key] = val
 
             line = self.reader.next()
 
         fields = line.split()
-        self._samples = fields[9:]
+        self.samples = fields[9:]
+        self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
 
     def _none_map(self, func, iterable, bad='.'):
         '''``map``, but make bad values None.'''
@@ -508,14 +503,19 @@ class VCFReader(object):
     def _parse_samples(self, samples, samp_fmt, site):
         '''Parse a sample entry according to the format specified in the FORMAT
         column.'''
-        samp_data = OrderedDict()
+        samp_data = []# OrderedDict()
         samp_fmt = samp_fmt.split(':')
-        for name, sample in zip(self.samples, samples):
-            sampdict = dict(zip(samp_fmt, sample.split(':')))
+
+        # cache ref to speed loop
+        formats = self.formats
+        mapper = self._mapper
+
+        for name, sample in itertools.izip(self.samples, samples):
+            sampdict = dict(itertools.izip(samp_fmt, sample.split(':')))
             for fmt in sampdict:
                 vals = sampdict[fmt].split(',')
                 try:
-                    entry_type = self.formats[fmt].type
+                    entry_type = formats[fmt].type
                 except KeyError:
                     try:
                         entry_type = RESERVED_FORMAT[fmt]
@@ -523,20 +523,18 @@ class VCFReader(object):
                         entry_type = 'String'
 
                 if entry_type == 'Integer':
-                    sampdict[fmt] = self._mapper(int, vals)
+                    sampdict[fmt] = mapper(int, vals)
                 elif entry_type == 'Float' or entry_type == 'Numeric':
-                    sampdict[fmt] = self._mapper(float, vals)
+                    sampdict[fmt] = mapper(float, vals)
                 elif sampdict[fmt] == './.' and self.aggro:
                     sampdict[fmt] = None
 
-            samp_data[name] = _Call(site, name, sampdict)
+            samp_data.append(_Call(site, name, sampdict))
 
         return samp_data
 
     def next(self):
         '''Return the next record in the file.'''
-        if self._samples is None:
-            self._parse_metainfo()
         row = self.reader.next().split()
         chrom = row[0]
         pos = int(row[1])
@@ -548,7 +546,11 @@ class VCFReader(object):
 
         ref = row[3]
         alt = self._mapper(str, row[4].split(','))
-        qual = float(row[5]) if '.' in row[5] else int(row[5])
+
+        if row[5] == '.':
+            qual = '.'
+        else:
+            qual = float(row[5]) if '.' in row[5] else int(row[5])
         filt = row[6].split(';') if ';' in row[6] else row[6]
         if filt == 'PASS' and self.aggro:
             filt = None
@@ -561,26 +563,63 @@ class VCFReader(object):
         except IndexError:
             fmt = None
 
-        record = _Record(chrom, pos, ID, ref, alt, qual, filt, info, fmt)
+        record = _Record(chrom, pos, ID, ref, alt, qual, filt, info, fmt, self._sample_indexes)
 
         if fmt is not None:
             samples = self._parse_samples(row[9:], fmt, record)
-            record.genotypes = samples
+            record.samples = samples
+
         return record
 
+    def fetch(self, chrom, start, end):
+        if not pysam:
+            raise Exception('pysam not available, try "pip install pysam"?')
 
-class VCFWriter(object):
+        if not self.filename:
+            raise Exception('Please provide a filename (or a "normal" fsock)')
+
+        if not self._tabix:
+            self._tabix = pysam.Tabixfile(self.filename)
+
+        self.reader = self._tabix.fetch(chrom, start, end)
+        return self
+
+class Writer(object):
 
     fixed_fields = "#CHROM POS ID REF ALT QUAL FILTER INFO FORMAT".split()
 
     def __init__(self, stream, template):
         self.writer = csv.writer(stream, delimiter="\t")
         self.template = template
-        # TODO: shouldnt have to poke the parser to get the meta
-        if template._samples is None:
-            template._parse_metainfo()
-        for line in template._header_lines:
-            stream.write(line)
+
+        for line in template.metadata.items():
+            stream.write('##%s=%s\n' % line)
+        for line in template.infos.values():
+            stream.write('##INFO=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % line)
+        for line in template.formats.values():
+            stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % line)
+
+        for line in template.filters.values():
+            stream.write('##FILTER=<ID=%s,Description="%s">\n' % line)
+
+        self.info_pattern = re.compile(r'''\#\#INFO=<
+            ID=(?P<id>[^,]+),
+            Number=(?P<number>-?\d+|\.|[AG]),
+            Type=(?P<type>Integer|Float|Flag|Character|String),
+            Description="(?P<desc>[^"]*)"
+            >''', re.VERBOSE)
+        self.filter_pattern = re.compile(r'''\#\#FILTER=<
+            ID=(?P<id>[^,]+),
+            Description="(?P<desc>[^"]*)"
+            >''', re.VERBOSE)
+        self.format_pattern = re.compile(r'''\#\#FORMAT=<
+            ID=(?P<id>.+),
+            Number=(?P<number>-?\d+|\.|[AG]),
+            Type=(?P<type>.+),
+            Description="(?P<desc>.*)"
+            >''', re.VERBOSE)
+        self.meta_pattern = re.compile(r'''##(?P<key>.+)=(?P<val>.+)''')
+
         self.write_header()
 
     def write_header(self):
@@ -602,9 +641,9 @@ class VCFWriter(object):
         return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.items()])
 
     def _format_sample(self, fmt, sample):
-        if sample["GT"] == ".":
-            return "."
-        return ':'.join((str(self._stringify(sample[f])) for f in fmt.split(':')))
+        if sample.data["GT"] == "./.":
+            return "./."
+        return ':'.join((str(self._stringify(sample.data[f])) for f in fmt.split(':')))
 
     def _stringify(self, x):
         if type(x) == type([]):
@@ -612,7 +651,32 @@ class VCFWriter(object):
         return str(x)
 
 
+
+class Filter(object):
+    name = 'filter'
+    description = 'VCF filter base class'
+    short_name = 'f'
+
+    @classmethod
+    def customize_parser(self):
+        pass
+
+    def __init__(self, args):
+        self.threshold = 0
+
+    def __call__(self):
+        raise NotImplementedError('Filters must implement this method')
+
+    def filter_name(self):
+        return '%s%s' % (self.short_name, self.threshold)
+
+
 def __update_readme():
     import sys
     file('README.rst', 'w').write(sys.modules[__name__].__doc__)
+
+
+# backwards compatibility
+VCFReader = Reader
+VCFWriter = Writer
 

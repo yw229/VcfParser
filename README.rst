@@ -8,11 +8,11 @@ specified in the meta-information lines --  specifically the ##INFO and
 against the reserved types mentioned in the spec.  Failing that, it will just
 return strings.
 
-There is currently one piece of interface: ``VCFReader``.  It takes a file-like
+There is currently one piece of interface: ``Reader``.  It takes a file-like
 object and acts as a reader::
 
     >>> import vcf
-    >>> vcf_reader = vcf.VCFReader(open('test/example.vcf', 'rb'))
+    >>> vcf_reader = vcf.Reader(open('test/example.vcf', 'rb'))
     >>> for record in vcf_reader:
     ...     print record
     Record(CHROM=20, POS=14370, REF=G, ALT=['A'])
@@ -39,7 +39,7 @@ plus three more attributes to handle genotype information:
 
     * ``Record.FORMAT``
     * ``Record.samples``
-    * ``Record.genotypes``
+    * ``Record.genotype``
 
 ``samples`` and ``genotypes``, not being the title of any column, is left lowercase.  The format
 of the fixed fields is from the spec.  Comma-separated lists in the VCF are
@@ -48,7 +48,7 @@ one-entry Python lists (see, e.g., ``Record.ALT``).  Semicolon-delimited lists
 of key=value pairs are converted to Python dictionaries, with flags being given
 a ``True`` value. Integers and floats are handled exactly as you'd expect::
 
-    >>> vcf_reader = vcf.VCFReader(open('test/example.vcf', 'rb'))
+    >>> vcf_reader = vcf.Reader(open('test/example.vcf', 'rb'))
     >>> record = vcf_reader.next()
     >>> print record.POS
     14370
@@ -60,8 +60,8 @@ a ``True`` value. Integers and floats are handled exactly as you'd expect::
 ``record.FORMAT`` will be a string specifying the format of the genotype
 fields.  In case the FORMAT column does not exist, ``record.FORMAT`` is
 ``None``.  Finally, ``record.samples`` is a list of dictionaries containing the
-parsed sample column and ``record.genotypes`` is a dictionary of sample names
-to genotype data::
+parsed sample column and ``record.genotype`` is a way of looking up genotypes
+by sample name::
 
     >>> record = vcf_reader.next()
     >>> for sample in record.samples:
@@ -69,17 +69,17 @@ to genotype data::
     0|0
     0|1
     0/0
-    >>> print record.genotypes['NA00001']['GT']
+    >>> print record.genotype('NA00001')['GT']
     0|0
 
 Metadata regarding the VCF file itself can be investigated through the
 following attributes:
 
-    * ``VCFReader.metadata``
-    * ``VCFReader.infos``
-    * ``VCFReader.filters``
-    * ``VCFReader.formats``
-    * ``VCFReader.samples``
+    * ``Reader.metadata``
+    * ``Reader.infos``
+    * ``Reader.filters``
+    * ``Reader.formats``
+    * ``Reader.samples``
 
 For example::
 
@@ -91,4 +91,18 @@ For example::
     {'q10': Filter(id='q10', desc='Quality below 10'), 's50': Filter(id='s50', desc='Less than 50% of samples have data')}
     >>> vcf_reader.infos['AA'].desc
     'Ancestral Allele'
+
+Random access is supported for files with tabix indexes.  Simply call fetch for the
+region you are interested in::
+
+    >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
+    >>> for record in vcf_reader.fetch('20', 1110696-1, 1230237):
+    ...     print record
+    Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
+    Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
+
+
+An extensible script is available to filter vcf files in vcf_filter.py.  VCF filters
+declared by other packages will be available for use in this script.  Please
+see FILTERS.md for full description.
 
