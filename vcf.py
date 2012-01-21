@@ -277,7 +277,7 @@ class _Call(object):
                 # same alt, so hom_alt
                 if a1 == a2: return 2
                 # diff alts, so het
-                else return 1
+                else: return 1
             else: return -1
         else:
             return None
@@ -332,9 +332,14 @@ class _Record(object):
         return self.samples[self._sample_indexes[name]]
 
     @property
+    def num_called(self):
+        """Return the number of called samples"""
+        return sum(s.called for s in self.samples)
+        
+    @property
     def call_rate(self):
         """ return the fraction of genotypes that were actually called. """
-        return float(sum(s.called for s in self.samples)) / float(len(self.samples))
+        return float(self.num_called) / float(len(self.samples))
 
     @property
     def num_hom_ref(self):
@@ -357,6 +362,21 @@ class _Record(object):
         return len([s for s in self.samples if s.gt_type is None])
 
     @property
+    def aaf(self):
+        """Calculate the allele frequency of the alternate allele.
+           NOTE 1: Punt if more than one alternate allele.
+           NOTE 2: Denominator calc'ed from _called_ genotypes.
+        """
+        # skip if more than one alternate allele. assumes bi-allelic
+        if len(self.ALT) > 1:
+            return None
+        hom_ref = self.num_hom_ref
+        het = self.num_het
+        hom_alt = self.num_hom_alt
+        num_chroms = float(2.0*self.num_called)
+        return float(het + 2*hom_alt)/float(num_chroms)
+
+    @property
     def nucl_diversity(self):
         """
         Calculate pi_hat (estimation of nucleotide diversity) for the site.
@@ -368,13 +388,12 @@ class _Record(object):
         \"Population Genetics: A Concise Guide, 2nd ed., p.45\"
           John Gillespie.
         """
-        hom_ref = self.num_hom_ref
-        het = self.num_het
-        hom_alt = self.num_hom_alt
-
-        num_chroms = float(2.0*(hom_ref + het + hom_alt))
-        p = float(het + 2*hom_alt)/float(num_chroms)
+        # skip if more than one alternate allele. assumes bi-allelic
+        if len(self.ALT) > 1:
+            return None
+        p = self.aaf
         q = 1.0-p
+        num_chroms = float(2.0*self.num_called)
         return float(num_chroms/(num_chroms-1.0)) * (2.0 * p * q)
 
     def get_hom_refs(self):
