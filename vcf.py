@@ -326,38 +326,33 @@ class _Record(object):
     def add_info(self, info, value=True):
         self.INFO[info] = value
 
-
     def genotype(self, name):
         return self.samples[self._sample_indexes[name]]
 
     @property
     def call_rate(self):
         """ return the fraction of genotypes that were actually called. """
-        return float(sum(self.genotypes[s].called for s in self.genotypes)) \
-               / float(len(self.genotypes))
+        return float(sum(s.called for s in self.samples)) / float(len(self.samples))
 
     @property
     def num_hom_ref(self):
         """ return the number of homozygous for ref allele genotypes"""
-        return len([s for s in self.genotypes \
-                          if self.genotypes[s].gt_type == 0])
+        return len([s for s in self.genotypes if s.gt_type == 0])
 
     @property
     def num_hom_alt(self):
         """ return the number of homozygous for alt allele genotypes"""
-        return len([s for s in self.genotypes \
-                          if self.genotypes[s].gt_type == 2])
+        return len([s for s in self.genotypes if s.gt_type == 2])
 
     @property
     def num_het(self):
         """ return the number of heterozygous genotypes"""
-        return len([s for s in self.genotypes \
-                          if self.genotypes[s].gt_type == 1])
+        return len([s for s in self.genotypes if s.gt_type == 1])
 
     @property
     def num_unknown(self):
         """ return the number of unknown genotypes"""
-        return len([s for s in self.genotypes if self.genotypes[s].gt_type is None])
+        return len([s for s in self.genotypes if s.gt_type is None])
 
     @property
     def nucl_diversity(self):
