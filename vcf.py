@@ -273,7 +273,11 @@ class _Call(object):
             if (int(a1) == 0) and (int(a2) == 0): return 0
             elif (int(a1) == 0) and (int(a2) >= 1): return 1
             elif (int(a2) == 0) and (int(a1) >= 1): return 1
-            elif (int(a1) >= 1) and (int(a2) >= 1): return 2
+            elif (int(a1) >= 1) and (int(a2) >= 1): 
+                # same alt, so hom_alt
+                if a1 == a2: return 2
+                # diff alts, so het
+                else return 1
             else: return -1
         else:
             return None
