@@ -244,11 +244,8 @@ class _Call(object):
         # nothing to do if no genotype call
         if self.called:
             # grab the numeric alleles of the gt string; tokenize by phasing
-            phase_char = "/"
+            phase_char = "/" if not self.phased else "|"
             (a1, a2) = self.gt_nums.split(phase_char)
-            if self.phased:
-                phase_char = "|"
-                (a1, a2) = self.gt_nums.split(phase_char)
             # lookup and return the actual DNA alleles
             try:
                 return self.site.alleles[int(a1)] + \
