@@ -250,8 +250,9 @@ class _vcf_metadata_parser(object):
         return match.group('key'), match.group('val')
 
 
-
 class _Call(object):
+    """ A called genotype, an entry in a VCF file"""
+
 
     def __init__(self, site, sample, data):
         self.site = site
@@ -325,6 +326,7 @@ class _Call(object):
 
 
 class _Record(object):
+    """ A set of calls at a site.  A row in a VCF file. """
 
     def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, sample_indexes, samples=None):
         self.CHROM = CHROM
@@ -609,7 +611,6 @@ class Reader(object):
 
                 gt = vals[0]
 
-
                 if gt == './.':
                     if self.aggro:
                         gt = None
@@ -649,8 +650,6 @@ class Reader(object):
             filt = None
         info = self._parse_info(row[7])
 
-
-
         try:
             fmt = row[8]
         except IndexError:
@@ -676,6 +675,7 @@ class Reader(object):
 
         self.reader = self._tabix.fetch(chrom, start, end)
         return self
+
 
 class Writer(object):
 
