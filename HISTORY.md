@@ -1,4 +1,11 @@
-0.1 Release
+0.2 Release 
+-----------
+
+* Replace genotype dictionary with a ``Call`` object
+* Methods on ``Record`` and ``Call`` (thanks @arq5x)
+* Shortcut parse_sample when genotype is None
+
+0.1 Release 
 -----------
 
 * Added test code
