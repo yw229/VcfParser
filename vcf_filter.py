@@ -67,6 +67,7 @@ if __name__ == '__main__':
     # TODO: flag that writes filter output into INFO column
     # TODO: argument use implies filter use
     # TODO: parallelize
+    # TODO: prevent plugins raising an exception from crashing the script
 
 
     # dynamically build the list of available filters

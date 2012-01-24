@@ -57,6 +57,18 @@ a ``True`` value. Integers and floats are handled exactly as you'd expect::
     >>> print record.INFO['AF']
     [0.5]
 
+There are a number of convienience functions for each ``Record`` allowing you to
+examine properties of interest::
+
+    >>> print record.num_called, record.call_rate, record.num_unknown
+    3 1.0 0
+    >>> print record.num_hom_ref, record.num_het, record.num_hom_alt
+    1 1 1
+    >>> print record.nucl_diversity, record.aaf
+    0.6 0.5
+    >>> print record.get_hets()
+    [Call(sample=NA00002, GT=1|0)]
+
 ``record.FORMAT`` will be a string specifying the format of the genotype
 fields.  In case the FORMAT column does not exist, ``record.FORMAT`` is
 ``None``.  Finally, ``record.samples`` is a list of dictionaries containing the
@@ -71,6 +83,24 @@ by sample name::
     0/0
     >>> print record.genotype('NA00001')['GT']
     0|0
+
+The genotypes are represented by ``Call`` objects, which have three attributes: the
+corresponding Record ``site``, the sample name in ``sample`` and a dictionary of
+call data in ``data``::
+
+     >>> call = record.genotype('NA00001')
+     >>> print call.site
+     Record(CHROM=20, POS=17330, REF=T, ALT=['A'])
+     >>> print call.sample
+     NA00001
+     >>> print call.data
+     {'GT': '0|0', 'HQ': [58, 50], 'DP': [3], 'GQ': [49]}
+
+There are also a number of methods::
+
+    >>> print call.called, call.gt_type, call.gt_bases, call.phased
+    True 0 T|T True
+
 
 Metadata regarding the VCF file itself can be investigated through the
 following attributes:
