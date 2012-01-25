@@ -42,7 +42,7 @@ plus three more attributes to handle genotype information:
     * ``Record.samples``
     * ``Record.genotype``
 
-``samples`` and ``genotypes``, not being the title of any column, is left lowercase.  The format
+``samples`` and ``genotype``, not being the title of any column, are left lowercase.  The format
 of the fixed fields is from the spec.  Comma-separated lists in the VCF are
 converted to lists.  In particular, one-entry VCF lists are converted to
 one-entry Python lists (see, e.g., ``Record.ALT``).  Semicolon-delimited lists
@@ -251,8 +251,16 @@ class _vcf_metadata_parser(object):
 
 
 class _Call(object):
-    """ A called genotype, an entry in a VCF file"""
+    """ A genotype call, a cell entry in a VCF file"""
 
+    site = None
+    """ The ``_Record`` for the ``_Call``  """
+    sample = None
+    """ The sample name """
+    data = None
+    """ Dictionary of data from the VCF file """
+    called = None
+    """ True if the GT is not ./. """
 
     def __init__(self, site, sample, data):
         self.site = site
@@ -269,7 +277,7 @@ class _Call(object):
 
     @property
     def gt_bases(self):
-        '''Return the actual genotype alleles.
+        '''The actual genotype alleles.
            E.g. if VCF genotype is 0/1, return A/G
         '''
         # nothing to do if no genotype call
@@ -289,7 +297,7 @@ class _Call(object):
 
     @property
     def gt_type(self):
-        '''Return the type of genotype.
+        '''The type of genotype.
            hom_ref  = 0
            het      = 1
            hom_alt  = 2  (we don;t track _which+ ALT)
@@ -315,7 +323,7 @@ class _Call(object):
 
     @property
     def phased(self):
-        '''Return a boolean indicating whether or not
+        '''A boolean indicating whether or not
            the genotype is phased for this sample
         '''
         return self.data['GT'].find("|") >= 0
@@ -326,7 +334,16 @@ class _Call(object):
 
 
 class _Record(object):
-    """ A set of calls at a site.  A row in a VCF file. """
+    """ A set of calls at a site.  Equivalent to a row in a VCF file.
+
+        The standard VCF fields CHROM, POS, ID, REF, ALT, QUAL, FILTER,
+        INFO and FORMAT are available as properties.
+
+        The list of genotype calls is in the ``samples`` property.
+    """
+
+    samples = None
+    """ List of ``_Call`` objects ordered as in file """
 
     def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, sample_indexes, samples=None):
         self.CHROM = CHROM
@@ -361,41 +378,42 @@ class _Record(object):
         self.INFO[info] = value
 
     def genotype(self, name):
+        """ Lookup a ``_Call`` for the sample given in ``name`` """
         return self.samples[self._sample_indexes[name]]
 
     @property
     def num_called(self):
-        """Return the number of called samples"""
+        """ The number of called samples"""
         return sum(s.called for s in self.samples)
 
     @property
     def call_rate(self):
-        """ return the fraction of genotypes that were actually called. """
+        """ The fraction of genotypes that were actually called. """
         return float(self.num_called) / float(len(self.samples))
 
     @property
     def num_hom_ref(self):
-        """ return the number of homozygous for ref allele genotypes"""
+        """ The number of homozygous for ref allele genotypes"""
         return len([s for s in self.samples if s.gt_type == 0])
 
     @property
     def num_hom_alt(self):
-        """ return the number of homozygous for alt allele genotypes"""
+        """ The number of homozygous for alt allele genotypes"""
         return len([s for s in self.samples if s.gt_type == 2])
 
     @property
     def num_het(self):
-        """ return the number of heterozygous genotypes"""
+        """ The number of heterozygous genotypes"""
         return len([s for s in self.samples if s.gt_type == 1])
 
     @property
     def num_unknown(self):
-        """ return the number of unknown genotypes"""
+        """ The number of unknown genotypes"""
         return len([s for s in self.samples if s.gt_type is None])
 
     @property
     def aaf(self):
-        """Calculate the allele frequency of the alternate allele.
+        """ The allele frequency of the alternate allele.
            NOTE 1: Punt if more than one alternate allele.
            NOTE 2: Denominator calc'ed from _called_ genotypes.
         """
@@ -411,7 +429,7 @@ class _Record(object):
     @property
     def nucl_diversity(self):
         """
-        Calculate pi_hat (estimation of nucleotide diversity) for the site.
+        pi_hat (estimation of nucleotide diversity) for the site.
         This metric can be summed across multiple sites to compute regional
         nucleotide diversity estimates.  For example, pi_hat for all variants
         in a given gene.
@@ -429,25 +447,43 @@ class _Record(object):
         return float(num_chroms/(num_chroms-1.0)) * (2.0 * p * q)
 
     def get_hom_refs(self):
-        """ return the list of hom ref genotypes"""
+        """ The list of hom ref genotypes"""
         return [s for s in self.samples if s.gt_type == 0]
 
     def get_hom_alts(self):
-        """ return the list of hom alt genotypes"""
+        """ The list of hom alt genotypes"""
         return [s for s in self.samples if s.gt_type == 2]
 
     def get_hets(self):
-        """ return the list of het genotypes"""
+        """ The list of het genotypes"""
         return [s for s in self.samples if s.gt_type == 1]
 
     def get_unknowns(self):
-        """ return the list of unknown genotypes"""
+        """ The list of unknown genotypes"""
         return [s for s in self.samples if s.gt_type is None]
 
 
 class Reader(object):
-    '''Read and parse a VCF v 4.0 file'''
+    """ Reader for a VCF v 4.0 file, an iterator returning ``_Record objects`` """
+
+    metadata = None
+    """ metadata fields from header """
+    infos = None
+    """ info fields from header """
+    filters = None
+    """ filter fields from header """
+    formats = None
+    """ format fields from header """
+    samples = None
+    """ list of sample IDs """
+
     def __init__(self, fsock=None, filename=None, aggressive=False, compressed=False):
+        """ Create a new Reader for a VCF file.
+
+            You must specify either fsock (stream) or filename.  Gzipped streams
+            or files are attempted to be recogized by the file extension, or gzipped
+            can be forced with ``compressed=True``
+        """
         super(VCFReader, self).__init__()
 
         if not (fsock or filename):
@@ -664,6 +700,7 @@ class Reader(object):
         return record
 
     def fetch(self, chrom, start, end):
+        """ fetch records from a Tabix indexed VCF, requires pysam """
         if not pysam:
             raise Exception('pysam not available, try "pip install pysam"?')
 
@@ -678,6 +715,7 @@ class Reader(object):
 
 
 class Writer(object):
+    """ VCF Writer """
 
     fixed_fields = "#CHROM POS ID REF ALT QUAL FILTER INFO FORMAT".split()
 
@@ -691,35 +729,17 @@ class Writer(object):
             stream.write('##INFO=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % line)
         for line in template.formats.values():
             stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % line)
-
         for line in template.filters.values():
             stream.write('##FILTER=<ID=%s,Description="%s">\n' % line)
 
-        self.info_pattern = re.compile(r'''\#\#INFO=<
-            ID=(?P<id>[^,]+),
-            Number=(?P<number>-?\d+|\.|[AG]),
-            Type=(?P<type>Integer|Float|Flag|Character|String),
-            Description="(?P<desc>[^"]*)"
-            >''', re.VERBOSE)
-        self.filter_pattern = re.compile(r'''\#\#FILTER=<
-            ID=(?P<id>[^,]+),
-            Description="(?P<desc>[^"]*)"
-            >''', re.VERBOSE)
-        self.format_pattern = re.compile(r'''\#\#FORMAT=<
-            ID=(?P<id>.+),
-            Number=(?P<number>-?\d+|\.|[AG]),
-            Type=(?P<type>.+),
-            Description="(?P<desc>.*)"
-            >''', re.VERBOSE)
-        self.meta_pattern = re.compile(r'''##(?P<key>.+)=(?P<val>.+)''')
+        self._write_header()
 
-        self.write_header()
-
-    def write_header(self):
+    def _write_header(self):
         # TODO: write INFO, etc
         self.writer.writerow(self.fixed_fields + self.template.samples)
 
     def write_record(self, record):
+        """ write a record to the file """
         ffs = [record.CHROM, record.POS, record.ID, record.REF, self._format_alt(record.ALT),
             record.QUAL, record.FILTER, self._format_info(record.INFO), record.FORMAT]
 
@@ -746,22 +766,31 @@ class Writer(object):
 
 
 class Filter(object):
-    name = 'filter'
+    """ Base class for vcf_filter.py filters """
+
+    name = 'f'
+    """ name used to activate filter and in VCF headers """
+
     description = 'VCF filter base class'
-    short_name = 'f'
+    """ descrtiption used in vcf headers """
 
     @classmethod
-    def customize_parser(self):
+    def customize_parser(self, parser):
+        """ hook to extend argparse parser with custom arguments """
         pass
 
     def __init__(self, args):
+        """ create the filter using argparse ``args`` """
         self.threshold = 0
 
     def __call__(self):
+        """ filter a site, return not None if the site should be filtered """
         raise NotImplementedError('Filters must implement this method')
 
+
     def filter_name(self):
-        return '%s%s' % (self.short_name, self.threshold)
+        """ return the name to put in the VCF header, default is ``name`` + ``threshold`` """
+        return '%s%s' % (self.name, self.threshold)
 
 
 def __update_readme():

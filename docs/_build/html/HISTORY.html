@@ -1,0 +1,153 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Changes &mdash; PyVCF v0.2.2 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="PyVCF v0.2.2 documentation" href="index.html" />
+    <link rel="prev" title="Filtering VCF files" href="FILTERS.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="FILTERS.html" title="Filtering VCF files"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">PyVCF v0.2.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="changes">
+<h1>Changes<a class="headerlink" href="#changes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="release">
+<h2>0.2.2 Release<a class="headerlink" href="#release" title="Permalink to this headline">¶</a></h2>
+<p>Documentation release</p>
+</div>
+<div class="section" id="id1">
+<h2>0.2.1 Release<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Add shebang to vcf_filter.py</li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h2>0.2 Release<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Replace genotype dictionary with a <tt class="docutils literal"><span class="pre">Call</span></tt> object</li>
+<li>Methods on <tt class="docutils literal"><span class="pre">Record</span></tt> and <tt class="docutils literal"><span class="pre">Call</span></tt> (thanks &#64;arq5x)</li>
+<li>Shortcut parse_sample when genotype is None</li>
+</ul>
+</div>
+<div class="section" id="id3">
+<h2>0.1 Release<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Added test code</li>
+<li>Added Writer class</li>
+<li>Allow negative number in <tt class="docutils literal"><span class="pre">INFO</span></tt> and <tt class="docutils literal"><span class="pre">FORMAT</span></tt> fields (thanks &#64;martijnvermaat)</li>
+<li>Prefer <tt class="docutils literal"><span class="pre">vcf.Reader</span></tt> to <tt class="docutils literal"><span class="pre">vcf.VCFReader</span></tt></li>
+<li>Support compressed files with guessing where filename is available on fsock</li>
+<li>Allow opening by filename as well as filesocket</li>
+<li>Support fetching rows for tabixed indexed files</li>
+<li>Performance improvements (see <tt class="docutils literal"><span class="pre">test/prof.py</span></tt>)</li>
+<li>Added extensible filter script (see FILTERS.md), vcf_filter.py</li>
+</ul>
+</div>
+<div class="section" id="contributions">
+<h2>Contributions<a class="headerlink" href="#contributions" title="Permalink to this headline">¶</a></h2>
+<p>Project started by &#64;jdoughertyii and taken over by &#64;jamescasbon on 12th January 2011.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Changes</a><ul>
+<li><a class="reference internal" href="#release">0.2.2 Release</a></li>
+<li><a class="reference internal" href="#id1">0.2.1 Release</a></li>
+<li><a class="reference internal" href="#id2">0.2 Release</a></li>
+<li><a class="reference internal" href="#id3">0.1 Release</a></li>
+<li><a class="reference internal" href="#contributions">Contributions</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="FILTERS.html"
+                        title="previous chapter">Filtering VCF files</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/HISTORY.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="FILTERS.html" title="Filtering VCF files"
+             >previous</a> |</li>
+        <li><a href="index.html">PyVCF v0.2.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, James Casbon, @jdoughertyii.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

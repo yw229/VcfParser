@@ -1,0 +1,253 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Introduction &mdash; PyVCF v0.2.2 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="PyVCF v0.2.2 documentation" href="index.html" />
+    <link rel="next" title="API" href="API.html" />
+    <link rel="prev" title="PyVCF - A Variant Call Format Parser for Python" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="API.html" title="API"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="PyVCF - A Variant Call Format Parser for Python"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">PyVCF v0.2.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-vcf">
+<span id="introduction"></span><h1>Introduction<a class="headerlink" href="#module-vcf" title="Permalink to this headline">¶</a></h1>
+<p>A VCFv4.0 parser for Python.</p>
+<p>The intent of this module is to mimic the <tt class="docutils literal"><span class="pre">csv</span></tt> module in the Python stdlib,
+as opposed to more flexible serialization formats like JSON or YAML.  <tt class="docutils literal"><span class="pre">vcf</span></tt>
+will attempt to parse the content of each record based on the data types
+specified in the meta-information lines &#8211;  specifically the ##INFO and
+##FORMAT lines.  If these lines are missing or incomplete, it will check
+against the reserved types mentioned in the spec.  Failing that, it will just
+return strings.</p>
+<p>There is currently one piece of interface: <tt class="docutils literal"><span class="pre">Reader</span></tt>.  It takes a file-like
+object and acts as a reader:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">vcf</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">vcf_reader</span> <span class="o">=</span> <span class="n">vcf</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;test/example.vcf&#39;</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">vcf_reader</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">print</span> <span class="n">record</span>
+<span class="go">Record(CHROM=20, POS=14370, REF=G, ALT=[&#39;A&#39;])</span>
+<span class="go">Record(CHROM=20, POS=17330, REF=T, ALT=[&#39;A&#39;])</span>
+<span class="go">Record(CHROM=20, POS=1110696, REF=A, ALT=[&#39;G&#39;, &#39;T&#39;])</span>
+<span class="go">Record(CHROM=20, POS=1230237, REF=T, ALT=[&#39;.&#39;])</span>
+<span class="go">Record(CHROM=20, POS=1234567, REF=GTCT, ALT=[&#39;G&#39;, &#39;GTACT&#39;])</span>
+</pre></div>
+</div>
+<p>This produces a great deal of information, but it is conveniently accessed.
+The attributes of a Record are the 8 fixed fields from the VCF spec plus two
+more.  That is:</p>
+<blockquote>
+<div><ul class="simple">
+<li><tt class="docutils literal"><span class="pre">Record.CHROM</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Record.POS</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Record.ID</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Record.REF</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Record.ALT</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Record.QUAL</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Record.FILTER</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Record.INFO</span></tt></li>
+</ul>
+</div></blockquote>
+<p>plus three more attributes to handle genotype information:</p>
+<blockquote>
+<div><ul class="simple">
+<li><tt class="docutils literal"><span class="pre">Record.FORMAT</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Record.samples</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Record.genotype</span></tt></li>
+</ul>
+</div></blockquote>
+<p><tt class="docutils literal"><span class="pre">samples</span></tt> and <tt class="docutils literal"><span class="pre">genotype</span></tt>, not being the title of any column, are left lowercase.  The format
+of the fixed fields is from the spec.  Comma-separated lists in the VCF are
+converted to lists.  In particular, one-entry VCF lists are converted to
+one-entry Python lists (see, e.g., <tt class="docutils literal"><span class="pre">Record.ALT</span></tt>).  Semicolon-delimited lists
+of key=value pairs are converted to Python dictionaries, with flags being given
+a <tt class="xref docutils literal"><span class="pre">True</span></tt> value. Integers and floats are handled exactly as you&#8217;d expect:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">vcf_reader</span> <span class="o">=</span> <span class="n">vcf</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;test/example.vcf&#39;</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">record</span> <span class="o">=</span> <span class="n">vcf_reader</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">record</span><span class="o">.</span><span class="n">POS</span>
+<span class="go">14370</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">record</span><span class="o">.</span><span class="n">ALT</span>
+<span class="go">[&#39;A&#39;]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">record</span><span class="o">.</span><span class="n">INFO</span><span class="p">[</span><span class="s">&#39;AF&#39;</span><span class="p">]</span>
+<span class="go">[0.5]</span>
+</pre></div>
+</div>
+<p>There are a number of convienience functions for each <tt class="docutils literal"><span class="pre">Record</span></tt> allowing you to
+examine properties of interest:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">record</span><span class="o">.</span><span class="n">num_called</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">call_rate</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">num_unknown</span>
+<span class="go">3 1.0 0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">record</span><span class="o">.</span><span class="n">num_hom_ref</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">num_het</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">num_hom_alt</span>
+<span class="go">1 1 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">record</span><span class="o">.</span><span class="n">nucl_diversity</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">aaf</span>
+<span class="go">0.6 0.5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">record</span><span class="o">.</span><span class="n">get_hets</span><span class="p">()</span>
+<span class="go">[Call(sample=NA00002, GT=1|0)]</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">record.FORMAT</span></tt> will be a string specifying the format of the genotype
+fields.  In case the FORMAT column does not exist, <tt class="docutils literal"><span class="pre">record.FORMAT</span></tt> is
+<tt class="xref docutils literal"><span class="pre">None</span></tt>.  Finally, <tt class="docutils literal"><span class="pre">record.samples</span></tt> is a list of dictionaries containing the
+parsed sample column and <tt class="docutils literal"><span class="pre">record.genotype</span></tt> is a way of looking up genotypes
+by sample name:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">record</span> <span class="o">=</span> <span class="n">vcf_reader</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">samples</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">print</span> <span class="n">sample</span><span class="p">[</span><span class="s">&#39;GT&#39;</span><span class="p">]</span>
+<span class="go">0|0</span>
+<span class="go">0|1</span>
+<span class="go">0/0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">record</span><span class="o">.</span><span class="n">genotype</span><span class="p">(</span><span class="s">&#39;NA00001&#39;</span><span class="p">)[</span><span class="s">&#39;GT&#39;</span><span class="p">]</span>
+<span class="go">0|0</span>
+</pre></div>
+</div>
+<p>The genotypes are represented by <tt class="docutils literal"><span class="pre">Call</span></tt> objects, which have three attributes: the
+corresponding Record <tt class="docutils literal"><span class="pre">site</span></tt>, the sample name in <tt class="docutils literal"><span class="pre">sample</span></tt> and a dictionary of
+call data in <tt class="docutils literal"><span class="pre">data</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">call</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">genotype</span><span class="p">(</span><span class="s">&#39;NA00001&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">call</span><span class="o">.</span><span class="n">site</span>
+<span class="go">Record(CHROM=20, POS=17330, REF=T, ALT=[&#39;A&#39;])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">call</span><span class="o">.</span><span class="n">sample</span>
+<span class="go">NA00001</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">call</span><span class="o">.</span><span class="n">data</span>
+<span class="go">{&#39;GT&#39;: &#39;0|0&#39;, &#39;HQ&#39;: [58, 50], &#39;DP&#39;: [3], &#39;GQ&#39;: [49]}</span>
+</pre></div>
+</div>
+<p>There are also a number of methods:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">call</span><span class="o">.</span><span class="n">called</span><span class="p">,</span> <span class="n">call</span><span class="o">.</span><span class="n">gt_type</span><span class="p">,</span> <span class="n">call</span><span class="o">.</span><span class="n">gt_bases</span><span class="p">,</span> <span class="n">call</span><span class="o">.</span><span class="n">phased</span>
+<span class="go">True 0 T|T True</span>
+</pre></div>
+</div>
+<p>Metadata regarding the VCF file itself can be investigated through the
+following attributes:</p>
+<blockquote>
+<div><ul class="simple">
+<li><tt class="docutils literal"><span class="pre">Reader.metadata</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Reader.infos</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Reader.filters</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Reader.formats</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Reader.samples</span></tt></li>
+</ul>
+</div></blockquote>
+<p>For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">vcf_reader</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s">&#39;fileDate&#39;</span><span class="p">]</span>
+<span class="go">&#39;20090805&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">vcf_reader</span><span class="o">.</span><span class="n">samples</span>
+<span class="go">[&#39;NA00001&#39;, &#39;NA00002&#39;, &#39;NA00003&#39;]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">vcf_reader</span><span class="o">.</span><span class="n">filters</span>
+<span class="go">{&#39;q10&#39;: Filter(id=&#39;q10&#39;, desc=&#39;Quality below 10&#39;), &#39;s50&#39;: Filter(id=&#39;s50&#39;, desc=&#39;Less than 50% of samples have data&#39;)}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">vcf_reader</span><span class="o">.</span><span class="n">infos</span><span class="p">[</span><span class="s">&#39;AA&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">desc</span>
+<span class="go">&#39;Ancestral Allele&#39;</span>
+</pre></div>
+</div>
+<p>Random access is supported for files with tabix indexes.  Simply call fetch for the
+region you are interested in:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">vcf_reader</span> <span class="o">=</span> <span class="n">vcf</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&#39;test/tb.vcf.gz&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">vcf_reader</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s">&#39;20&#39;</span><span class="p">,</span> <span class="mi">1110696</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1230237</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">print</span> <span class="n">record</span>
+<span class="go">Record(CHROM=20, POS=1110696, REF=A, ALT=[&#39;G&#39;, &#39;T&#39;])</span>
+<span class="go">Record(CHROM=20, POS=1230237, REF=T, ALT=[&#39;.&#39;])</span>
+</pre></div>
+</div>
+<p>An extensible script is available to filter vcf files in vcf_filter.py.  VCF filters
+declared by other packages will be available for use in this script.  Please
+see FILTERS.md for full description.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">PyVCF - A Variant Call Format Parser for Python</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="API.html"
+                        title="next chapter">API</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/INTRO.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="API.html" title="API"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="PyVCF - A Variant Call Format Parser for Python"
+             >previous</a> |</li>
+        <li><a href="index.html">PyVCF v0.2.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, James Casbon, @jdoughertyii.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

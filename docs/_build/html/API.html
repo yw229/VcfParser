@@ -1,0 +1,354 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>API &mdash; PyVCF v0.2.2 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="PyVCF v0.2.2 documentation" href="index.html" />
+    <link rel="next" title="Filtering VCF files" href="FILTERS.html" />
+    <link rel="prev" title="Introduction" href="INTRO.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="FILTERS.html" title="Filtering VCF files"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="INTRO.html" title="Introduction"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">PyVCF v0.2.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="api">
+<h1>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="vcf-reader">
+<h2>vcf.Reader<a class="headerlink" href="#vcf-reader" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="vcf.Reader">
+<em class="property">class </em><tt class="descclassname">vcf.</tt><tt class="descname">Reader</tt><big>(</big><em>fsock=None</em>, <em>filename=None</em>, <em>aggressive=False</em>, <em>compressed=False</em><big>)</big><a class="reference internal" href="_modules/vcf.html#Reader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf.Reader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reader for a VCF v 4.0 file, an iterator returning <tt class="docutils literal"><span class="pre">_Record</span> <span class="pre">objects</span></tt></p>
+<dl class="method">
+<dt id="vcf.Reader.fetch">
+<tt class="descname">fetch</tt><big>(</big><em>chrom</em>, <em>start</em>, <em>end</em><big>)</big><a class="reference internal" href="_modules/vcf.html#Reader.fetch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf.Reader.fetch" title="Permalink to this definition">¶</a></dt>
+<dd><p>fetch records from a Tabix indexed VCF, requires pysam</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf.Reader.filters">
+<tt class="descname">filters</tt><a class="headerlink" href="#vcf.Reader.filters" title="Permalink to this definition">¶</a></dt>
+<dd><p>filter fields from header</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf.Reader.formats">
+<tt class="descname">formats</tt><a class="headerlink" href="#vcf.Reader.formats" title="Permalink to this definition">¶</a></dt>
+<dd><p>format fields from header</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf.Reader.infos">
+<tt class="descname">infos</tt><a class="headerlink" href="#vcf.Reader.infos" title="Permalink to this definition">¶</a></dt>
+<dd><p>info fields from header</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf.Reader.metadata">
+<tt class="descname">metadata</tt><a class="headerlink" href="#vcf.Reader.metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>metadata fields from header</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vcf.Reader.next">
+<tt class="descname">next</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/vcf.html#Reader.next"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf.Reader.next" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the next record in the file.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf.Reader.samples">
+<tt class="descname">samples</tt><a class="headerlink" href="#vcf.Reader.samples" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of sample IDs</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="vcf-writer">
+<h2>vcf.Writer<a class="headerlink" href="#vcf-writer" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="vcf.Writer">
+<em class="property">class </em><tt class="descclassname">vcf.</tt><tt class="descname">Writer</tt><big>(</big><em>stream</em>, <em>template</em><big>)</big><a class="reference internal" href="_modules/vcf.html#Writer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf.Writer" title="Permalink to this definition">¶</a></dt>
+<dd><p>VCF Writer</p>
+<dl class="method">
+<dt id="vcf.Writer.write_record">
+<tt class="descname">write_record</tt><big>(</big><em>record</em><big>)</big><a class="reference internal" href="_modules/vcf.html#Writer.write_record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf.Writer.write_record" title="Permalink to this definition">¶</a></dt>
+<dd><p>write a record to the file</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="vcf-record">
+<h2>vcf._Record<a class="headerlink" href="#vcf-record" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="vcf._Record">
+<em class="property">class </em><tt class="descclassname">vcf.</tt><tt class="descname">_Record</tt><big>(</big><em>CHROM</em>, <em>POS</em>, <em>ID</em>, <em>REF</em>, <em>ALT</em>, <em>QUAL</em>, <em>FILTER</em>, <em>INFO</em>, <em>FORMAT</em>, <em>sample_indexes</em>, <em>samples=None</em><big>)</big><a class="reference internal" href="_modules/vcf.html#_Record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record" title="Permalink to this definition">¶</a></dt>
+<dd><p>A set of calls at a site.  Equivalent to a row in a VCF file.</p>
+<p>The standard VCF fields CHROM, POS, ID, REF, ALT, QUAL, FILTER,
+INFO and FORMAT are available as properties.</p>
+<p>The list of genotype calls is in the <tt class="docutils literal"><span class="pre">samples</span></tt> property.</p>
+<dl class="attribute">
+<dt id="vcf._Record.aaf">
+<tt class="descname">aaf</tt><a class="reference internal" href="_modules/vcf.html#_Record.aaf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.aaf" title="Permalink to this definition">¶</a></dt>
+<dd><p>The allele frequency of the alternate allele.
+NOTE 1: Punt if more than one alternate allele.
+NOTE 2: Denominator calc&#8217;ed from _called_ genotypes.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Record.call_rate">
+<tt class="descname">call_rate</tt><a class="reference internal" href="_modules/vcf.html#_Record.call_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.call_rate" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fraction of genotypes that were actually called.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vcf._Record.genotype">
+<tt class="descname">genotype</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/vcf.html#_Record.genotype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.genotype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lookup a <tt class="docutils literal"><span class="pre">_Call</span></tt> for the sample given in <tt class="docutils literal"><span class="pre">name</span></tt></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vcf._Record.get_hets">
+<tt class="descname">get_hets</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/vcf.html#_Record.get_hets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.get_hets" title="Permalink to this definition">¶</a></dt>
+<dd><p>The list of het genotypes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vcf._Record.get_hom_alts">
+<tt class="descname">get_hom_alts</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/vcf.html#_Record.get_hom_alts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.get_hom_alts" title="Permalink to this definition">¶</a></dt>
+<dd><p>The list of hom alt genotypes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vcf._Record.get_hom_refs">
+<tt class="descname">get_hom_refs</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/vcf.html#_Record.get_hom_refs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.get_hom_refs" title="Permalink to this definition">¶</a></dt>
+<dd><p>The list of hom ref genotypes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vcf._Record.get_unknowns">
+<tt class="descname">get_unknowns</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/vcf.html#_Record.get_unknowns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.get_unknowns" title="Permalink to this definition">¶</a></dt>
+<dd><p>The list of unknown genotypes</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Record.nucl_diversity">
+<tt class="descname">nucl_diversity</tt><a class="reference internal" href="_modules/vcf.html#_Record.nucl_diversity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.nucl_diversity" title="Permalink to this definition">¶</a></dt>
+<dd><p>pi_hat (estimation of nucleotide diversity) for the site.
+This metric can be summed across multiple sites to compute regional
+nucleotide diversity estimates.  For example, pi_hat for all variants
+in a given gene.</p>
+<p>Derived from:
+&#8220;Population Genetics: A Concise Guide, 2nd ed., p.45&#8221;</p>
+<blockquote>
+<div>John Gillespie.</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Record.num_called">
+<tt class="descname">num_called</tt><a class="reference internal" href="_modules/vcf.html#_Record.num_called"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.num_called" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of called samples</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Record.num_het">
+<tt class="descname">num_het</tt><a class="reference internal" href="_modules/vcf.html#_Record.num_het"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.num_het" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of heterozygous genotypes</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Record.num_hom_alt">
+<tt class="descname">num_hom_alt</tt><a class="reference internal" href="_modules/vcf.html#_Record.num_hom_alt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.num_hom_alt" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of homozygous for alt allele genotypes</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Record.num_hom_ref">
+<tt class="descname">num_hom_ref</tt><a class="reference internal" href="_modules/vcf.html#_Record.num_hom_ref"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.num_hom_ref" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of homozygous for ref allele genotypes</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Record.num_unknown">
+<tt class="descname">num_unknown</tt><a class="reference internal" href="_modules/vcf.html#_Record.num_unknown"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Record.num_unknown" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of unknown genotypes</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Record.samples">
+<tt class="descname">samples</tt><a class="headerlink" href="#vcf._Record.samples" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of <tt class="docutils literal"><span class="pre">_Call</span></tt> objects ordered as in file</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="vcf-call">
+<h2>vcf._Call<a class="headerlink" href="#vcf-call" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="vcf._Call">
+<em class="property">class </em><tt class="descclassname">vcf.</tt><tt class="descname">_Call</tt><big>(</big><em>site</em>, <em>sample</em>, <em>data</em><big>)</big><a class="reference internal" href="_modules/vcf.html#_Call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Call" title="Permalink to this definition">¶</a></dt>
+<dd><p>A genotype call, a cell entry in a VCF file</p>
+<dl class="attribute">
+<dt id="vcf._Call.called">
+<tt class="descname">called</tt><a class="headerlink" href="#vcf._Call.called" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if the GT is not ./.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Call.data">
+<tt class="descname">data</tt><a class="headerlink" href="#vcf._Call.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary of data from the VCF file</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Call.gt_bases">
+<tt class="descname">gt_bases</tt><a class="reference internal" href="_modules/vcf.html#_Call.gt_bases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Call.gt_bases" title="Permalink to this definition">¶</a></dt>
+<dd><p>The actual genotype alleles.
+E.g. if VCF genotype is 0/1, return A/G</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Call.gt_type">
+<tt class="descname">gt_type</tt><a class="reference internal" href="_modules/vcf.html#_Call.gt_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Call.gt_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>The type of genotype.
+hom_ref  = 0
+het      = 1
+hom_alt  = 2  (we don;t track _which+ ALT)
+uncalled = None</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Call.phased">
+<tt class="descname">phased</tt><a class="reference internal" href="_modules/vcf.html#_Call.phased"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf._Call.phased" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean indicating whether or not
+the genotype is phased for this sample</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Call.sample">
+<tt class="descname">sample</tt><a class="headerlink" href="#vcf._Call.sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>The sample name</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf._Call.site">
+<tt class="descname">site</tt><a class="headerlink" href="#vcf._Call.site" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <tt class="docutils literal"><span class="pre">_Record</span></tt> for the <tt class="docutils literal"><span class="pre">_Call</span></tt></p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">API</a><ul>
+<li><a class="reference internal" href="#vcf-reader">vcf.Reader</a></li>
+<li><a class="reference internal" href="#vcf-writer">vcf.Writer</a></li>
+<li><a class="reference internal" href="#vcf-record">vcf._Record</a></li>
+<li><a class="reference internal" href="#vcf-call">vcf._Call</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="INTRO.html"
+                        title="previous chapter">Introduction</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="FILTERS.html"
+                        title="next chapter">Filtering VCF files</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/API.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="FILTERS.html" title="Filtering VCF files"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="INTRO.html" title="Introduction"
+             >previous</a> |</li>
+        <li><a href="index.html">PyVCF v0.2.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, James Casbon, @jdoughertyii.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

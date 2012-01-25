@@ -23,8 +23,7 @@ parser.add_argument('--output', action='store', default=sys.stdout,
 class SiteQuality(vcf.Filter):
 
     description = 'Filter sites by quality'
-    name = 'site_quality'
-    short_name = 'sq'
+    name = 'sq'
 
     @classmethod
     def customize_parser(self, parser):
@@ -43,8 +42,7 @@ class SiteQuality(vcf.Filter):
 class VariantGenotypeQuality(vcf.Filter):
 
     description = 'Demand a minimum quality associated with a non reference call'
-    name = 'min_genotype_quality'
-    short_name = 'mgq'
+    name = 'mgq'
 
     @classmethod
     def customize_parser(self, parser):
@@ -94,7 +92,6 @@ if __name__ == '__main__':
         f = filters[name](args)
         chain.append(f)
         inp.filters[f.filter_name()] = vcf._Filter(f.filter_name(), f.description)
-
 
     oup = vcf.Writer(args.output, inp)
 

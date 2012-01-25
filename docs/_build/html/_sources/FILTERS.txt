@@ -1,12 +1,21 @@
+Filtering VCF files
+===================
+
+vcf_filter.py
+-------------
+
 Filtering a VCF file based on some properties of interest is a common enough 
 operation that PyVCF offers an extensible script.  ``vcf_filter.py`` does 
 the work of reading input, updating the metadata and filtering the records.
-You can reuse this work by providing a filter class.
 
+
+Adding a filter
+---------------
+
+You can reuse this work by providing a filter class, rather than writing your own filter.
 For example, lets say I want to filter each site based on the quality of the site.
-I can create a class like this:
-
-
+I can create a class like this::
+    
     class SiteQuality(vcf.Filter):
 
         description = 'Filter sites by quality'
@@ -35,18 +44,18 @@ filter failed.  The base class uses the ``short_name`` and ``threshold`` to crea
 the filter ID in the VCF file.
 
 To make vcf_filter.py aware of the filter, you need to declare a ``vcf.filters`` entry 
-point in your ``setup``:
+point in your ``setup``::
 
     setup(
         ...
         entry_points = {
             'vcf.filters': [
-                'site_quality = vcf_filter:SiteQuality',
+                'site_quality = module.path:SiteQuality',
             ]
         }
     )
 
-Now when you call vcf_filter.py, you should see your filter in the list of available filters:
+Now when you call vcf_filter.py, you should see your filter in the list of available filters::
 
     >$ vcf_filter.py --help
     usage: vcf_filter.py [-h] [--no-short-circuit] [--output OUTPUT]
@@ -73,6 +82,11 @@ Now when you call vcf_filter.py, you should see your filter in the list of avail
                             Filter sites below this quality
       --genotype-quality GENOTYPE_QUALITY
                             Filter sites with no genotypes above this quality
- 
 
+
+vcf.Filter
+----------
+
+.. autoclass:: vcf.Filter
+   :members:
 

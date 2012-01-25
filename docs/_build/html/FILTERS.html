@@ -1,0 +1,234 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Filtering VCF files &mdash; PyVCF v0.2.2 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="PyVCF v0.2.2 documentation" href="index.html" />
+    <link rel="next" title="Changes" href="HISTORY.html" />
+    <link rel="prev" title="API" href="API.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="HISTORY.html" title="Changes"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="API.html" title="API"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">PyVCF v0.2.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="filtering-vcf-files">
+<h1>Filtering VCF files<a class="headerlink" href="#filtering-vcf-files" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="vcf-filter-py">
+<h2>vcf_filter.py<a class="headerlink" href="#vcf-filter-py" title="Permalink to this headline">¶</a></h2>
+<p>Filtering a VCF file based on some properties of interest is a common enough
+operation that PyVCF offers an extensible script.  <tt class="docutils literal"><span class="pre">vcf_filter.py</span></tt> does
+the work of reading input, updating the metadata and filtering the records.</p>
+</div>
+<div class="section" id="adding-a-filter">
+<h2>Adding a filter<a class="headerlink" href="#adding-a-filter" title="Permalink to this headline">¶</a></h2>
+<p>You can reuse this work by providing a filter class, rather than writing your own filter.
+For example, lets say I want to filter each site based on the quality of the site.
+I can create a class like this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">SiteQuality</span><span class="p">(</span><span class="n">vcf</span><span class="o">.</span><span class="n">Filter</span><span class="p">):</span>
+
+    <span class="n">description</span> <span class="o">=</span> <span class="s">&#39;Filter sites by quality&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;site_quality&#39;</span>
+    <span class="n">short_name</span> <span class="o">=</span> <span class="s">&#39;sq&#39;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">customize_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--site-quality&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+                <span class="n">help</span><span class="o">=</span><span class="s">&#39;Filter sites below this quality&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">site_quality</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">QUAL</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">record</span><span class="o">.</span><span class="n">QUAL</span>
+</pre></div>
+</div>
+<p>This class subclasses <tt class="docutils literal"><span class="pre">vcf.Filter</span></tt> which provides the interface for VCF filters.
+The <tt class="docutils literal"><span class="pre">description</span></tt>, <tt class="docutils literal"><span class="pre">name</span></tt> and <tt class="docutils literal"><span class="pre">short_name</span></tt> are metadata about the parser.
+The <tt class="docutils literal"><span class="pre">customize_parser</span></tt> method allows you to add arguments to the script.
+We use the <tt class="docutils literal"><span class="pre">__init__</span></tt> method to grab the argument of interest from the parser.
+Finally, the <tt class="docutils literal"><span class="pre">__call__</span></tt> method processes each record and returns a value if the
+filter failed.  The base class uses the <tt class="docutils literal"><span class="pre">short_name</span></tt> and <tt class="docutils literal"><span class="pre">threshold</span></tt> to create
+the filter ID in the VCF file.</p>
+<p>To make vcf_filter.py aware of the filter, you need to declare a <tt class="docutils literal"><span class="pre">vcf.filters</span></tt> entry
+point in your <tt class="docutils literal"><span class="pre">setup</span></tt>:</p>
+<div class="highlight-python"><pre>setup(
+    ...
+    entry_points = {
+        'vcf.filters': [
+            'site_quality = module.path:SiteQuality',
+        ]
+    }
+)</pre>
+</div>
+<p>Now when you call vcf_filter.py, you should see your filter in the list of available filters:</p>
+<div class="highlight-python"><pre>&gt;$ vcf_filter.py --help
+usage: vcf_filter.py [-h] [--no-short-circuit] [--output OUTPUT]
+                     [--site-quality SITE_QUALITY]
+                     [--genotype-quality GENOTYPE_QUALITY]
+                     input filter [filter ...]
+
+Filter a VCF file
+
+available filters:
+  site_quality:     Filter sites by quality
+  min_genotype_quality:     Demand a minimum quality associated with a non reference call
+
+positional arguments:
+  input                 File to process (use - for STDIN)
+  filter                Filters to use
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --no-short-circuit    Do not stop filter processing on a site if a single
+                        filter fails.
+  --output OUTPUT       Filename to output (default stdout)
+  --site-quality SITE_QUALITY
+                        Filter sites below this quality
+  --genotype-quality GENOTYPE_QUALITY
+                        Filter sites with no genotypes above this quality</pre>
+</div>
+</div>
+<div class="section" id="vcf-filter">
+<h2>vcf.Filter<a class="headerlink" href="#vcf-filter" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="vcf.Filter">
+<em class="property">class </em><tt class="descclassname">vcf.</tt><tt class="descname">Filter</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/vcf.html#Filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf.Filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for vcf_filter.py filters</p>
+<dl class="classmethod">
+<dt id="vcf.Filter.customize_parser">
+<em class="property">classmethod </em><tt class="descname">customize_parser</tt><big>(</big><em>parser</em><big>)</big><a class="reference internal" href="_modules/vcf.html#Filter.customize_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf.Filter.customize_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>hook to extend argparse parser with custom arguments</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf.Filter.description">
+<tt class="descname">description</tt><a class="headerlink" href="#vcf.Filter.description" title="Permalink to this definition">¶</a></dt>
+<dd><p>descrtiption used in vcf headers</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vcf.Filter.filter_name">
+<tt class="descname">filter_name</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/vcf.html#Filter.filter_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vcf.Filter.filter_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the name to put in the VCF header, default is <tt class="docutils literal"><span class="pre">name</span></tt> + <tt class="docutils literal"><span class="pre">threshold</span></tt></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vcf.Filter.name">
+<tt class="descname">name</tt><a class="headerlink" href="#vcf.Filter.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>name used to activate filter and in VCF headers</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Filtering VCF files</a><ul>
+<li><a class="reference internal" href="#vcf-filter-py">vcf_filter.py</a></li>
+<li><a class="reference internal" href="#adding-a-filter">Adding a filter</a></li>
+<li><a class="reference internal" href="#vcf-filter">vcf.Filter</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="API.html"
+                        title="previous chapter">API</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="HISTORY.html"
+                        title="next chapter">Changes</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/FILTERS.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="HISTORY.html" title="Changes"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="API.html" title="API"
+             >previous</a> |</li>
+        <li><a href="index.html">PyVCF v0.2.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, James Casbon, @jdoughertyii.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

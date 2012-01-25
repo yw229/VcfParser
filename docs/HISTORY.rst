@@ -1,3 +1,16 @@
+Changes
+=======
+
+0.2.2 Release
+-------------
+
+Documentation release
+
+0.2.1 Release
+-------------
+
+* Add shebang to vcf_filter.py
+
 0.2 Release 
 -----------
 
@@ -22,4 +35,5 @@ Contributions
 -------------
 
 Project started by @jdoughertyii and taken over by @jamescasbon on 12th January 2011.
+
 

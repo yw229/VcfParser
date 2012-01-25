@@ -1,0 +1,894 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>vcf &mdash; PyVCF v0.2.2 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="PyVCF v0.2.2 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">PyVCF v0.2.2 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for vcf</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="sd">&#39;&#39;&#39;A VCFv4.0 parser for Python.</span>
+
+<span class="sd">The intent of this module is to mimic the ``csv`` module in the Python stdlib,</span>
+<span class="sd">as opposed to more flexible serialization formats like JSON or YAML.  ``vcf``</span>
+<span class="sd">will attempt to parse the content of each record based on the data types</span>
+<span class="sd">specified in the meta-information lines --  specifically the ##INFO and</span>
+<span class="sd">##FORMAT lines.  If these lines are missing or incomplete, it will check</span>
+<span class="sd">against the reserved types mentioned in the spec.  Failing that, it will just</span>
+<span class="sd">return strings.</span>
+
+<span class="sd">There is currently one piece of interface: ``Reader``.  It takes a file-like</span>
+<span class="sd">object and acts as a reader::</span>
+
+<span class="sd">    &gt;&gt;&gt; import vcf</span>
+<span class="sd">    &gt;&gt;&gt; vcf_reader = vcf.Reader(open(&#39;test/example.vcf&#39;, &#39;rb&#39;))</span>
+<span class="sd">    &gt;&gt;&gt; for record in vcf_reader:</span>
+<span class="sd">    ...     print record</span>
+<span class="sd">    Record(CHROM=20, POS=14370, REF=G, ALT=[&#39;A&#39;])</span>
+<span class="sd">    Record(CHROM=20, POS=17330, REF=T, ALT=[&#39;A&#39;])</span>
+<span class="sd">    Record(CHROM=20, POS=1110696, REF=A, ALT=[&#39;G&#39;, &#39;T&#39;])</span>
+<span class="sd">    Record(CHROM=20, POS=1230237, REF=T, ALT=[&#39;.&#39;])</span>
+<span class="sd">    Record(CHROM=20, POS=1234567, REF=GTCT, ALT=[&#39;G&#39;, &#39;GTACT&#39;])</span>
+
+
+<span class="sd">This produces a great deal of information, but it is conveniently accessed.</span>
+<span class="sd">The attributes of a Record are the 8 fixed fields from the VCF spec plus two</span>
+<span class="sd">more.  That is:</span>
+
+<span class="sd">    * ``Record.CHROM``</span>
+<span class="sd">    * ``Record.POS``</span>
+<span class="sd">    * ``Record.ID``</span>
+<span class="sd">    * ``Record.REF``</span>
+<span class="sd">    * ``Record.ALT``</span>
+<span class="sd">    * ``Record.QUAL``</span>
+<span class="sd">    * ``Record.FILTER``</span>
+<span class="sd">    * ``Record.INFO``</span>
+
+<span class="sd">plus three more attributes to handle genotype information:</span>
+
+<span class="sd">    * ``Record.FORMAT``</span>
+<span class="sd">    * ``Record.samples``</span>
+<span class="sd">    * ``Record.genotype``</span>
+
+<span class="sd">``samples`` and ``genotype``, not being the title of any column, are left lowercase.  The format</span>
+<span class="sd">of the fixed fields is from the spec.  Comma-separated lists in the VCF are</span>
+<span class="sd">converted to lists.  In particular, one-entry VCF lists are converted to</span>
+<span class="sd">one-entry Python lists (see, e.g., ``Record.ALT``).  Semicolon-delimited lists</span>
+<span class="sd">of key=value pairs are converted to Python dictionaries, with flags being given</span>
+<span class="sd">a ``True`` value. Integers and floats are handled exactly as you&#39;d expect::</span>
+
+<span class="sd">    &gt;&gt;&gt; vcf_reader = vcf.Reader(open(&#39;test/example.vcf&#39;, &#39;rb&#39;))</span>
+<span class="sd">    &gt;&gt;&gt; record = vcf_reader.next()</span>
+<span class="sd">    &gt;&gt;&gt; print record.POS</span>
+<span class="sd">    14370</span>
+<span class="sd">    &gt;&gt;&gt; print record.ALT</span>
+<span class="sd">    [&#39;A&#39;]</span>
+<span class="sd">    &gt;&gt;&gt; print record.INFO[&#39;AF&#39;]</span>
+<span class="sd">    [0.5]</span>
+
+<span class="sd">There are a number of convienience functions for each ``Record`` allowing you to</span>
+<span class="sd">examine properties of interest::</span>
+
+<span class="sd">    &gt;&gt;&gt; print record.num_called, record.call_rate, record.num_unknown</span>
+<span class="sd">    3 1.0 0</span>
+<span class="sd">    &gt;&gt;&gt; print record.num_hom_ref, record.num_het, record.num_hom_alt</span>
+<span class="sd">    1 1 1</span>
+<span class="sd">    &gt;&gt;&gt; print record.nucl_diversity, record.aaf</span>
+<span class="sd">    0.6 0.5</span>
+<span class="sd">    &gt;&gt;&gt; print record.get_hets()</span>
+<span class="sd">    [Call(sample=NA00002, GT=1|0)]</span>
+
+<span class="sd">``record.FORMAT`` will be a string specifying the format of the genotype</span>
+<span class="sd">fields.  In case the FORMAT column does not exist, ``record.FORMAT`` is</span>
+<span class="sd">``None``.  Finally, ``record.samples`` is a list of dictionaries containing the</span>
+<span class="sd">parsed sample column and ``record.genotype`` is a way of looking up genotypes</span>
+<span class="sd">by sample name::</span>
+
+<span class="sd">    &gt;&gt;&gt; record = vcf_reader.next()</span>
+<span class="sd">    &gt;&gt;&gt; for sample in record.samples:</span>
+<span class="sd">    ...     print sample[&#39;GT&#39;]</span>
+<span class="sd">    0|0</span>
+<span class="sd">    0|1</span>
+<span class="sd">    0/0</span>
+<span class="sd">    &gt;&gt;&gt; print record.genotype(&#39;NA00001&#39;)[&#39;GT&#39;]</span>
+<span class="sd">    0|0</span>
+
+<span class="sd">The genotypes are represented by ``Call`` objects, which have three attributes: the</span>
+<span class="sd">corresponding Record ``site``, the sample name in ``sample`` and a dictionary of</span>
+<span class="sd">call data in ``data``::</span>
+
+<span class="sd">     &gt;&gt;&gt; call = record.genotype(&#39;NA00001&#39;)</span>
+<span class="sd">     &gt;&gt;&gt; print call.site</span>
+<span class="sd">     Record(CHROM=20, POS=17330, REF=T, ALT=[&#39;A&#39;])</span>
+<span class="sd">     &gt;&gt;&gt; print call.sample</span>
+<span class="sd">     NA00001</span>
+<span class="sd">     &gt;&gt;&gt; print call.data</span>
+<span class="sd">     {&#39;GT&#39;: &#39;0|0&#39;, &#39;HQ&#39;: [58, 50], &#39;DP&#39;: [3], &#39;GQ&#39;: [49]}</span>
+
+<span class="sd">There are also a number of methods::</span>
+
+<span class="sd">    &gt;&gt;&gt; print call.called, call.gt_type, call.gt_bases, call.phased</span>
+<span class="sd">    True 0 T|T True</span>
+
+
+<span class="sd">Metadata regarding the VCF file itself can be investigated through the</span>
+<span class="sd">following attributes:</span>
+
+<span class="sd">    * ``Reader.metadata``</span>
+<span class="sd">    * ``Reader.infos``</span>
+<span class="sd">    * ``Reader.filters``</span>
+<span class="sd">    * ``Reader.formats``</span>
+<span class="sd">    * ``Reader.samples``</span>
+
+<span class="sd">For example::</span>
+
+<span class="sd">    &gt;&gt;&gt; vcf_reader.metadata[&#39;fileDate&#39;]</span>
+<span class="sd">    &#39;20090805&#39;</span>
+<span class="sd">    &gt;&gt;&gt; vcf_reader.samples</span>
+<span class="sd">    [&#39;NA00001&#39;, &#39;NA00002&#39;, &#39;NA00003&#39;]</span>
+<span class="sd">    &gt;&gt;&gt; vcf_reader.filters</span>
+<span class="sd">    {&#39;q10&#39;: Filter(id=&#39;q10&#39;, desc=&#39;Quality below 10&#39;), &#39;s50&#39;: Filter(id=&#39;s50&#39;, desc=&#39;Less than 50% of samples have data&#39;)}</span>
+<span class="sd">    &gt;&gt;&gt; vcf_reader.infos[&#39;AA&#39;].desc</span>
+<span class="sd">    &#39;Ancestral Allele&#39;</span>
+
+<span class="sd">Random access is supported for files with tabix indexes.  Simply call fetch for the</span>
+<span class="sd">region you are interested in::</span>
+
+<span class="sd">    &gt;&gt;&gt; vcf_reader = vcf.Reader(filename=&#39;test/tb.vcf.gz&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; for record in vcf_reader.fetch(&#39;20&#39;, 1110696-1, 1230237):</span>
+<span class="sd">    ...     print record</span>
+<span class="sd">    Record(CHROM=20, POS=1110696, REF=A, ALT=[&#39;G&#39;, &#39;T&#39;])</span>
+<span class="sd">    Record(CHROM=20, POS=1230237, REF=T, ALT=[&#39;.&#39;])</span>
+
+
+<span class="sd">An extensible script is available to filter vcf files in vcf_filter.py.  VCF filters</span>
+<span class="sd">declared by other packages will be available for use in this script.  Please</span>
+<span class="sd">see FILTERS.md for full description.</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">pysam</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">pysam</span> <span class="o">=</span> <span class="bp">None</span>
+
+
+<span class="c"># Metadata parsers/constants</span>
+<span class="n">RESERVED_INFO</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;AA&#39;</span><span class="p">:</span> <span class="s">&#39;String&#39;</span><span class="p">,</span> <span class="s">&#39;AC&#39;</span><span class="p">:</span> <span class="s">&#39;Integer&#39;</span><span class="p">,</span> <span class="s">&#39;AF&#39;</span><span class="p">:</span> <span class="s">&#39;Float&#39;</span><span class="p">,</span> <span class="s">&#39;AN&#39;</span><span class="p">:</span> <span class="s">&#39;Integer&#39;</span><span class="p">,</span>
+    <span class="s">&#39;BQ&#39;</span><span class="p">:</span> <span class="s">&#39;Float&#39;</span><span class="p">,</span> <span class="s">&#39;CIGAR&#39;</span><span class="p">:</span> <span class="s">&#39;String&#39;</span><span class="p">,</span> <span class="s">&#39;DB&#39;</span><span class="p">:</span> <span class="s">&#39;Flag&#39;</span><span class="p">,</span> <span class="s">&#39;DP&#39;</span><span class="p">:</span> <span class="s">&#39;Integer&#39;</span><span class="p">,</span>
+    <span class="s">&#39;END&#39;</span><span class="p">:</span> <span class="s">&#39;Integer&#39;</span><span class="p">,</span> <span class="s">&#39;H2&#39;</span><span class="p">:</span> <span class="s">&#39;Flag&#39;</span><span class="p">,</span> <span class="s">&#39;MQ&#39;</span><span class="p">:</span> <span class="s">&#39;Float&#39;</span><span class="p">,</span> <span class="s">&#39;MQ0&#39;</span><span class="p">:</span> <span class="s">&#39;Integer&#39;</span><span class="p">,</span>
+    <span class="s">&#39;NS&#39;</span><span class="p">:</span> <span class="s">&#39;Integer&#39;</span><span class="p">,</span> <span class="s">&#39;SB&#39;</span><span class="p">:</span> <span class="s">&#39;String&#39;</span><span class="p">,</span> <span class="s">&#39;SOMATIC&#39;</span><span class="p">:</span> <span class="s">&#39;Flag&#39;</span><span class="p">,</span> <span class="s">&#39;VALIDATED&#39;</span><span class="p">:</span> <span class="s">&#39;Flag&#39;</span>
+<span class="p">}</span>
+
+<span class="n">RESERVED_FORMAT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;GT&#39;</span><span class="p">:</span> <span class="s">&#39;String&#39;</span><span class="p">,</span> <span class="s">&#39;DP&#39;</span><span class="p">:</span> <span class="s">&#39;Integer&#39;</span><span class="p">,</span> <span class="s">&#39;FT&#39;</span><span class="p">:</span> <span class="s">&#39;String&#39;</span><span class="p">,</span> <span class="s">&#39;GL&#39;</span><span class="p">:</span> <span class="s">&#39;Float&#39;</span><span class="p">,</span>
+    <span class="s">&#39;GQ&#39;</span><span class="p">:</span> <span class="s">&#39;Float&#39;</span><span class="p">,</span> <span class="s">&#39;HQ&#39;</span><span class="p">:</span> <span class="s">&#39;Float&#39;</span>
+<span class="p">}</span>
+
+
+<span class="n">_Info</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;Info&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">,</span> <span class="s">&#39;num&#39;</span><span class="p">,</span> <span class="s">&#39;type&#39;</span><span class="p">,</span> <span class="s">&#39;desc&#39;</span><span class="p">])</span>
+<span class="n">_Filter</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;Filter&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">,</span> <span class="s">&#39;desc&#39;</span><span class="p">])</span>
+<span class="n">_Format</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;Format&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">,</span> <span class="s">&#39;num&#39;</span><span class="p">,</span> <span class="s">&#39;type&#39;</span><span class="p">,</span> <span class="s">&#39;desc&#39;</span><span class="p">])</span>
+
+
+<span class="k">class</span> <span class="nc">_vcf_metadata_parser</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Parse the metadat in the header of a VCF file.&#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aggressive</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_vcf_metadata_parser</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggro</span> <span class="o">=</span> <span class="n">aggressive</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">r&#39;&#39;&#39;\#\#INFO=&lt;</span>
+<span class="s">            ID=(?P&lt;id&gt;[^,]+),</span>
+<span class="s">            Number=(?P&lt;number&gt;-?\d+|\.|[AG]),</span>
+<span class="s">            Type=(?P&lt;type&gt;Integer|Float|Flag|Character|String),</span>
+<span class="s">            Description=&quot;(?P&lt;desc&gt;[^&quot;]*)&quot;</span>
+<span class="s">            &gt;&#39;&#39;&#39;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">r&#39;&#39;&#39;\#\#FILTER=&lt;</span>
+<span class="s">            ID=(?P&lt;id&gt;[^,]+),</span>
+<span class="s">            Description=&quot;(?P&lt;desc&gt;[^&quot;]*)&quot;</span>
+<span class="s">            &gt;&#39;&#39;&#39;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">r&#39;&#39;&#39;\#\#FORMAT=&lt;</span>
+<span class="s">            ID=(?P&lt;id&gt;.+),</span>
+<span class="s">            Number=(?P&lt;number&gt;-?\d+|\.|[AG]),</span>
+<span class="s">            Type=(?P&lt;type&gt;.+),</span>
+<span class="s">            Description=&quot;(?P&lt;desc&gt;.*)&quot;</span>
+<span class="s">            &gt;&#39;&#39;&#39;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">r&#39;&#39;&#39;##(?P&lt;key&gt;.+)=(?P&lt;val&gt;.+)&#39;&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">read_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info_string</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Read a meta-information INFO line.&#39;&#39;&#39;</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">info_string</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">SyntaxError</span><span class="p">(</span>
+                <span class="s">&quot;One of the INFO lines is malformed: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">info_string</span><span class="p">))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;number&#39;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">num</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">num</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggro</span> <span class="k">else</span> <span class="s">&#39;.&#39;</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggro</span> <span class="k">else</span> <span class="s">&#39;.&#39;</span>
+
+        <span class="n">info</span> <span class="o">=</span> <span class="n">_Info</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;id&#39;</span><span class="p">),</span> <span class="n">num</span><span class="p">,</span>
+                     <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;type&#39;</span><span class="p">),</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;desc&#39;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;id&#39;</span><span class="p">),</span> <span class="n">info</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">read_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filter_string</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Read a meta-information FILTER line.&#39;&#39;&#39;</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">filter_string</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">SyntaxError</span><span class="p">(</span>
+                <span class="s">&quot;One of the FILTER lines is malformed: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">filter_string</span><span class="p">))</span>
+
+        <span class="n">filt</span> <span class="o">=</span> <span class="n">_Filter</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;id&#39;</span><span class="p">),</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;desc&#39;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;id&#39;</span><span class="p">),</span> <span class="n">filt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">read_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_string</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Read a meta-information FORMAT line.&#39;&#39;&#39;</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">format_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">format_string</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">SyntaxError</span><span class="p">(</span>
+                <span class="s">&quot;One of the FORMAT lines is malformed: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">format_string</span><span class="p">))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;number&#39;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">num</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">num</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggro</span> <span class="k">else</span> <span class="s">&#39;.&#39;</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggro</span> <span class="k">else</span> <span class="s">&#39;.&#39;</span>
+
+        <span class="n">form</span> <span class="o">=</span> <span class="n">_Format</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;id&#39;</span><span class="p">),</span> <span class="n">num</span><span class="p">,</span>
+                       <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;type&#39;</span><span class="p">),</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;desc&#39;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;id&#39;</span><span class="p">),</span> <span class="n">form</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">read_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">meta_string</span><span class="p">):</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">meta_string</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;key&#39;</span><span class="p">),</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s">&#39;val&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="_Call"><a class="viewcode-back" href="../API.html#vcf._Call">[docs]</a><span class="k">class</span> <span class="nc">_Call</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A genotype call, a cell entry in a VCF file&quot;&quot;&quot;</span>
+
+    <span class="n">site</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot; The ``_Record`` for the ``_Call``  &quot;&quot;&quot;</span>
+    <span class="n">sample</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot; The sample name &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot; Dictionary of data from the VCF file &quot;&quot;&quot;</span>
+    <span class="n">called</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot; True if the GT is not ./. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">site</span> <span class="o">=</span> <span class="n">site</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample</span> <span class="o">=</span> <span class="n">sample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gt_nums</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;GT&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">called</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gt_nums</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">gt_nums</span> <span class="o">!=</span> <span class="s">&quot;./.&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Call(sample=</span><span class="si">%s</span><span class="s">, GT=</span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gt_nums</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">sample</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Call.gt_bases"><a class="viewcode-back" href="../API.html#vcf._Call.gt_bases">[docs]</a>    <span class="k">def</span> <span class="nf">gt_bases</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;The actual genotype alleles.</span>
+<span class="sd">           E.g. if VCF genotype is 0/1, return A/G</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c"># nothing to do if no genotype call</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">called</span><span class="p">:</span>
+            <span class="c"># grab the numeric alleles of the gt string; tokenize by phasing</span>
+            <span class="n">phase_char</span> <span class="o">=</span> <span class="s">&quot;/&quot;</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">phased</span> <span class="k">else</span> <span class="s">&quot;|&quot;</span>
+            <span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gt_nums</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">phase_char</span><span class="p">)</span>
+            <span class="c"># lookup and return the actual DNA alleles</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">a1</span><span class="p">)]</span> <span class="o">+</span> \
+                       <span class="n">phase_char</span> <span class="o">+</span> \
+                       <span class="bp">self</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">a2</span><span class="p">)]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;Allele number not found in list of alleles</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Call.gt_type"><a class="viewcode-back" href="../API.html#vcf._Call.gt_type">[docs]</a>    <span class="k">def</span> <span class="nf">gt_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;The type of genotype.</span>
+<span class="sd">           hom_ref  = 0</span>
+<span class="sd">           het      = 1</span>
+<span class="sd">           hom_alt  = 2  (we don;t track _which+ ALT)</span>
+<span class="sd">           uncalled = None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c"># extract the numeric alleles of the gt string</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">called</span><span class="p">:</span>
+            <span class="c"># grab the numeric alleles of the gt string; tokenize by phasing</span>
+            <span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gt_nums</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">)</span> \
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">phased</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">gt_nums</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;|&quot;</span><span class="p">)</span>
+            <span class="c"># infer genotype type from allele numbers</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span> <span class="k">return</span> <span class="mi">0</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">):</span> <span class="k">return</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">):</span> <span class="k">return</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="c"># same alt, so hom_alt</span>
+                <span class="k">if</span> <span class="n">a1</span> <span class="o">==</span> <span class="n">a2</span><span class="p">:</span> <span class="k">return</span> <span class="mi">2</span>
+                <span class="c"># diff alts, so het</span>
+                <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Call.phased"><a class="viewcode-back" href="../API.html#vcf._Call.phased">[docs]</a>    <span class="k">def</span> <span class="nf">phased</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;A boolean indicating whether or not</span>
+<span class="sd">           the genotype is phased for this sample</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;GT&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;|&quot;</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+</div>
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Lookup value, backwards compatibility &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+</div>
+<div class="viewcode-block" id="_Record"><a class="viewcode-back" href="../API.html#vcf._Record">[docs]</a><span class="k">class</span> <span class="nc">_Record</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A set of calls at a site.  Equivalent to a row in a VCF file.</span>
+
+<span class="sd">        The standard VCF fields CHROM, POS, ID, REF, ALT, QUAL, FILTER,</span>
+<span class="sd">        INFO and FORMAT are available as properties.</span>
+
+<span class="sd">        The list of genotype calls is in the ``samples`` property.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">samples</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot; List of ``_Call`` objects ordered as in file &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CHROM</span><span class="p">,</span> <span class="n">POS</span><span class="p">,</span> <span class="n">ID</span><span class="p">,</span> <span class="n">REF</span><span class="p">,</span> <span class="n">ALT</span><span class="p">,</span> <span class="n">QUAL</span><span class="p">,</span> <span class="n">FILTER</span><span class="p">,</span> <span class="n">INFO</span><span class="p">,</span> <span class="n">FORMAT</span><span class="p">,</span> <span class="n">sample_indexes</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CHROM</span> <span class="o">=</span> <span class="n">CHROM</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">POS</span> <span class="o">=</span> <span class="n">POS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">ID</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">REF</span> <span class="o">=</span> <span class="n">REF</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ALT</span> <span class="o">=</span> <span class="n">ALT</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">QUAL</span> <span class="o">=</span> <span class="n">QUAL</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">FILTER</span> <span class="o">=</span> <span class="n">FILTER</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">INFO</span> <span class="o">=</span> <span class="n">INFO</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">FORMAT</span> <span class="o">=</span> <span class="n">FORMAT</span>
+        <span class="c"># create a list of alleles. [0] = REF, [1:] = ALTS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alleles</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">REF</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alleles</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ALT</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_indexes</span> <span class="o">=</span> <span class="n">sample_indexes</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Record(CHROM=</span><span class="si">%(CHROM)s</span><span class="s">, POS=</span><span class="si">%(POS)s</span><span class="s">, REF=</span><span class="si">%(REF)s</span><span class="s">, ALT=</span><span class="si">%(ALT)s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span>
+
+    <span class="k">def</span> <span class="nf">add_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fmt</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">FORMAT</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FORMAT</span> <span class="o">+</span> <span class="s">&#39;:&#39;</span> <span class="o">+</span> <span class="n">fmt</span>
+
+    <span class="k">def</span> <span class="nf">add_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flt</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">FILTER</span> <span class="o">==</span> <span class="s">&#39;.&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">FILTER</span> <span class="o">==</span> <span class="s">&#39;PASS&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">FILTER</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">FILTER</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FILTER</span> <span class="o">+</span> <span class="s">&#39;;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">FILTER</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FILTER</span> <span class="o">+</span> <span class="n">flt</span>
+
+    <span class="k">def</span> <span class="nf">add_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">INFO</span><span class="p">[</span><span class="n">info</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+<div class="viewcode-block" id="_Record.genotype"><a class="viewcode-back" href="../API.html#vcf._Record.genotype">[docs]</a>    <span class="k">def</span> <span class="nf">genotype</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Lookup a ``_Call`` for the sample given in ``name`` &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_indexes</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Record.num_called"><a class="viewcode-back" href="../API.html#vcf._Record.num_called">[docs]</a>    <span class="k">def</span> <span class="nf">num_called</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The number of called samples&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">called</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Record.call_rate"><a class="viewcode-back" href="../API.html#vcf._Record.call_rate">[docs]</a>    <span class="k">def</span> <span class="nf">call_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The fraction of genotypes that were actually called. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_called</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">))</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Record.num_hom_ref"><a class="viewcode-back" href="../API.html#vcf._Record.num_hom_ref">[docs]</a>    <span class="k">def</span> <span class="nf">num_hom_ref</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The number of homozygous for ref allele genotypes&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">([</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">gt_type</span> <span class="o">==</span> <span class="mi">0</span><span class="p">])</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Record.num_hom_alt"><a class="viewcode-back" href="../API.html#vcf._Record.num_hom_alt">[docs]</a>    <span class="k">def</span> <span class="nf">num_hom_alt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The number of homozygous for alt allele genotypes&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">([</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">gt_type</span> <span class="o">==</span> <span class="mi">2</span><span class="p">])</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Record.num_het"><a class="viewcode-back" href="../API.html#vcf._Record.num_het">[docs]</a>    <span class="k">def</span> <span class="nf">num_het</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The number of heterozygous genotypes&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">([</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">gt_type</span> <span class="o">==</span> <span class="mi">1</span><span class="p">])</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Record.num_unknown"><a class="viewcode-back" href="../API.html#vcf._Record.num_unknown">[docs]</a>    <span class="k">def</span> <span class="nf">num_unknown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The number of unknown genotypes&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">([</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">gt_type</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">])</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Record.aaf"><a class="viewcode-back" href="../API.html#vcf._Record.aaf">[docs]</a>    <span class="k">def</span> <span class="nf">aaf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The allele frequency of the alternate allele.</span>
+<span class="sd">           NOTE 1: Punt if more than one alternate allele.</span>
+<span class="sd">           NOTE 2: Denominator calc&#39;ed from _called_ genotypes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># skip if more than one alternate allele. assumes bi-allelic</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ALT</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">hom_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hom_ref</span>
+        <span class="n">het</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_het</span>
+        <span class="n">hom_alt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hom_alt</span>
+        <span class="n">num_chroms</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">num_called</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">het</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">hom_alt</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">num_chroms</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="_Record.nucl_diversity"><a class="viewcode-back" href="../API.html#vcf._Record.nucl_diversity">[docs]</a>    <span class="k">def</span> <span class="nf">nucl_diversity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        pi_hat (estimation of nucleotide diversity) for the site.</span>
+<span class="sd">        This metric can be summed across multiple sites to compute regional</span>
+<span class="sd">        nucleotide diversity estimates.  For example, pi_hat for all variants</span>
+<span class="sd">        in a given gene.</span>
+
+<span class="sd">        Derived from:</span>
+<span class="sd">        \&quot;Population Genetics: A Concise Guide, 2nd ed., p.45\&quot;</span>
+<span class="sd">          John Gillespie.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># skip if more than one alternate allele. assumes bi-allelic</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ALT</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aaf</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">-</span><span class="n">p</span>
+        <span class="n">num_chroms</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">num_called</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_chroms</span><span class="o">/</span><span class="p">(</span><span class="n">num_chroms</span><span class="o">-</span><span class="mf">1.0</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">p</span> <span class="o">*</span> <span class="n">q</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="_Record.get_hom_refs"><a class="viewcode-back" href="../API.html#vcf._Record.get_hom_refs">[docs]</a>    <span class="k">def</span> <span class="nf">get_hom_refs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The list of hom ref genotypes&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">gt_type</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="_Record.get_hom_alts"><a class="viewcode-back" href="../API.html#vcf._Record.get_hom_alts">[docs]</a>    <span class="k">def</span> <span class="nf">get_hom_alts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The list of hom alt genotypes&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">gt_type</span> <span class="o">==</span> <span class="mi">2</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="_Record.get_hets"><a class="viewcode-back" href="../API.html#vcf._Record.get_hets">[docs]</a>    <span class="k">def</span> <span class="nf">get_hets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The list of het genotypes&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">gt_type</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="_Record.get_unknowns"><a class="viewcode-back" href="../API.html#vcf._Record.get_unknowns">[docs]</a>    <span class="k">def</span> <span class="nf">get_unknowns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The list of unknown genotypes&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">gt_type</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">]</span>
+
+</div></div>
+<div class="viewcode-block" id="Reader"><a class="viewcode-back" href="../API.html#vcf.Reader">[docs]</a><span class="k">class</span> <span class="nc">Reader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Reader for a VCF v 4.0 file, an iterator returning ``_Record objects`` &quot;&quot;&quot;</span>
+
+    <span class="n">metadata</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot; metadata fields from header &quot;&quot;&quot;</span>
+    <span class="n">infos</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot; info fields from header &quot;&quot;&quot;</span>
+    <span class="n">filters</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot; filter fields from header &quot;&quot;&quot;</span>
+    <span class="n">formats</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot; format fields from header &quot;&quot;&quot;</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot; list of sample IDs &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fsock</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">aggressive</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Create a new Reader for a VCF file.</span>
+
+<span class="sd">            You must specify either fsock (stream) or filename.  Gzipped streams</span>
+<span class="sd">            or files are attempted to be recogized by the file extension, or gzipped</span>
+<span class="sd">            can be forced with ``compressed=True``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VCFReader</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">fsock</span> <span class="ow">or</span> <span class="n">filename</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;You must provide at least fsock or filename&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filename</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+            <span class="k">if</span> <span class="n">fsock</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reader</span> <span class="o">=</span> <span class="nb">file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">fsock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reader</span> <span class="o">=</span> <span class="n">fsock</span>
+            <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fsock</span><span class="p">,</span> <span class="s">&#39;name&#39;</span><span class="p">):</span>
+                    <span class="n">filename</span> <span class="o">=</span> <span class="n">fsock</span><span class="o">.</span><span class="n">name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="k">if</span> <span class="n">compressed</span> <span class="ow">or</span> <span class="p">(</span><span class="n">filename</span> <span class="ow">and</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.gz&#39;</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reader</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggro</span> <span class="o">=</span> <span class="n">aggressive</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infos</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filters</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">formats</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_indexes</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_header_lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tabix</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">aggressive</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mapper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_none_map</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mapper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pass_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parse_metainfo</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">_parse_metainfo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Parse the information stored in the metainfo of the VCF.</span>
+
+<span class="sd">        The end user shouldn&#39;t have to use this.  She can access the metainfo</span>
+<span class="sd">        directly with ``self.metadata``.&#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;metadata&#39;</span><span class="p">,</span> <span class="s">&#39;infos&#39;</span><span class="p">,</span> <span class="s">&#39;filters&#39;</span><span class="p">,</span> <span class="s">&#39;formats&#39;</span><span class="p">):</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">_vcf_metadata_parser</span><span class="p">()</span>
+
+        <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;##&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_header_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;##INFO&#39;</span><span class="p">):</span>
+                <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">read_info</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">infos</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+            <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;##FILTER&#39;</span><span class="p">):</span>
+                <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">read_filter</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+            <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;##FORMAT&#39;</span><span class="p">):</span>
+                <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">read_format</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">formats</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">read_meta</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+            <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">9</span><span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_indexes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">x</span><span class="p">,</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">x</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">)])</span>
+
+    <span class="k">def</span> <span class="nf">_none_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">iterable</span><span class="p">,</span> <span class="n">bad</span><span class="o">=</span><span class="s">&#39;.&#39;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;``map``, but make bad values None.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="n">bad</span> <span class="k">else</span> <span class="bp">None</span>
+                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">iterable</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_pass_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">iterable</span><span class="p">,</span> <span class="n">bad</span><span class="o">=</span><span class="s">&#39;.&#39;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;``map``, but make bad values None.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="n">bad</span> <span class="k">else</span> <span class="n">bad</span>
+                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">iterable</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_parse_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info_str</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Parse the INFO field of a VCF entry into a dictionary of Python</span>
+<span class="sd">        types.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">entries</span> <span class="o">=</span> <span class="n">info_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;;&#39;</span><span class="p">)</span>
+        <span class="n">retdict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;=&#39;</span><span class="p">)</span>
+            <span class="n">ID</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">entry_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infos</span><span class="p">[</span><span class="n">ID</span><span class="p">]</span><span class="o">.</span><span class="n">type</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">entry_type</span> <span class="o">=</span> <span class="n">RESERVED_INFO</span><span class="p">[</span><span class="n">ID</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                        <span class="n">entry_type</span> <span class="o">=</span> <span class="s">&#39;String&#39;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">entry_type</span> <span class="o">=</span> <span class="s">&#39;Flag&#39;</span>
+
+            <span class="k">if</span> <span class="n">entry_type</span> <span class="o">==</span> <span class="s">&#39;Integer&#39;</span><span class="p">:</span>
+                <span class="n">vals</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">entry_type</span> <span class="o">==</span> <span class="s">&#39;Float&#39;</span><span class="p">:</span>
+                <span class="n">vals</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">entry_type</span> <span class="o">==</span> <span class="s">&#39;Flag&#39;</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">elif</span> <span class="n">entry_type</span> <span class="o">==</span> <span class="s">&#39;String&#39;</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">infos</span><span class="p">[</span><span class="n">ID</span><span class="p">]</span><span class="o">.</span><span class="n">num</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="n">retdict</span><span class="p">[</span><span class="n">ID</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+        <span class="k">return</span> <span class="n">retdict</span>
+
+    <span class="k">def</span> <span class="nf">_parse_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">samp_fmt</span><span class="p">,</span> <span class="n">site</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Parse a sample entry according to the format specified in the FORMAT</span>
+<span class="sd">        column.&#39;&#39;&#39;</span>
+        <span class="n">samp_data</span> <span class="o">=</span> <span class="p">[]</span><span class="c"># OrderedDict()</span>
+        <span class="n">samp_fmt</span> <span class="o">=</span> <span class="n">samp_fmt</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+
+        <span class="n">samp_fmt_types</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">fmt</span> <span class="ow">in</span> <span class="n">samp_fmt</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">entry_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">formats</span><span class="p">[</span><span class="n">fmt</span><span class="p">]</span><span class="o">.</span><span class="n">type</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">entry_type</span> <span class="o">=</span> <span class="n">RESERVED_FORMAT</span><span class="p">[</span><span class="n">fmt</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="n">entry_type</span> <span class="o">=</span> <span class="s">&#39;String&#39;</span>
+            <span class="n">samp_fmt_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry_type</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">izip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
+            <span class="n">sampdict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_sample</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">samp_fmt</span><span class="p">,</span> <span class="n">samp_fmt_types</span><span class="p">)</span>
+            <span class="n">samp_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_Call</span><span class="p">(</span><span class="n">site</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sampdict</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">samp_data</span>
+
+    <span class="k">def</span> <span class="nf">_parse_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">samp_fmt</span><span class="p">,</span> <span class="n">samp_fmt_types</span><span class="p">):</span>
+        <span class="n">mapper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper</span>
+
+        <span class="n">sampdict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">x</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">samp_fmt</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">entry_type</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">izip</span><span class="p">(</span><span class="n">samp_fmt</span><span class="p">,</span> <span class="n">samp_fmt_types</span><span class="p">,</span> <span class="n">sample</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)):</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">vals</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s">&#39;GT&#39;</span><span class="p">:</span>
+
+                <span class="n">gt</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">gt</span> <span class="o">==</span> <span class="s">&#39;./.&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggro</span><span class="p">:</span>
+                        <span class="n">gt</span> <span class="o">=</span> <span class="bp">None</span>
+                    <span class="n">sampdict</span><span class="p">[</span><span class="n">fmt</span><span class="p">]</span> <span class="o">=</span> <span class="n">gt</span>
+                    <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sampdict</span><span class="p">[</span><span class="n">fmt</span><span class="p">]</span> <span class="o">=</span> <span class="n">gt</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">entry_type</span> <span class="o">==</span> <span class="s">&#39;Integer&#39;</span><span class="p">:</span>
+                    <span class="n">sampdict</span><span class="p">[</span><span class="n">fmt</span><span class="p">]</span> <span class="o">=</span> <span class="n">mapper</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">entry_type</span> <span class="o">==</span> <span class="s">&#39;Float&#39;</span> <span class="ow">or</span> <span class="n">entry_type</span> <span class="o">==</span> <span class="s">&#39;Numeric&#39;</span><span class="p">:</span>
+                    <span class="n">sampdict</span><span class="p">[</span><span class="n">fmt</span><span class="p">]</span> <span class="o">=</span> <span class="n">mapper</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sampdict</span><span class="p">[</span><span class="n">fmt</span><span class="p">]</span> <span class="o">=</span> <span class="n">vals</span>
+        <span class="k">return</span> <span class="n">sampdict</span>
+
+<div class="viewcode-block" id="Reader.next"><a class="viewcode-back" href="../API.html#vcf.Reader.next">[docs]</a>    <span class="k">def</span> <span class="nf">next</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the next record in the file.&#39;&#39;&#39;</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">next</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">chrom</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;.&#39;</span><span class="p">:</span>
+            <span class="n">ID</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ID</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggro</span> <span class="k">else</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">alt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;.&#39;</span><span class="p">:</span>
+            <span class="n">qual</span> <span class="o">=</span> <span class="s">&#39;.&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">qual</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="k">if</span> <span class="s">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">filt</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;;&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="s">&#39;;&#39;</span> <span class="ow">in</span> <span class="n">row</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="k">else</span> <span class="n">row</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">filt</span> <span class="o">==</span> <span class="s">&#39;PASS&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggro</span><span class="p">:</span>
+            <span class="n">filt</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_info</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="n">record</span> <span class="o">=</span> <span class="n">_Record</span><span class="p">(</span><span class="n">chrom</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">ID</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">alt</span><span class="p">,</span> <span class="n">qual</span><span class="p">,</span> <span class="n">filt</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_indexes</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">fmt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_samples</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">9</span><span class="p">:],</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+            <span class="n">record</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span>
+
+        <span class="k">return</span> <span class="n">record</span>
+</div>
+<div class="viewcode-block" id="Reader.fetch"><a class="viewcode-back" href="../API.html#vcf.Reader.fetch">[docs]</a>    <span class="k">def</span> <span class="nf">fetch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chrom</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; fetch records from a Tabix indexed VCF, requires pysam &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pysam</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;pysam not available, try &quot;pip install pysam&quot;?&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;Please provide a filename (or a &quot;normal&quot; fsock)&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tabix</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tabix</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Tabixfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tabix</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">chrom</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+</div></div>
+<div class="viewcode-block" id="Writer"><a class="viewcode-back" href="../API.html#vcf.Writer">[docs]</a><span class="k">class</span> <span class="nc">Writer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; VCF Writer &quot;&quot;&quot;</span>
+
+    <span class="n">fixed_fields</span> <span class="o">=</span> <span class="s">&quot;#CHROM POS ID REF ALT QUAL FILTER INFO FORMAT&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">,</span> <span class="n">template</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s">&quot;</span><span class="se">\t</span><span class="s">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;##</span><span class="si">%s</span><span class="s">=</span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">infos</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;##INFO=&lt;ID=</span><span class="si">%s</span><span class="s">,Number=</span><span class="si">%s</span><span class="s">,Type=</span><span class="si">%s</span><span class="s">,Description=&quot;</span><span class="si">%s</span><span class="s">&quot;&gt;</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">formats</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;##FORMAT=&lt;ID=</span><span class="si">%s</span><span class="s">,Number=</span><span class="si">%s</span><span class="s">,Type=</span><span class="si">%s</span><span class="s">,Description=&quot;</span><span class="si">%s</span><span class="s">&quot;&gt;</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">filters</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;##FILTER=&lt;ID=</span><span class="si">%s</span><span class="s">,Description=&quot;</span><span class="si">%s</span><span class="s">&quot;&gt;</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">line</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_header</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_write_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># TODO: write INFO, etc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fixed_fields</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Writer.write_record"><a class="viewcode-back" href="../API.html#vcf.Writer.write_record">[docs]</a>    <span class="k">def</span> <span class="nf">write_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; write a record to the file &quot;&quot;&quot;</span>
+        <span class="n">ffs</span> <span class="o">=</span> <span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">CHROM</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">POS</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">REF</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_alt</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">ALT</span><span class="p">),</span>
+            <span class="n">record</span><span class="o">.</span><span class="n">QUAL</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">FILTER</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_info</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">INFO</span><span class="p">),</span> <span class="n">record</span><span class="o">.</span><span class="n">FORMAT</span><span class="p">]</span>
+
+        <span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_format_sample</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">FORMAT</span><span class="p">,</span> <span class="n">sample</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">samples</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">ffs</span> <span class="o">+</span> <span class="n">samples</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_format_alt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alt</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">alt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_format_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s">&quot;</span><span class="si">%s</span><span class="s">=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stringify</span><span class="p">(</span><span class="n">y</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">info</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+
+    <span class="k">def</span> <span class="nf">_format_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sample</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&quot;GT&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;./.&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&quot;./.&quot;</span>
+        <span class="k">return</span> <span class="s">&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stringify</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">f</span><span class="p">]))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fmt</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">_stringify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">([]):</span>
+            <span class="k">return</span> <span class="s">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+
+</div>
+<div class="viewcode-block" id="Filter"><a class="viewcode-back" href="../FILTERS.html#vcf.Filter">[docs]</a><span class="k">class</span> <span class="nc">Filter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Base class for vcf_filter.py filters &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;f&#39;</span>
+    <span class="sd">&quot;&quot;&quot; name used to activate filter and in VCF headers &quot;&quot;&quot;</span>
+
+    <span class="n">description</span> <span class="o">=</span> <span class="s">&#39;VCF filter base class&#39;</span>
+    <span class="sd">&quot;&quot;&quot; descrtiption used in vcf headers &quot;&quot;&quot;</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Filter.customize_parser"><a class="viewcode-back" href="../FILTERS.html#vcf.Filter.customize_parser">[docs]</a>    <span class="k">def</span> <span class="nf">customize_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; hook to extend argparse parser with custom arguments &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+</div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; create the filter using argparse ``args`` &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; filter a site, return not None if the site should be filtered &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;Filters must implement this method&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Filter.filter_name"><a class="viewcode-back" href="../FILTERS.html#vcf.Filter.filter_name">[docs]</a>    <span class="k">def</span> <span class="nf">filter_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; return the name to put in the VCF header, default is ``name`` + ``threshold`` &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s">&#39;</span><span class="si">%s%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">)</span>
+
+</div></div>
+<span class="k">def</span> <span class="nf">__update_readme</span><span class="p">():</span>
+    <span class="kn">import</span> <span class="nn">sys</span>
+    <span class="nb">file</span><span class="p">(</span><span class="s">&#39;README.rst&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">__name__</span><span class="p">]</span><span class="o">.</span><span class="n">__doc__</span><span class="p">)</span>
+
+
+<span class="c"># backwards compatibility</span>
+<span class="n">VCFReader</span> <span class="o">=</span> <span class="n">Reader</span>
+<span class="n">VCFWriter</span> <span class="o">=</span> <span class="n">Writer</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">PyVCF v0.2.2 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, James Casbon, @jdoughertyii.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

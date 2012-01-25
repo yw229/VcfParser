@@ -100,7 +100,7 @@ class TestWriter(unittest.TestCase):
 
         for l, r in zip(records, reader2):
             self.assertEquals(l.samples, r.samples)
-            
+
 class TestRecord(unittest.TestCase):
 
     def test_num_calls(self):
@@ -160,7 +160,7 @@ class TestCall(unittest.TestCase):
     def test_phased(self):
         reader = vcf.Reader(fh('example.vcf'))
         for var in reader:
-            phases = [s.phased for s in var.samples] 
+            phases = [s.phased for s in var.samples]
             if var.POS == 14370:
                 self.assertEqual([True, True, False], phases)
             if var.POS == 17330:
@@ -186,7 +186,7 @@ class TestCall(unittest.TestCase):
                 self.assertEqual(['T|T', 'T|T', 'T/T'], gt_bases)
             elif var.POS == 1234567:
                 self.assertEqual([None, 'GTCT/GTACT', 'G/G'], gt_bases)
-                
+
     def test_gt_types(self):
         reader = vcf.Reader(fh('example.vcf'))
         for var in reader:
@@ -201,7 +201,7 @@ class TestCall(unittest.TestCase):
                 self.assertEqual([0,0,0], gt_types)
             elif var.POS == 1234567:
                 self.assertEqual([None,1,2], gt_types)
-                
+
 class TestTabix(unittest.TestCase):
 
     def setUp(self):
@@ -248,8 +248,9 @@ class TestFilter(unittest.TestCase):
 
 
     def testApplyFilter(self):
-        out = commands.getoutput('python vcf_filter.py --site-quality 30 test/example.vcf site_quality')
+        s, out = commands.getstatusoutput('python vcf_filter.py --site-quality 30 test/example.vcf sq')
         #print out
+        assert s == 0
         buf = StringIO()
         buf.write(out)
         buf.seek(0)
@@ -257,6 +258,8 @@ class TestFilter(unittest.TestCase):
 
         # check filter got into output file
         assert 'sq30' in reader.filters
+
+        print reader.filters
 
         # check sites were filtered
         n = 0
@@ -270,13 +273,16 @@ class TestFilter(unittest.TestCase):
 
 
     def testApplyMultipleFilters(self):
-        out = commands.getoutput('python vcf_filter.py --site-quality 30 '
-        '--genotype-quality 50 test/example.vcf site_quality min_genotype_quality')
+        s, out = commands.getstatusoutput('python vcf_filter.py --site-quality 30 '
+        '--genotype-quality 50 test/example.vcf sq mgq')
+        assert s == 0
         #print out
         buf = StringIO()
         buf.write(out)
         buf.seek(0)
         reader = vcf.Reader(buf)
+
+        print reader.filters
 
         assert 'mgq50' in reader.filters
         assert 'sq30' in reader.filters
