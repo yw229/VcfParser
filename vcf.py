@@ -355,6 +355,11 @@ class _Record(object):
         self.FILTER = FILTER
         self.INFO = INFO
         self.FORMAT = FORMAT
+        # infer 0-based start and 1-based end coordinates (BED coordinates)
+        # the end coordinate can be many bases away from the start in the
+        # case of INDEL deletions, SVs, etc.
+        self.start = self.POS - 1
+        self.end = self.start + len(self.REF)
         # create a list of alleles. [0] = REF, [1:] = ALTS
         self.alleles = [self.REF]
         self.alleles.extend(self.ALT)
