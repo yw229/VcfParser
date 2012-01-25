@@ -253,20 +253,15 @@ class _vcf_metadata_parser(object):
 class _Call(object):
     """ A genotype call, a cell entry in a VCF file"""
 
-    site = None
-    """ The ``_Record`` for the ``_Call``  """
-    sample = None
-    """ The sample name """
-    data = None
-    """ Dictionary of data from the VCF file """
-    called = None
-    """ True if the GT is not ./. """
-
     def __init__(self, site, sample, data):
+         #: The ``_Record`` for this ``_Call``
         self.site = site
+        #: The sample name
         self.sample = sample
+        #: Dictionary of data from the VCF file
         self.data = data
         self.gt_nums = self.data['GT']
+        #: True if the GT is not ./.
         self.called = self.gt_nums is not None and self.gt_nums != "./."
 
     def __repr__(self):
@@ -342,9 +337,6 @@ class _Record(object):
         The list of genotype calls is in the ``samples`` property.
     """
 
-    samples = None
-    """ List of ``_Call`` objects ordered as in file """
-
     def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, sample_indexes, samples=None):
         self.CHROM = CHROM
         self.POS = POS
@@ -358,6 +350,7 @@ class _Record(object):
         # create a list of alleles. [0] = REF, [1:] = ALTS
         self.alleles = [self.REF]
         self.alleles.extend(self.ALT)
+        #: list of ``_Calls`` for each sample ordered as in source VCF
         self.samples = samples
         self._sample_indexes = sample_indexes
 
@@ -466,16 +459,6 @@ class _Record(object):
 class Reader(object):
     """ Reader for a VCF v 4.0 file, an iterator returning ``_Record objects`` """
 
-    metadata = None
-    """ metadata fields from header """
-    infos = None
-    """ info fields from header """
-    filters = None
-    """ filter fields from header """
-    formats = None
-    """ format fields from header """
-    samples = None
-    """ list of sample IDs """
 
     def __init__(self, fsock=None, filename=None, aggressive=False, compressed=False):
         """ Create a new Reader for a VCF file.
@@ -505,9 +488,13 @@ class Reader(object):
             self.reader = gzip.GzipFile(fileobj=self.reader)
 
         self.aggro = aggressive
+        #: metadata fields from header
         self.metadata = None
+        #: INFO fields from header
         self.infos = None
+        #: FILTER fields from header
         self.filters = None
+        #: FORMAT fields from header
         self.formats = None
         self.samples = None
         self._sample_indexes = None
