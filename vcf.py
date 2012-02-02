@@ -372,7 +372,7 @@ class _Record(object):
         self.samples = samples
         self._sample_indexes = sample_indexes
 
-    def __eq__(self):
+    def __eq__(self, other):
         """ _Records are equal if they describe the same variant (same position, alleles) """
         return (self.CHROM == other.CHROM and
                 self.POS == other.POS and
