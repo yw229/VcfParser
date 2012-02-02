@@ -173,9 +173,8 @@ _Format = collections.namedtuple('Format', ['id', 'num', 'type', 'desc'])
 
 class _vcf_metadata_parser(object):
     '''Parse the metadat in the header of a VCF file.'''
-    def __init__(self, aggressive=False):
+    def __init__(self):
         super(_vcf_metadata_parser, self).__init__()
-        self.aggro = aggressive
         self.info_pattern = re.compile(r'''\#\#INFO=<
             ID=(?P<id>[^,]+),
             Number=(?P<number>-?\d+|\.|[AG]),
@@ -204,9 +203,9 @@ class _vcf_metadata_parser(object):
         try:
             num = int(match.group('number'))
             if num < 0:
-                num = None if self.aggro else '.'
+                num = None
         except ValueError:
-            num = None if self.aggro else '.'
+            num = None
 
         info = _Info(match.group('id'), num,
                      match.group('type'), match.group('desc'))
@@ -234,9 +233,9 @@ class _vcf_metadata_parser(object):
         try:
             num = int(match.group('number'))
             if num < 0:
-                num = None if self.aggro else '.'
+                num = None
         except ValueError:
-            num = None if self.aggro else '.'
+            num = None
 
         form = _Format(match.group('id'), num,
                        match.group('type'), match.group('desc'))
@@ -252,7 +251,7 @@ class _Call(object):
     """ A genotype call, a cell entry in a VCF file"""
 
     def __init__(self, site, sample, data):
-         #: The ``_Record`` for this ``_Call``
+        #: The ``_Record`` for this ``_Call``
         self.site = site
         #: The sample name
         self.sample = sample
@@ -260,7 +259,7 @@ class _Call(object):
         self.data = data
         self.gt_nums = self.data['GT']
         #: True if the GT is not ./.
-        self.called = self.gt_nums is not None and self.gt_nums != "./."
+        self.called = self.gt_nums is not None
 
     def __repr__(self):
         return "Call(sample=%s, GT=%s)" % (self.sample, self.gt_nums)
@@ -319,7 +318,7 @@ class _Call(object):
         '''A boolean indicating whether or not
            the genotype is phased for this sample
         '''
-        return self.data['GT'].find("|") >= 0
+        return self.data['GT'] is not None and self.data['GT'].find("|") >= 0
 
     def __getitem__(self, key):
         """ Lookup value, backwards compatibility """
@@ -462,7 +461,7 @@ class Reader(object):
     """ Reader for a VCF v 4.0 file, an iterator returning ``_Record objects`` """
 
 
-    def __init__(self, fsock=None, filename=None, aggressive=False, compressed=False):
+    def __init__(self, fsock=None, filename=None, compressed=False):
         """ Create a new Reader for a VCF file.
 
             You must specify either fsock (stream) or filename.  Gzipped streams
@@ -489,7 +488,6 @@ class Reader(object):
         if compressed or (filename and filename.endswith('.gz')):
             self.reader = gzip.GzipFile(fileobj=self.reader)
 
-        self.aggro = aggressive
         #: metadata fields from header
         self.metadata = None
         #: INFO fields from header
@@ -502,10 +500,6 @@ class Reader(object):
         self._sample_indexes = None
         self._header_lines = []
         self._tabix = None
-        if aggressive:
-            self._mapper = self._none_map
-        else:
-            self._mapper = self._pass_map
         self._parse_metainfo()
 
     def __iter__(self):
@@ -548,14 +542,9 @@ class Reader(object):
         self.samples = fields[9:]
         self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
 
-    def _none_map(self, func, iterable, bad='.'):
+    def _map(self, func, iterable, bad='.'):
         '''``map``, but make bad values None.'''
         return [func(x) if x != bad else None
-                for x in iterable]
-
-    def _pass_map(self, func, iterable, bad='.'):
-        '''``map``, but make bad values None.'''
-        return [func(x) if x != bad else bad
                 for x in iterable]
 
     def _parse_info(self, info_str):
@@ -581,10 +570,10 @@ class Reader(object):
 
             if entry_type == 'Integer':
                 vals = entry[1].split(',')
-                val = self._mapper(int, vals)
+                val = self._map(int, vals)
             elif entry_type == 'Float':
                 vals = entry[1].split(',')
-                val = self._mapper(float, vals)
+                val = self._map(float, vals)
             elif entry_type == 'Flag':
                 val = True
             elif entry_type == 'String':
@@ -625,8 +614,6 @@ class Reader(object):
         return samp_data
 
     def _parse_sample(self, sample, samp_fmt, samp_fmt_types):
-        mapper = self._mapper
-
         sampdict = dict([(x, None) for x in samp_fmt])
 
         for fmt, entry_type, vals in itertools.izip(samp_fmt, samp_fmt_types, sample.split(':')):
@@ -637,17 +624,15 @@ class Reader(object):
                 gt = vals[0]
 
                 if gt == './.':
-                    if self.aggro:
-                        gt = None
-                    sampdict[fmt] = gt
+                    sampdict[fmt] = None
                     break
                 else:
                     sampdict[fmt] = gt
             else:
                 if entry_type == 'Integer':
-                    sampdict[fmt] = mapper(int, vals)
+                    sampdict[fmt] = self._map(int, vals)
                 elif entry_type == 'Float' or entry_type == 'Numeric':
-                    sampdict[fmt] = mapper(float, vals)
+                    sampdict[fmt] = self._map(float, vals)
                 else:
                     sampdict[fmt] = vals
         return sampdict
@@ -661,17 +646,17 @@ class Reader(object):
         if row[2] != '.':
             ID = row[2]
         else:
-            ID = None if self.aggro else row[2]
+            ID = None
 
         ref = row[3]
-        alt = self._mapper(str, row[4].split(','))
+        alt = self._map(str, row[4].split(','))
 
         if row[5] == '.':
             qual = '.'
         else:
             qual = float(row[5]) if '.' in row[5] else int(row[5])
         filt = row[6].split(';') if ';' in row[6] else row[6]
-        if filt == 'PASS' and self.aggro:
+        if filt == 'PASS':
             filt = None
         info = self._parse_info(row[7])
 
@@ -715,11 +700,11 @@ class Writer(object):
         for line in template.metadata.items():
             stream.write('##%s=%s\n' % line)
         for line in template.infos.values():
-            stream.write('##INFO=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % line)
+            stream.write('##INFO=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
         for line in template.formats.values():
-            stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % line)
+            stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
         for line in template.filters.values():
-            stream.write('##FILTER=<ID=%s,Description="%s">\n' % line)
+            stream.write('##FILTER=<ID=%s,Description="%s">\n' % tuple(self._map(str, line)))
 
         self._write_header()
 
@@ -729,8 +714,9 @@ class Writer(object):
 
     def write_record(self, record):
         """ write a record to the file """
-        ffs = [record.CHROM, record.POS, record.ID, record.REF, self._format_alt(record.ALT),
-            record.QUAL, record.FILTER, self._format_info(record.INFO), record.FORMAT]
+        ffs = self._map(str, [record.CHROM, record.POS, record.ID, record.REF]) \
+              + [self._format_alt(record.ALT), record.QUAL, record.FILTER,
+                 self._format_info(record.INFO), record.FORMAT]
 
         samples = [self._format_sample(record.FORMAT, sample)
             for sample in record.samples]
@@ -743,15 +729,19 @@ class Writer(object):
         return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.items()])
 
     def _format_sample(self, fmt, sample):
-        if sample.data["GT"] == "./.":
+        if sample.data["GT"] is None:
             return "./."
-        return ':'.join((str(self._stringify(sample.data[f])) for f in fmt.split(':')))
+        return ':'.join(self._stringify(sample.data[f]) for f in fmt.split(':'))
 
-    def _stringify(self, x):
+    def _stringify(self, x, none='.'):
         if type(x) == type([]):
-            return ','.join(map(str, x))
-        return str(x)
+            return ','.join(self._map(str, x, none))
+        return str(x) if x is not None else none
 
+    def _map(self, func, iterable, none='.'):
+        '''``map``, but make None values none.'''
+        return [func(x) if x is not None else none
+                for x in iterable]
 
 
 class Filter(object):
