@@ -17,9 +17,10 @@ parser.add_argument('--no-short-circuit', action='store_true',
         help='Do not stop filter processing on a site if a single filter fails.')
 parser.add_argument('--output', action='store', default=sys.stdout,
         help='Filename to output (default stdout)')
+parser.add_argument('--no-filtered', action='store_true',                                                                                                                                         
+        help='Remove failed sites')    
 
-
-
+        
 class SiteQuality(vcf.Filter):
 
     description = 'Filter sites by quality'
@@ -105,6 +106,8 @@ if __name__ == '__main__':
                 record.add_filter(filt.filter_name())
                 if short_circuit:
                     break
-        oup.write_record(record)
+                
+        if (not args.no_filtered) or (record.FILTER == '.'):  
+            oup.write_record(record)
 
 
