@@ -199,7 +199,7 @@ class _vcf_metadata_parser(object):
         match = self.info_pattern.match(info_string)
         if not match:
             raise SyntaxError(
-                "One of the INFO lines is malformed: {}".format(info_string))
+                "One of the INFO lines is malformed: %s" % info_string)
 
         try:
             num = int(match.group('number'))
@@ -218,8 +218,7 @@ class _vcf_metadata_parser(object):
         match = self.filter_pattern.match(filter_string)
         if not match:
             raise SyntaxError(
-                "One of the FILTER lines is malformed: {}".format(
-                    filter_string))
+                "One of the FILTER lines is malformed: %s" % filter_string)
 
         filt = _Filter(match.group('id'), match.group('desc'))
 
@@ -230,8 +229,7 @@ class _vcf_metadata_parser(object):
         match = self.format_pattern.match(format_string)
         if not match:
             raise SyntaxError(
-                "One of the FORMAT lines is malformed: {}".format(
-                    format_string))
+                "One of the FORMAT lines is malformed: %s" % format_string)
 
         try:
             num = int(match.group('number'))
@@ -792,4 +790,3 @@ def __update_readme():
 # backwards compatibility
 VCFReader = Reader
 VCFWriter = Writer
-
