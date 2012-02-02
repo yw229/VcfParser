@@ -324,6 +324,20 @@ class _Call(object):
         """ Lookup value, backwards compatibility """
         return self.data[key]
 
+    @property
+    def is_variant(self):
+        """ Return True if not a reference call """
+        if not self.called:
+            return None
+        return self.gt_type != 0
+
+    @property
+    def is_het(self):
+        """ Return True for heterozygous calls """
+        if not self.called:
+            return None
+        return self.gt_type == 1
+
 
 class _Record(object):
     """ A set of calls at a site.  Equivalent to a row in a VCF file.
@@ -354,6 +368,13 @@ class _Record(object):
         #: list of ``_Calls`` for each sample ordered as in source VCF
         self.samples = samples
         self._sample_indexes = sample_indexes
+
+    def __eq__(self, other):
+        """ _Records are equal if they describe the same variant (same position, alleles) """
+        return (self.CHROM == other.CHROM and
+                self.POS == other.POS and
+                self.REF == other.REF and
+                self.ALT == other.ALT)
 
     def __str__(self):
         return "Record(CHROM=%(CHROM)s, POS=%(POS)s, REF=%(REF)s, ALT=%(ALT)s)" % self.__dict__
