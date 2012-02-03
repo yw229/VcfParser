@@ -383,7 +383,7 @@ class _Record(object):
         self.FORMAT = self.FORMAT + ':' + fmt
 
     def add_filter(self, flt):
-        if self.FILTER == '.' or self.FILTER == 'PASS':
+        if self.FILTER is None or self.FILTER == 'PASS':
             self.FILTER = ''
         else:
             self.FILTER = self.FILTER + ';'
@@ -736,7 +736,7 @@ class Writer(object):
     def write_record(self, record):
         """ write a record to the file """
         ffs = self._map(str, [record.CHROM, record.POS, record.ID, record.REF]) \
-              + [self._format_alt(record.ALT), record.QUAL, record.FILTER,
+              + [self._format_alt(record.ALT), record.QUAL, record.FILTER or '.',
                  self._format_info(record.INFO), record.FORMAT]
 
         samples = [self._format_sample(record.FORMAT, sample)
@@ -744,7 +744,7 @@ class Writer(object):
         self.writer.writerow(ffs + samples)
 
     def _format_alt(self, alt):
-        return ','.join(alt)
+        return ','.join([x or '.' for x in alt])
 
     def _format_info(self, info):
         return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.items()])

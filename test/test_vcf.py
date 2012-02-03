@@ -254,7 +254,10 @@ class TestFilter(unittest.TestCase):
         buf = StringIO()
         buf.write(out)
         buf.seek(0)
+
+        print buf.getvalue()
         reader = vcf.Reader(buf)
+
 
         # check filter got into output file
         assert 'sq30' in reader.filters

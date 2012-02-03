@@ -17,10 +17,10 @@ parser.add_argument('--no-short-circuit', action='store_true',
         help='Do not stop filter processing on a site if a single filter fails.')
 parser.add_argument('--output', action='store', default=sys.stdout,
         help='Filename to output (default stdout)')
-parser.add_argument('--no-filtered', action='store_true',                                                                                                                                         
-        help='Remove failed sites')    
+parser.add_argument('--no-filtered', action='store_true',
+        help='Remove failed sites')
 
-        
+
 class SiteQuality(vcf.Filter):
 
     description = 'Filter sites by quality'
@@ -56,7 +56,7 @@ class VariantGenotypeQuality(vcf.Filter):
     def __call__(self, record):
         variants = (x for x in record.samples if x['GT'] != '0/0' and x['GT'] != './.')
 
-        vgq = max([max(x['GQ']) for x in variants])
+        vgq = max([max(x['GQ']) for x in variants if x.called])
         if vgq < self.threshold:
             return vgq
 
@@ -106,8 +106,8 @@ if __name__ == '__main__':
                 record.add_filter(filt.filter_name())
                 if short_circuit:
                     break
-                
-        if (not args.no_filtered) or (record.FILTER == '.'):  
+
+        if (not args.no_filtered) or (record.FILTER == '.'):
             oup.write_record(record)
 
 
