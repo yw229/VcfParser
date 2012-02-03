@@ -7,6 +7,7 @@ Pending
 * Fix setup.py for python < 2.7
 * Add ``__eq__`` to ``_Record``
 * Add ``is_het`` and ``is_variant`` to ``_Call``
+* Drop aggressive parse mode: we're always aggressive.
 
 0.2.2 Release
 -------------
