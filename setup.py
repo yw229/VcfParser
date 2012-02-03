@@ -3,10 +3,12 @@ import sys
 
 requires = []
 
-# install ordereddict for python < 2.7
-py_version = sys.version_info
-if py_version.major == 2 and py_version.minor < 7:
+# python 2.6 does not have argparse
+try:
+    import argparse
+except ImportError:
     requires.append('argparse')
+
 
 setup(
     name='PyVCF',
