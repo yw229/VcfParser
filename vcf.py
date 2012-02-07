@@ -270,7 +270,7 @@ class _Call(object):
         self.called = self.gt_nums is not None
 
     def __repr__(self):
-        return "Call(sample=%s, GT=%s)" % (self.sample, self.gt_nums)
+        return "Call(sample=%s, GT=%s, GQ=%s)" % (self.sample, self.gt_nums, self.data.get('GQ', ''))
 
     def __eq__(self, other):
         """ Two _Calls are equal if their _Records are equal
@@ -389,6 +389,9 @@ class _Record(object):
                 self.REF == other.REF and
                 self.ALT == other.ALT)
 
+    def __iter__(self):
+        return iter(self.samples)
+        
     def __str__(self):
         return "Record(CHROM=%(CHROM)s, POS=%(POS)s, REF=%(REF)s, ALT=%(ALT)s)" % self.__dict__
 
