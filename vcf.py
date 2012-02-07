@@ -705,8 +705,11 @@ class Reader(object):
 
         return record
 
-    def fetch(self, chrom, start, end):
-        """ fetch records from a Tabix indexed VCF, requires pysam """
+    def fetch(self, chrom, start, end=None):
+        """ fetch records from a Tabix indexed VCF, requires pysam
+            if start and end are specified, return iterator over positions
+            if end not specified, return individual ``_Call``
+        """
         if not pysam:
             raise Exception('pysam not available, try "pip install pysam"?')
 
@@ -719,6 +722,13 @@ class Reader(object):
         if self._prepend_chr and chrom[:3] == 'chr':
             chrom = chrom[3:]
 
+        # not sure why tabix needs position -1
+        start = start - 1
+        
+        if end is None:
+            self.reader = self._tabix.fetch(chrom, start, start)
+            return self.next()
+            
         self.reader = self._tabix.fetch(chrom, start, end)
         return self
 
