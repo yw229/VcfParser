@@ -726,7 +726,7 @@ class Reader(object):
         start = start - 1
         
         if end is None:
-            self.reader = self._tabix.fetch(chrom, start, start)
+            self.reader = self._tabix.fetch(chrom, start, start+1)
             return self.next()
             
         self.reader = self._tabix.fetch(chrom, start, end)
