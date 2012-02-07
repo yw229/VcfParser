@@ -207,12 +207,12 @@ class TestTabix(unittest.TestCase):
     def setUp(self):
         self.reader = vcf.Reader(fh('tb.vcf.gz'))
 
-    def testFetch(self):
-        lines = list(self.reader.fetch('20', 14370-1, 14370+1))
+    def testFetchRange(self):
+        lines = list(self.reader.fetch('20', 14370, 14370))
         self.assertEquals(len(lines), 1)
         self.assertEqual(lines[0].POS, 14370)
 
-        lines = list(self.reader.fetch('20', 14370-1, 17330+1))
+        lines = list(self.reader.fetch('20', 14370, 17330))
         self.assertEquals(len(lines), 2)
         self.assertEqual(lines[0].POS, 14370)
         self.assertEqual(lines[1].POS, 17330)
@@ -220,6 +220,15 @@ class TestTabix(unittest.TestCase):
 
         lines = list(self.reader.fetch('20', 1110695, 1234567))
         self.assertEquals(len(lines), 3)
+
+    def testFetchSite(self):
+        site = self.reader.fetch('20', 14370)
+        assert site.POS == 14370
+
+        site = self.reader.fetch('20', 14369)
+        assert site is None
+        
+        
 
 
 class TestOpenMethods(unittest.TestCase):

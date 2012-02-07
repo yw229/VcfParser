@@ -273,7 +273,12 @@ class _Call(object):
         return "Call(sample=%s, GT=%s)" % (self.sample, self.gt_nums)
 
     def __eq__(self, other):
-        return (self.sample == other.sample and self.data == other.data)
+        """ Two _Calls are equal if their _Records are equal
+            and the samples and ``gt_type``s are the same
+        """
+        return (self.site == other.site
+                and self.sample == other.sample
+                and self.gt_type == other.gt_type)
 
     @property
     def gt_bases(self):
@@ -708,7 +713,7 @@ class Reader(object):
     def fetch(self, chrom, start, end=None):
         """ fetch records from a Tabix indexed VCF, requires pysam
             if start and end are specified, return iterator over positions
-            if end not specified, return individual ``_Call``
+            if end not specified, return individual ``_Call`` at start or None
         """
         if not pysam:
             raise Exception('pysam not available, try "pip install pysam"?')
@@ -727,8 +732,11 @@ class Reader(object):
         
         if end is None:
             self.reader = self._tabix.fetch(chrom, start, start+1)
-            return self.next()
-            
+            try:
+                return self.next()
+            except StopIteration:
+                return None
+                
         self.reader = self._tabix.fetch(chrom, start, end)
         return self
 
