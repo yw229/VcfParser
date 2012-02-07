@@ -9,7 +9,7 @@ specified in the meta-information lines --  specifically the ##INFO and
 against the reserved types mentioned in the spec.  Failing that, it will just
 return strings.
 
-There is currently one piece of interface: ``Reader``.  It takes a file-like
+There main interface is the class: ``Reader``.  It takes a file-like
 object and acts as a reader::
 
     >>> import vcf
@@ -24,8 +24,7 @@ object and acts as a reader::
 
 
 This produces a great deal of information, but it is conveniently accessed.
-The attributes of a Record are the 8 fixed fields from the VCF spec plus two
-more.  That is:
+The attributes of a Record are the 8 fixed fields from the VCF spec::
 
     * ``Record.CHROM``
     * ``Record.POS``
@@ -36,7 +35,7 @@ more.  That is:
     * ``Record.FILTER``
     * ``Record.INFO``
 
-plus three more attributes to handle genotype information:
+plus attributes to handle genotype information:
 
     * ``Record.FORMAT``
     * ``Record.samples``
@@ -58,7 +57,7 @@ a ``True`` value. Integers and floats are handled exactly as you'd expect::
     >>> print record.INFO['AF']
     [0.5]
 
-There are a number of convienience functions for each ``Record`` allowing you to
+There are a number of convienience methods and properties for each ``Record`` allowing you to
 examine properties of interest::
 
     >>> print record.num_called, record.call_rate, record.num_unknown
@@ -131,6 +130,15 @@ region you are interested in::
     ...     print record
     Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
     Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
+
+
+The ``Writer`` class provides a way of writing a VCF file.  Currently, you must specify a
+template ``Reader`` which provides the metadata::
+
+    >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
+    >>> vcf_writer = vcf.Writer(file('/dev/null', 'w'))
+    >>> for record in vcf_reader:
+    ...     print r
 
 
 An extensible script is available to filter vcf files in vcf_filter.py.  VCF filters
@@ -482,7 +490,7 @@ class Reader(object):
     """ Reader for a VCF v 4.0 file, an iterator returning ``_Record objects`` """
 
 
-    def __init__(self, fsock=None, filename=None, compressed=False):
+    def __init__(self, fsock=None, filename=None, compressed=False, prepend_chr=False):
         """ Create a new Reader for a VCF file.
 
             You must specify either fsock (stream) or filename.  Gzipped streams
@@ -521,6 +529,7 @@ class Reader(object):
         self._sample_indexes = None
         self._header_lines = []
         self._tabix = None
+        self._prepend_chr = prepend_chr
         self._parse_metainfo()
 
     def __iter__(self):
@@ -662,6 +671,8 @@ class Reader(object):
         '''Return the next record in the file.'''
         row = self.reader.next().split()
         chrom = row[0]
+        if self._prepend_chr:
+            chrom = 'chr' + chrom
         pos = int(row[1])
 
         if row[2] != '.':
@@ -704,6 +715,9 @@ class Reader(object):
 
         if not self._tabix:
             self._tabix = pysam.Tabixfile(self.filename)
+
+        if self._prepend_chr and chrom[:3] == 'chr':
+            chrom = chrom[3:]
 
         self.reader = self._tabix.fetch(chrom, start, end)
         return self
