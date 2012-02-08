@@ -8,6 +8,12 @@ Issues should be reported at the github issue tracker.
 Changes
 =======
 
+Pending
+-------
+
+* Package structure 
+* add ``vcf.utils`` module with ``walk_together`` method
+
 0.3.0 Release
 -------------
 

@@ -248,6 +248,9 @@ class _Record(object):
     def __str__(self):
         return "Record(CHROM=%(CHROM)s, POS=%(POS)s, REF=%(REF)s, ALT=%(ALT)s)" % self.__dict__
 
+    def __cmp__(self, other):
+        return cmp( (self.CHROM, self.POS), (other.CHROM, other.POS))
+
     def add_format(self, fmt):
         self.FORMAT = self.FORMAT + ':' + fmt
 

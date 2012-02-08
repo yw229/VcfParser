@@ -6,7 +6,7 @@ from StringIO import StringIO
 
 import vcf
 import vcf_filter
-
+from vcf import utils
 
 suite = doctest.DocTestSuite(vcf.parser)
 
@@ -257,7 +257,7 @@ class TestFilter(unittest.TestCase):
 
 
     def testApplyFilter(self):
-        s, out = commands.getstatusoutput('python vcf_filter.py --site-quality 30 test/example.vcf sq')
+        s, out = commands.getstatusoutput('python scripts/vcf_filter.py --site-quality 30 test/example.vcf sq')
         #print out
         assert s == 0
         buf = StringIO()
@@ -285,7 +285,7 @@ class TestFilter(unittest.TestCase):
 
 
     def testApplyMultipleFilters(self):
-        s, out = commands.getstatusoutput('python vcf_filter.py --site-quality 30 '
+        s, out = commands.getstatusoutput('python scripts/vcf_filter.py --site-quality 30 '
         '--genotype-quality 50 test/example.vcf sq mgq')
         assert s == 0
         #print out
@@ -304,6 +304,43 @@ class TestRegression(unittest.TestCase):
     def test_issue_16(self):
         reader = vcf.Reader(fh('issue-16.vcf'))
         assert reader.next().QUAL == None
+
+
+
+class TestUtils(unittest.TestCase):
+
+    def test_walk(self):
+        # easy case: all same sites
+        reader1 = vcf.Reader(fh('example.vcf'))
+        reader2 = vcf.Reader(fh('example.vcf'))
+        reader3 = vcf.Reader(fh('example.vcf'))
+
+        n = 0
+        for x in utils.walk_together(reader1, reader2, reader3):
+            assert len(x) == 3
+            assert (x[0] == x[1]) and (x[1] == x[2])
+            n+= 1
+        assert n == 5
+
+        # artificial case 2 from the left, 2 from the right, 2 together, 1 from the right, 1 from the left
+
+        expected = 'llrrttrl'
+        reader1 = vcf.Reader(fh('walk_left.vcf'))
+        reader2 = vcf.Reader(fh('example.vcf'))
+
+        for ex, recs in zip(expected, utils.walk_together(reader1, reader2)):
+
+            if ex == 'l':
+                assert recs[0] is not None
+                assert recs[1] is None
+            if ex == 'r':
+                assert recs[1] is not None
+                assert recs[0] is None
+            if ex == 't':
+                assert recs[0] is not None
+                assert recs[1] is not None
+
+
 
 
 
