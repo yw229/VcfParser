@@ -8,7 +8,7 @@ import vcf
 import vcf_filter
 
 
-suite = doctest.DocTestSuite(vcf)
+suite = doctest.DocTestSuite(vcf.parser)
 
 
 def fh(fname):

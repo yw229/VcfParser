@@ -13,8 +13,8 @@ import vcf
 
 setup(
     name='PyVCF',
-    py_modules=['vcf', 'vcf_filter'],
-    scripts=['vcf_melt', 'vcf_filter.py'],
+    packages=['vcf'],
+    scripts=['scripts/vcf_melt', 'scripts/vcf_filter.py'],
     author='James Casbon and @jdoughertyii',
     author_email='casbon@gmail.com',
     description='Variant Call Format (VCF) parser for python',
@@ -23,8 +23,8 @@ setup(
     requires=requires,
     entry_points = {
         'vcf.filters': [
-            'site_quality = vcf_filter:SiteQuality',
-            'vgq = vcf_filter:VariantGenotypeQuality',
+            'site_quality = vcf.filters:SiteQuality',
+            'vgq = vcf.filters:VariantGenotypeQuality',
         ]
     },
     url='https://github.com/jamescasbon/PyVCF',

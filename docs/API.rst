@@ -16,13 +16,13 @@ vcf.Writer
 vcf._Record
 -----------
 
-.. autoclass:: vcf._Record
+.. autoclass:: vcf.parser._Record
    :members:
 
 vcf._Call
 ---------
 
-.. autoclass:: vcf._Call
+.. autoclass:: vcf.parser._Call
    :members:
 
 

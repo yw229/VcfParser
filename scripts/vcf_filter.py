@@ -4,7 +4,7 @@ import argparse
 import pkg_resources
 
 import vcf
-
+from vcf.parser import _Filter
 
 parser = argparse.ArgumentParser(description='Filter a VCF file',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     for name in args.filters:
         f = filters[name](args)
         chain.append(f)
-        inp.filters[f.filter_name()] = vcf._Filter(f.filter_name(), f.description)
+        inp.filters[f.filter_name()] = _Filter(f.filter_name(), f.description)
 
     oup = vcf.Writer(args.output, inp)
 
