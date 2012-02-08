@@ -19,7 +19,7 @@ object and acts as a reader::
     Record(CHROM=20, POS=14370, REF=G, ALT=['A'])
     Record(CHROM=20, POS=17330, REF=T, ALT=['A'])
     Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
-    Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
+    Record(CHROM=20, POS=1230237, REF=T, ALT=[None])
     Record(CHROM=20, POS=1234567, REF=GTCT, ALT=['G', 'GTACT'])
 
 
@@ -67,7 +67,8 @@ examine properties of interest::
     >>> print record.nucl_diversity, record.aaf
     0.6 0.5
     >>> print record.get_hets()
-    [Call(sample=NA00002, GT=1|0)]
+    [Call(sample=NA00002, GT=1|0, GQ=[48])]
+
 
 ``record.FORMAT`` will be a string specifying the format of the genotype
 fields.  In case the FORMAT column does not exist, ``record.FORMAT`` is
@@ -126,24 +127,29 @@ Random access is supported for files with tabix indexes.  Simply call fetch for 
 region you are interested in::
 
     >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
-    >>> for record in vcf_reader.fetch('20', 1110696-1, 1230237):
+    >>> for record in vcf_reader.fetch('20', 1110696, 1230237):
     ...     print record
     Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
-    Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
+    Record(CHROM=20, POS=1230237, REF=T, ALT=[None])
+
+Or extract a single row::
+
+    >>> print vcf_reader.fetch('20', 1110696)
+    Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
 
 
 The ``Writer`` class provides a way of writing a VCF file.  Currently, you must specify a
 template ``Reader`` which provides the metadata::
 
     >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
-    >>> vcf_writer = vcf.Writer(file('/dev/null', 'w'))
+    >>> vcf_writer = vcf.Writer(file('/dev/null', 'w'), vcf_reader)
     >>> for record in vcf_reader:
-    ...     print r
+    ...     vcf_writer.write_record(record)
 
 
 An extensible script is available to filter vcf files in vcf_filter.py.  VCF filters
 declared by other packages will be available for use in this script.  Please
-see FILTERS.md for full description.
+see :doc:`FILTERS` for full description.
 
 '''
 import collections
@@ -153,11 +159,13 @@ import gzip
 import sys
 import itertools
 
-
 try:
     import pysam
 except ImportError:
     pysam = None
+
+
+VERSION = '0.3.0'
 
 
 # Metadata parsers/constants
@@ -391,7 +399,7 @@ class _Record(object):
 
     def __iter__(self):
         return iter(self.samples)
-        
+
     def __str__(self):
         return "Record(CHROM=%(CHROM)s, POS=%(POS)s, REF=%(REF)s, ALT=%(ALT)s)" % self.__dict__
 
@@ -692,7 +700,7 @@ class Reader(object):
         alt = self._map(str, row[4].split(','))
 
         if row[5] == '.':
-            qual = '.'
+            qual = None
         else:
             qual = float(row[5]) if '.' in row[5] else int(row[5])
         filt = row[6].split(';') if ';' in row[6] else row[6]
@@ -732,14 +740,14 @@ class Reader(object):
 
         # not sure why tabix needs position -1
         start = start - 1
-        
+
         if end is None:
             self.reader = self._tabix.fetch(chrom, start, start+1)
             try:
                 return self.next()
             except StopIteration:
                 return None
-                
+
         self.reader = self._tabix.fetch(chrom, start, end)
         return self
 

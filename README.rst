@@ -8,7 +8,7 @@ specified in the meta-information lines --  specifically the ##INFO and
 against the reserved types mentioned in the spec.  Failing that, it will just
 return strings.
 
-There is currently one piece of interface: ``Reader``.  It takes a file-like
+There main interface is the class: ``Reader``.  It takes a file-like
 object and acts as a reader::
 
     >>> import vcf
@@ -18,13 +18,12 @@ object and acts as a reader::
     Record(CHROM=20, POS=14370, REF=G, ALT=['A'])
     Record(CHROM=20, POS=17330, REF=T, ALT=['A'])
     Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
-    Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
+    Record(CHROM=20, POS=1230237, REF=T, ALT=[None])
     Record(CHROM=20, POS=1234567, REF=GTCT, ALT=['G', 'GTACT'])
 
 
 This produces a great deal of information, but it is conveniently accessed.
-The attributes of a Record are the 8 fixed fields from the VCF spec plus two
-more.  That is:
+The attributes of a Record are the 8 fixed fields from the VCF spec::
 
     * ``Record.CHROM``
     * ``Record.POS``
@@ -35,13 +34,13 @@ more.  That is:
     * ``Record.FILTER``
     * ``Record.INFO``
 
-plus three more attributes to handle genotype information:
+plus attributes to handle genotype information:
 
     * ``Record.FORMAT``
     * ``Record.samples``
     * ``Record.genotype``
 
-``samples`` and ``genotypes``, not being the title of any column, is left lowercase.  The format
+``samples`` and ``genotype``, not being the title of any column, are left lowercase.  The format
 of the fixed fields is from the spec.  Comma-separated lists in the VCF are
 converted to lists.  In particular, one-entry VCF lists are converted to
 one-entry Python lists (see, e.g., ``Record.ALT``).  Semicolon-delimited lists
@@ -57,7 +56,7 @@ a ``True`` value. Integers and floats are handled exactly as you'd expect::
     >>> print record.INFO['AF']
     [0.5]
 
-There are a number of convienience functions for each ``Record`` allowing you to
+There are a number of convienience methods and properties for each ``Record`` allowing you to
 examine properties of interest::
 
     >>> print record.num_called, record.call_rate, record.num_unknown
@@ -67,7 +66,8 @@ examine properties of interest::
     >>> print record.nucl_diversity, record.aaf
     0.6 0.5
     >>> print record.get_hets()
-    [Call(sample=NA00002, GT=1|0)]
+    [Call(sample=NA00002, GT=1|0, GQ=[48])]
+
 
 ``record.FORMAT`` will be a string specifying the format of the genotype
 fields.  In case the FORMAT column does not exist, ``record.FORMAT`` is
@@ -126,13 +126,27 @@ Random access is supported for files with tabix indexes.  Simply call fetch for 
 region you are interested in::
 
     >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
-    >>> for record in vcf_reader.fetch('20', 1110696-1, 1230237):
+    >>> for record in vcf_reader.fetch('20', 1110696, 1230237):
     ...     print record
     Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
-    Record(CHROM=20, POS=1230237, REF=T, ALT=['.'])
+    Record(CHROM=20, POS=1230237, REF=T, ALT=[None])
+
+Or extract a single row::
+
+    >>> print vcf_reader.fetch('20', 1110696)
+    Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
+
+
+The ``Writer`` class provides a way of writing a VCF file.  Currently, you must specify a
+template ``Reader`` which provides the metadata::
+
+    >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
+    >>> vcf_writer = vcf.Writer(file('/dev/null', 'w'), vcf_reader)
+    >>> for record in vcf_reader:
+    ...     vcf_writer.write_record(record)
 
 
 An extensible script is available to filter vcf files in vcf_filter.py.  VCF filters
 declared by other packages will be available for use in this script.  Please
-see FILTERS.md for full description.
+see :doc:`FILTERS` for full description.
 

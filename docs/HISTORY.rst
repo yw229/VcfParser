@@ -1,14 +1,22 @@
+Development
+===========
+
+Please use the repository at github: https://github.com/jamescasbon/PyVCF/
+Pull requests gladly accepted. 
+Issues should be reported at the github issue tracker.
+
 Changes
 =======
 
-Pending
--------
+0.3.0 Release
+-------------
 
 * Fix setup.py for python < 2.7
-* Add ``__eq__`` to ``_Record``
+* Add ``__eq__`` to ``_Record`` and ``_Call``
 * Add ``is_het`` and ``is_variant`` to ``_Call``
 * Drop aggressive parse mode: we're always aggressive.
-* Add tabix fetch for single calls
+* Add tabix fetch for single calls, fix one->zero based indexing
+* add prepend_chr mode for ``Reader`` to add `chr` to CHROM attributes
 
 0.2.2 Release
 -------------
@@ -44,5 +52,6 @@ Contributions
 -------------
 
 Project started by @jdoughertyii and taken over by @jamescasbon on 12th January 2011.
+Contributions from @arq5x, @brentp, @martijnvermaat, @ian1roberts.
 
 

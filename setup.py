@@ -9,6 +9,7 @@ try:
 except ImportError:
     requires.append('argparse')
 
+import vcf
 
 setup(
     name='PyVCF',
@@ -17,6 +18,7 @@ setup(
     author='James Casbon and @jdoughertyii',
     author_email='casbon@gmail.com',
     description='Variant Call Format (VCF) parser for python',
+    long_description=vcf.__doc__,
     test_suite='test.test_vcf.suite',
     requires=requires,
     entry_points = {
@@ -26,5 +28,14 @@ setup(
         ]
     },
     url='https://github.com/jamescasbon/PyVCF',
-    version='0.2.2'
+    version=vcf.VERSION,
+    classifiers = [
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Topic :: Scientific/Engineering',
+      ],
+    keywords='bioinformatics',
 )

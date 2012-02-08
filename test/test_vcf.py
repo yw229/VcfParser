@@ -227,8 +227,8 @@ class TestTabix(unittest.TestCase):
 
         site = self.reader.fetch('20', 14369)
         assert site is None
-        
-        
+
+
 
 
 class TestOpenMethods(unittest.TestCase):
@@ -299,6 +299,12 @@ class TestFilter(unittest.TestCase):
         assert 'mgq50' in reader.filters
         assert 'sq30' in reader.filters
 
+class TestRegression(unittest.TestCase):
+
+    def test_issue_16(self):
+        reader = vcf.Reader(fh('issue-16.vcf'))
+        assert reader.next().QUAL == None
+
 
 
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
@@ -310,3 +316,4 @@ suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFilter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRecord))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCall))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRegression))
