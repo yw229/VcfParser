@@ -36,7 +36,7 @@ def trim_common_suffix(*sequences):
 
     Standard convention with VCF is to place an indel at the left-most
     position, but some tools add additional context to the right of the
-    sequences (e.g. samtools). These common suffixes are undesireable when
+    sequences (e.g. samtools). These common suffixes are undesirable when
     comparing variants, for example in variant databases.
 
         >>> trim_common_suffix('TATATATA', 'TATATA')
