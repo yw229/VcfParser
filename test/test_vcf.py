@@ -5,7 +5,6 @@ import commands
 from StringIO import StringIO
 
 import vcf
-import vcf_filter
 from vcf import utils
 
 suite = doctest.DocTestSuite(vcf.parser)
@@ -13,6 +12,53 @@ suite = doctest.DocTestSuite(vcf.parser)
 
 def fh(fname):
     return file(os.path.join(os.path.dirname(__file__), fname))
+
+
+class TestVcfSpecs(unittest.TestCase):
+
+    def test_vcf_4_0(self):
+        reader = vcf.Reader(fh('example-4.0.vcf'))
+        assert reader.metadata['fileformat'] == 'VCFv4.0'
+
+        # test we can walk the file at least
+        for r in reader:
+            for c in r:
+                print c.data
+                assert c
+
+
+
+    def test_vcf_4_1(self):
+        reader = vcf.Reader(fh('example-4.1.vcf'))
+        self.assertEqual(reader.metadata['fileformat'],  'VCFv4.1')
+
+        # contigs were added in vcf4.1
+        # probably need to add a reader.contigs attribute
+        assert 'contig' in reader.metadata
+
+        # test we can walk the file at least
+        for r in reader:
+            for c in r:
+                assert c
+
+        # asserting False while I work out what to check
+        assert False
+
+    def test_vcf_4_1(self):
+        reader = vcf.Reader(fh('example-4.1-sv.vcf'))
+
+        assert 'SVLEN' in reader.infos
+
+        # test we can walk the file at least
+        for r in reader:
+            print r
+            for c in r:
+                print c
+                assert c
+
+        # asserting False while I work out what to check
+        assert False
+
 
 class TestGatkOutput(unittest.TestCase):
 
@@ -104,14 +150,14 @@ class TestWriter(unittest.TestCase):
 class TestRecord(unittest.TestCase):
 
     def test_num_calls(self):
-        reader = vcf.Reader(fh('example.vcf'))
+        reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
             num_calls = (var.num_hom_ref + var.num_hom_alt + \
                          var.num_het + var.num_unknown)
             self.assertEqual(len(var.samples), num_calls)
 
     def test_call_rate(self):
-        reader = vcf.Reader(fh('example.vcf'))
+        reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
             call_rate = var.call_rate
             if var.POS == 14370:
@@ -126,7 +172,7 @@ class TestRecord(unittest.TestCase):
                 self.assertEqual(2.0/3.0, call_rate)
 
     def test_aaf(self):
-        reader = vcf.Reader(fh('example.vcf'))
+        reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
             aaf = var.aaf
             if var.POS == 14370:
@@ -141,7 +187,7 @@ class TestRecord(unittest.TestCase):
                 self.assertEqual(None, aaf)
 
     def test_pi(self):
-        reader = vcf.Reader(fh('example.vcf'))
+        reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
             pi = var.nucl_diversity
             if var.POS == 14370:
@@ -158,7 +204,7 @@ class TestRecord(unittest.TestCase):
 class TestCall(unittest.TestCase):
 
     def test_phased(self):
-        reader = vcf.Reader(fh('example.vcf'))
+        reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
             phases = [s.phased for s in var.samples]
             if var.POS == 14370:
@@ -173,7 +219,7 @@ class TestCall(unittest.TestCase):
                 self.assertEqual([False, False, False], phases)
 
     def test_gt_bases(self):
-        reader = vcf.Reader(fh('example.vcf'))
+        reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
             gt_bases = [s.gt_bases for s in var.samples]
             if var.POS == 14370:
@@ -188,7 +234,7 @@ class TestCall(unittest.TestCase):
                 self.assertEqual([None, 'GTCT/GTACT', 'G/G'], gt_bases)
 
     def test_gt_types(self):
-        reader = vcf.Reader(fh('example.vcf'))
+        reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
             gt_types = [s.gt_type for s in var.samples]
             if var.POS == 14370:
@@ -236,12 +282,12 @@ class TestOpenMethods(unittest.TestCase):
     samples = 'NA00001 NA00002 NA00003'.split()
 
     def testOpenFilehandle(self):
-        r = vcf.Reader(fh('example.vcf'))
+        r = vcf.Reader(fh('example-4.0.vcf'))
         self.assertEqual(self.samples, r.samples)
-        self.assertEqual('example.vcf', os.path.split(r.filename)[1])
+        self.assertEqual('example-4.0.vcf', os.path.split(r.filename)[1])
 
     def testOpenFilename(self):
-        r = vcf.Reader(filename='test/example.vcf')
+        r = vcf.Reader(filename='test/example-4.0.vcf')
         self.assertEqual(self.samples, r.samples)
 
     def testOpenFilehandleGzipped(self):
@@ -257,7 +303,7 @@ class TestFilter(unittest.TestCase):
 
 
     def testApplyFilter(self):
-        s, out = commands.getstatusoutput('python scripts/vcf_filter.py --site-quality 30 test/example.vcf sq')
+        s, out = commands.getstatusoutput('python scripts/vcf_filter.py --site-quality 30 test/example-4.0.vcf sq')
         #print out
         assert s == 0
         buf = StringIO()
@@ -286,7 +332,7 @@ class TestFilter(unittest.TestCase):
 
     def testApplyMultipleFilters(self):
         s, out = commands.getstatusoutput('python scripts/vcf_filter.py --site-quality 30 '
-        '--genotype-quality 50 test/example.vcf sq mgq')
+        '--genotype-quality 50 test/example-4.0.vcf sq mgq')
         assert s == 0
         #print out
         buf = StringIO()
@@ -311,9 +357,9 @@ class TestUtils(unittest.TestCase):
 
     def test_walk(self):
         # easy case: all same sites
-        reader1 = vcf.Reader(fh('example.vcf'))
-        reader2 = vcf.Reader(fh('example.vcf'))
-        reader3 = vcf.Reader(fh('example.vcf'))
+        reader1 = vcf.Reader(fh('example-4.0.vcf'))
+        reader2 = vcf.Reader(fh('example-4.0.vcf'))
+        reader3 = vcf.Reader(fh('example-4.0.vcf'))
 
         n = 0
         for x in utils.walk_together(reader1, reader2, reader3):
@@ -326,7 +372,7 @@ class TestUtils(unittest.TestCase):
 
         expected = 'llrrttrl'
         reader1 = vcf.Reader(fh('walk_left.vcf'))
-        reader2 = vcf.Reader(fh('example.vcf'))
+        reader2 = vcf.Reader(fh('example-4.0.vcf'))
 
         for ex, recs in zip(expected, utils.walk_together(reader1, reader2)):
 
