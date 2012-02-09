@@ -517,7 +517,7 @@ class Reader(object):
 
                 gt = vals[0]
 
-                if gt == './.':
+                if gt == './.' or gt == '.':
                     sampdict[fmt] = None
                     break
                 else:
