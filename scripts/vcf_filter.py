@@ -21,47 +21,6 @@ parser.add_argument('--no-filtered', action='store_true',
         help='Remove failed sites')
 
 
-class SiteQuality(vcf.Filter):
-
-    description = 'Filter sites by quality'
-    name = 'sq'
-
-    @classmethod
-    def customize_parser(self, parser):
-        parser.add_argument('--site-quality', type=int, default=30,
-                help='Filter sites below this quality')
-
-    def __init__(self, args):
-        self.threshold = args.site_quality
-
-    def __call__(self, record):
-        if record.QUAL < self.threshold:
-            return record.QUAL
-
-
-
-class VariantGenotypeQuality(vcf.Filter):
-
-    description = 'Demand a minimum quality associated with a non reference call'
-    name = 'mgq'
-
-    @classmethod
-    def customize_parser(self, parser):
-        parser.add_argument('--genotype-quality', type=int, default=50,
-                help='Filter sites with no genotypes above this quality')
-
-    def __init__(self, args):
-        self.threshold = args.genotype_quality
-
-    def __call__(self, record):
-        variants = (x for x in record.samples if x['GT'] != '0/0' and x['GT'] != './.')
-
-        vgq = max([max(x['GQ']) for x in variants if x.called])
-        if vgq < self.threshold:
-            return vgq
-
-
-
 if __name__ == '__main__':
     # TODO: allow filter specification by short name
     # TODO: flag that writes filter output into INFO column
