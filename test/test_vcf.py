@@ -386,6 +386,16 @@ class TestUtils(unittest.TestCase):
                 assert recs[0] is not None
                 assert recs[1] is not None
 
+    def test_trim(self):
+        tests = [('TAA GAA', 'T G'),
+                 ('TA TA', 'T T'),
+                 ('AGTTTTTA AGTTTA', 'AGTT AG'),
+                 ('TATATATA TATATA', 'TAT T'),
+                 ('TATATA TATATATA', 'T TAT'),
+                 ('ACCCCCCC ACCCCCCCCCC ACCCCCCCCC ACCCCCCCCCCC', 'A ACCC ACC ACCCC')]
+        for sequences, expected in tests:
+            self.assertEqual(utils.trim_common_suffix(*sequences.split()),
+                             expected.split())
 
 
 
