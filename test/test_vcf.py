@@ -116,6 +116,15 @@ class TestFreebayesOutput(TestGatkOutput):
     n_calls = 104
 
 
+class TestSamtoolsOutput(unittest.TestCase):
+
+    def testParse(self):
+        reader = vcf.Reader(fh('samtools.vcf'))
+
+        self.assertEqual(len(reader.samples), 1)
+        self.assertEqual(sum(1 for _ in reader), 11)
+
+
 class Test1kg(unittest.TestCase):
 
     def testParse(self):
@@ -392,6 +401,7 @@ class TestUtils(unittest.TestCase):
 
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFreebayesOutput))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSamtoolsOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
