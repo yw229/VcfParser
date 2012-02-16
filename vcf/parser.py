@@ -494,27 +494,32 @@ class Reader(object):
         samp_fmt = samp_fmt.split(':')
 
         samp_fmt_types = []
+        samp_fmt_nums = []
 
         for fmt in samp_fmt:
             try:
                 entry_type = self.formats[fmt].type
+                entry_num = self.formats[fmt].num
             except KeyError:
+                entry_num.append(None)
                 try:
                     entry_type = RESERVED_FORMAT[fmt]
                 except KeyError:
                     entry_type = 'String'
             samp_fmt_types.append(entry_type)
+            samp_fmt_nums.append(entry_num)
 
         for name, sample in itertools.izip(self.samples, samples):
-            sampdict = self._parse_sample(sample, samp_fmt, samp_fmt_types)
+            sampdict = self._parse_sample(sample, samp_fmt, samp_fmt_types, samp_fmt_nums)
             samp_data.append(_Call(site, name, sampdict))
 
         return samp_data
 
-    def _parse_sample(self, sample, samp_fmt, samp_fmt_types):
+    def _parse_sample(self, sample, samp_fmt, samp_fmt_types, samp_fmt_nums):
         sampdict = dict([(x, None) for x in samp_fmt])
 
-        for fmt, entry_type, vals in itertools.izip(samp_fmt, samp_fmt_types, sample.split(':')):
+        for fmt, entry_type, entry_num, vals in itertools.izip(
+                samp_fmt, samp_fmt_types, samp_fmt_nums, sample.split(':')):
             vals = vals.split(',')
 
             if fmt == 'GT':
@@ -533,7 +538,13 @@ class Reader(object):
                     sampdict[fmt] = self._map(float, vals)
                 else:
                     sampdict[fmt] = vals
+
+                # entries declared to have a single value are not returned as lists
+                if entry_num == 1:
+                    sampdict[fmt] = sampdict[fmt][0]
+
         return sampdict
+
 
     def next(self):
         '''Return the next record in the file.'''

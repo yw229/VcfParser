@@ -28,10 +28,15 @@ class TestVcfSpecs(unittest.TestCase):
             else:
                 assert not r.is_monomorphic
 
+            if 'AF' in r.INFO:
+                self.assertEqual(type(r.INFO['AF']),  type([]))
+
             for c in r:
-                print c.data
                 assert c
 
+                # issue 19, in the example ref the GQ is length 1
+                if c.called:
+                    self.assertEqual(type(c.data['GQ']),  type(1))
 
 
     def test_vcf_4_1(self):
@@ -121,6 +126,21 @@ class TestFreebayesOutput(TestGatkOutput):
             'XAM', 'XRS', 'RPPR', 'NS', 'RUN', 'CpG', 'TYPE']
     n_calls = 104
 
+
+    def testParse(self):
+        reader = vcf.Reader(fh('freebayes.vcf'))
+
+
+
+
+        print reader.samples
+        self.assertEqual(len(reader.samples), 7)
+        n = 0
+        for r in reader:
+            n+=1
+            for x in r:
+                assert x
+        assert n == self.n_calls
 
 class TestSamtoolsOutput(unittest.TestCase):
 
