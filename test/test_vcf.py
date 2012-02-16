@@ -22,6 +22,12 @@ class TestVcfSpecs(unittest.TestCase):
 
         # test we can walk the file at least
         for r in reader:
+
+            if r.POS == 1230237:
+                assert r.is_monomorphic
+            else:
+                assert not r.is_monomorphic
+
             for c in r:
                 print c.data
                 assert c

@@ -349,6 +349,10 @@ class _Record(object):
         """ The list of unknown genotypes"""
         return [s for s in self.samples if s.gt_type is None]
 
+    @property
+    def is_monomorphic(self):
+        """ Return True for reference calls """
+        return len(self.ALT) == 1 and self.ALT[0] is None
 
 class Reader(object):
     """ Reader for a VCF v 4.0 file, an iterator returning ``_Record objects`` """
