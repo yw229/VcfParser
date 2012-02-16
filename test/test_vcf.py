@@ -50,7 +50,7 @@ class TestVcfSpecs(unittest.TestCase):
         # asserting False while I work out what to check
         assert False
 
-    def test_vcf_4_1(self):
+    def test_vcf_4_1_sv(self):
         reader = vcf.Reader(fh('example-4.1-sv.vcf'))
 
         assert 'SVLEN' in reader.infos
