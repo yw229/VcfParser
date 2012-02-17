@@ -520,28 +520,37 @@ class Reader(object):
 
         for fmt, entry_type, entry_num, vals in itertools.izip(
                 samp_fmt, samp_fmt_types, samp_fmt_nums, sample.split(':')):
-            vals = vals.split(',')
 
-            if fmt == 'GT':
+            # short circuit the most common
+            if vals == '.' or vals == './.':
+                sampdict[fmt] = None
+                continue
 
-                gt = vals[0]
+            # we don't need to split single entries
+            if entry_num == 1 or ',' not in vals:
 
-                if gt == './.' or gt == '.':
-                    sampdict[fmt] = None
-                    break
-                else:
-                    sampdict[fmt] = gt
-            else:
                 if entry_type == 'Integer':
-                    sampdict[fmt] = self._map(int, vals)
-                elif entry_type == 'Float' or entry_type == 'Numeric':
-                    sampdict[fmt] = self._map(float, vals)
+                    sampdict[fmt] = int(vals)
+                elif sampdict[fmt] == 'Float':
+                    sampdict[fmt] = float(vals)
                 else:
                     sampdict[fmt] = vals
 
-                # entries declared to have a single value are not returned as lists
-                if entry_num == 1:
-                    sampdict[fmt] = sampdict[fmt][0]
+                if entry_num != 1:
+                    sampdict[fmt] = (sampdict[fmt])
+
+                continue
+
+
+            vals = vals.split(',')
+
+            if entry_type == 'Integer':
+                sampdict[fmt] = self._map(int, vals)
+            elif entry_type == 'Float' or entry_type == 'Numeric':
+                sampdict[fmt] = self._map(float, vals)
+            else:
+                sampdict[fmt] = vals
+
 
         return sampdict
 

@@ -37,6 +37,9 @@ class TestVcfSpecs(unittest.TestCase):
                 # issue 19, in the example ref the GQ is length 1
                 if c.called:
                     self.assertEqual(type(c.data['GQ']),  type(1))
+                    if 'HQ' in c.data and c.data['HQ'] is not None:
+                        self.assertEqual(type(c.data['HQ']),  type([]))
+
 
 
     def test_vcf_4_1(self):
@@ -271,6 +274,8 @@ class TestCall(unittest.TestCase):
     def test_gt_types(self):
         reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
+            for s in var:
+                print s.data
             gt_types = [s.gt_type for s in var.samples]
             if var.POS == 14370:
                 self.assertEqual([0,1,2], gt_types)
