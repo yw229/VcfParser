@@ -118,7 +118,7 @@ class _Call(object):
         self.sample = sample
         #: Dictionary of data from the VCF file
         self.data = data
-        self.gt_nums = self.data['GT']
+        self.gt_nums = self.data.get('GT')
         #: True if the GT is not ./.
         self.called = self.gt_nums is not None
 
