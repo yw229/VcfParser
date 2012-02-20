@@ -184,7 +184,7 @@ class _Call(object):
         '''A boolean indicating whether or not
            the genotype is phased for this sample
         '''
-        return self.data['GT'] is not None and self.data['GT'].find("|") >= 0
+        return self.gt_nums is not None and self.gt_nums.find("|") >= 0
 
     def __getitem__(self, key):
         """ Lookup value, backwards compatibility """
