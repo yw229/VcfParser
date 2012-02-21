@@ -267,7 +267,7 @@ class _Record(object):
     def genotype(self, name):
         """ Lookup a ``_Call`` for the sample given in ``name`` """
         return self.samples[self._sample_indexes[name]]
-
+        
     @property
     def num_called(self):
         """ The number of called samples"""
@@ -450,8 +450,12 @@ class Reader(object):
         types.
 
         '''
+        if info_str == '.':
+            return {}
+            
         entries = info_str.split(';')
         retdict = {}
+
         for entry in entries:
             entry = entry.split('=')
             ID = entry[0]
@@ -495,13 +499,13 @@ class Reader(object):
 
         samp_fmt_types = []
         samp_fmt_nums = []
-
+        
         for fmt in samp_fmt:
             try:
                 entry_type = self.formats[fmt].type
                 entry_num = self.formats[fmt].num
             except KeyError:
-                entry_num.append(None)
+                entry_num = None
                 try:
                     entry_type = RESERVED_FORMAT[fmt]
                 except KeyError:
@@ -651,7 +655,7 @@ class Writer(object):
     def write_record(self, record):
         """ write a record to the file """
         ffs = self._map(str, [record.CHROM, record.POS, record.ID, record.REF]) \
-              + [self._format_alt(record.ALT), record.QUAL, record.FILTER or '.',
+              + [self._format_alt(record.ALT), record.QUAL or '.', record.FILTER or '.',
                  self._format_info(record.INFO), record.FORMAT]
 
         samples = [self._format_sample(record.FORMAT, sample)
@@ -662,6 +666,8 @@ class Writer(object):
         return ','.join([x or '.' for x in alt])
 
     def _format_info(self, info):
+        if not info:
+            return '.'
         return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.items()])
 
     def _format_sample(self, fmt, sample):
