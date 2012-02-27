@@ -61,6 +61,7 @@ class TestVcfSpecs(unittest.TestCase):
 
     def test_vcf_4_1_sv(self):
         return
+       
         reader = vcf.Reader(fh('example-4.1-sv.vcf'))
 
         assert 'SVLEN' in reader.infos
@@ -75,7 +76,7 @@ class TestVcfSpecs(unittest.TestCase):
         # asserting False while I work out what to check
         assert False
 
-
+        
 class TestGatkOutput(unittest.TestCase):
 
     filename = 'gatk.vcf'
@@ -403,12 +404,26 @@ class TestFilter(unittest.TestCase):
         assert 'mgq50' in reader.filters
         assert 'sq30' in reader.filters
 
+        
 class TestRegression(unittest.TestCase):
 
     def test_issue_16(self):
         reader = vcf.Reader(fh('issue-16.vcf'))
         assert reader.next().QUAL == None
 
+    def test_null_mono(self):
+        # null qualities were written as blank, causing subsequent parse to fail
+        print os.path.abspath(os.path.join(os.path.dirname(__file__),  'null_genotype_mono.vcf') )
+        p = vcf.Reader(fh('null_genotype_mono.vcf'))
+        assert p.samples
+        out = StringIO()
+        writer = vcf.Writer(out, p)
+        map(writer.write_record, p)
+        out.seek(0)
+        print out.getvalue()
+        p2 = vcf.Reader(out)
+        rec = p2.next()
+        assert rec.samples
 
 
 class TestUtils(unittest.TestCase):
