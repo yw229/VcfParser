@@ -269,13 +269,6 @@ class _Record(object):
         return self.samples[self._sample_indexes[name]]
 
     @property
-    def gt_list(self):
-        """ Return a list of genotype strings (A/G, etc.)
-            in the order of the samples in the VCF file.
-        """
-        return [s.gt_bases for s in self.samples]
-
-    @property
     def num_called(self):
         """ The number of called samples"""
         return sum(s.called for s in self.samples)
