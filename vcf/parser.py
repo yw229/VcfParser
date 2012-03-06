@@ -358,6 +358,7 @@ class _Record(object):
     
     @property
     def is_snp(self):
+        """ Return whether or not the variant is a SNP """
         if len(self.REF) > 1: return False
         for alt in self.ALT:
             if alt not in ['A', 'C', 'G', 'T']:
@@ -366,6 +367,7 @@ class _Record(object):
     
     @property
     def is_indel(self):
+        """ Return whether or not the variant is an INDEL """
         if len(self.REF) > 1: return True
         for alt in self.ALT:
             if alt is None:
@@ -376,6 +378,7 @@ class _Record(object):
 
     @property
     def is_transition(self):
+        """ Return whether or not the SNP is a transition """
         # if multiple alts, it is unclear if we have a transition
         if len(self.ALT) > 1: return False
         
@@ -392,6 +395,7 @@ class _Record(object):
 
     @property
     def is_deletion(self):
+        """ Return whether or not the INDEL is a deletion """
         # if multiple alts, it is unclear if we have a transition
         if len(self.ALT) > 1: return False
         
