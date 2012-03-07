@@ -8,11 +8,19 @@ Issues should be reported at the github issue tracker.
 Changes
 =======
 
-Pending
--------
+0.4.0 Release
+-------------
 
 * Package structure 
 * add ``vcf.utils`` module with ``walk_together`` method
+* samtools tests 
+* support Freebayes' non standard '.' for no call
+* fix vcf_melt  
+* support monomorphic sites, add ``is_monomorphic`` method, handle null QUALs
+* filter support for files with monomorphic calls 
+* Values declared as single are no-longer returned in lists
+* several performance improvements 
+
 
 0.3.0 Release
 -------------

@@ -348,7 +348,7 @@ class _Record(object):
     def get_unknowns(self):
         """ The list of unknown genotypes"""
         return [s for s in self.samples if s.gt_type is None]
-    
+
     @property
     def is_snp(self):
         """ Return whether or not the variant is a SNP """
@@ -357,7 +357,7 @@ class _Record(object):
             if alt not in ['A', 'C', 'G', 'T']:
                 return False
         return True
-    
+
     @property
     def is_indel(self):
         """ Return whether or not the variant is an INDEL """
@@ -374,13 +374,13 @@ class _Record(object):
         """ Return whether or not the SNP is a transition """
         # if multiple alts, it is unclear if we have a transition
         if len(self.ALT) > 1: return False
-        
+
         if self.is_snp:
             # just one alt allele
             alt_allele = self.ALT[0]
-            if ((self.REF == "A" and alt_allele == "G") or 
+            if ((self.REF == "A" and alt_allele == "G") or
                 (self.REF == "G" and alt_allele == "A") or
-                (self.REF == "C" and alt_allele == "T") or 
+                (self.REF == "C" and alt_allele == "T") or
                 (self.REF == "T" and alt_allele == "C")):
                 return True
             else: return False
@@ -391,7 +391,7 @@ class _Record(object):
         """ Return whether or not the INDEL is a deletion """
         # if multiple alts, it is unclear if we have a transition
         if len(self.ALT) > 1: return False
-        
+
         if self.is_indel:
             # just one alt allele
             alt_allele = self.ALT[0]
@@ -401,7 +401,7 @@ class _Record(object):
                 return True
             else: return False
         else: return False
-        
+
     @property
     def var_type(self):
         """
@@ -437,7 +437,7 @@ class _Record(object):
                 return "unknown"
         else:
             return "unknown"
-    
+
     @property
     def is_monomorphic(self):
         """ Return True for reference calls """
@@ -541,7 +541,7 @@ class Reader(object):
         '''
         if info_str == '.':
             return {}
-            
+
         entries = info_str.split(';')
         retdict = {}
 
@@ -588,7 +588,7 @@ class Reader(object):
 
         samp_fmt_types = []
         samp_fmt_nums = []
-        
+
         for fmt in samp_fmt:
             try:
                 entry_type = self.formats[fmt].type
@@ -775,8 +775,8 @@ class Writer(object):
                 for x in iterable]
 
 def __update_readme():
-    import sys
-    file('README.rst', 'w').write(sys.modules[__name__].__doc__)
+    import sys, vcf
+    file('README.rst', 'w').write(vcf.__doc__)
 
 
 # backwards compatibility
