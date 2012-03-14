@@ -21,8 +21,6 @@ for line in open('vcf/__init__.py'):
     if (line.startswith('VERSION')):
         exec(line.strip())
 
-file('/tmp/ds', 'w').write(DOC)
-
 
 setup(
     name='PyVCF',
