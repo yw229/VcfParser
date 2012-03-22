@@ -8,6 +8,11 @@ Issues should be reported at the github issue tracker.
 Changes
 =======
 
+0.4.2 Release
+-------------
+
+* Installation problems
+
 0.4.1 Release
 -------------
 
