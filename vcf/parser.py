@@ -571,7 +571,7 @@ class Reader(object):
                 val = entry[1]
 
             try:
-                if self.infos[ID].num == 1:
+                if self.infos[ID].num == 1 and entry_type != 'String':
                     val = val[0]
             except KeyError:
                 pass
