@@ -624,7 +624,7 @@ class Reader(object):
 
                 if entry_type == 'Integer':
                     sampdict[fmt] = int(vals)
-                elif sampdict[fmt] == 'Float':
+                elif entry_type == 'Float':
                     sampdict[fmt] = float(vals)
                 else:
                     sampdict[fmt] = vals
