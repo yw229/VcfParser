@@ -8,6 +8,12 @@ Issues should be reported at the github issue tracker.
 Changes
 =======
 
+0.4.3 Release
+-------------
+
+* Single floats in Reader._sample_parser not being converted to float #35
+* Handle String INFO values when Number=1 in header #34
+
 0.4.2 Release
 -------------
 
