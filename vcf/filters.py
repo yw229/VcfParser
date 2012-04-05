@@ -36,7 +36,7 @@ class SiteQuality(Base):
     @classmethod
     def customize_parser(self, parser):
         parser.add_argument('--site-quality', type=int, default=30,
-                help='Filter sites below this quality')
+                help='Filter sites below this quality [30]')
 
     def __init__(self, args):
         self.threshold = args.site_quality
@@ -54,7 +54,7 @@ class VariantGenotypeQuality(Base):
     @classmethod
     def customize_parser(self, parser):
         parser.add_argument('--genotype-quality', type=int, default=50,
-                help='Filter sites with no genotypes above this quality')
+                help='Filter sites with no genotypes above this quality [50]')
 
     def __init__(self, args):
         self.threshold = args.genotype_quality

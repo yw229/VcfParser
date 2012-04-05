@@ -25,7 +25,6 @@ parser.add_argument('--no-filtered', action='store_true',
 parser.add_argument('--local-script', action='store', default=None,
         help='Python file in current working directory with the filter classes')
 
-
     # TODO: allow filter specification by short name
     # TODO: flag that writes filter output into INFO column
     # TODO: argument use implies filter use
@@ -35,20 +34,22 @@ parser.add_argument('--local-script', action='store', default=None,
 def main():
     # dynamically build the list of available filters
     filters = {}
+    filter_args = None
     filter_help = ['\navailable filters:']
+
+    # parse command line args
+    # (mainly because of local_script)
+    (args, unknown_args) = parser.parse_known_args()
 
     def addfilt(filt, help):
         filters[filt.name] = filt
         filt.customize_parser(parser)
         help.append('  %s:\t%s' % (filt.name, filt.description))
     
+    # look for global extensions
     for p in pkg_resources.iter_entry_points('vcf.filters'):
         filt = p.load()
         addfilt(filt, filter_help)
-
-    # parse command line args
-    # (mainly because of local_script)
-    args = parser.parse_args()
 
     # add all classes from local script, if present
     if args.local_script != None:
@@ -61,8 +62,9 @@ def main():
         for name, cls in classes:
             addfilt(cls, filter_help)
 
-        # apply the updated argument definitions
-        args = parser.parse_args()
+    # now all the arguments should be known
+    # (raise an error if not)
+    args = parser.parse_args()
 
     parser.description += '\n'.join(filter_help)
 
@@ -71,8 +73,9 @@ def main():
     if args.help or len(args.filters) == 0 or args.input == None:
         parser.print_help()
         parser.exit()
-        
-    inp = vcf.Reader(file(args.input))
+
+    fin = open(args.input) if args.input != '-' else sys.stdin
+    inp = vcf.Reader(fin)
 
     # build filter chain
     chain = []
@@ -88,16 +91,22 @@ def main():
     drop_filtered = args.no_filtered
 
     for record in inp:
+        output_record = True
         for filt in chain:
             result = filt(record)
-            if result != None:
-                # save some work by skipping the rest of the code
-                if drop_filtered: break
-                
-                record.add_filter(filt.filter_name())
-                if short_circuit: break
-        else:
-            # use PASS only if other filter names appear in the FILTER column
+            if result == None: continue
+
+            # save some work by skipping the rest of the code
+            if drop_filtered: 
+                output_record = False
+                break
+            
+            record.add_filter(filt.filter_name())
+            if short_circuit: break
+
+        if output_record:
+            # use PASS only if other filter names appear in the FILTER column 
+            #FIXME: is this good idea?
             if record.FILTER == '.' and not drop_filtered: record.FILTER = 'PASS'
             oup.write_record(record)
 
