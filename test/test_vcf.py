@@ -316,21 +316,148 @@ class TestRecord(unittest.TestCase):
                 self.assertEqual("indel", type)
             elif var.POS == 1234567:
                 self.assertEqual("indel", type)
+        # SV tests
+        reader = vcf.Reader(fh('example-4.1-sv.vcf'))
+        for var in reader:
+            type = var.var_type
+            if var.POS == 2827693:
+                self.assertEqual("sv", type)
+            if var.POS == 321682:
+                self.assertEqual("sv", type)
+            if var.POS == 14477084:
+                self.assertEqual("sv", type)
+            if var.POS == 9425916:
+                self.assertEqual("sv", type)
+            elif var.POS == 12665100:
+                self.assertEqual("sv", type)
+            elif var.POS == 18665128:
+                self.assertEqual("sv", type)
+
 
     def test_var_subtype(self):
         reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
-            type = var.var_subtype
+            subtype = var.var_subtype
             if var.POS == 14370:
-                self.assertEqual("ts", type)
+                self.assertEqual("ts", subtype)
             if var.POS == 17330:
-                self.assertEqual("tv", type)
+                self.assertEqual("tv", subtype)
             if var.POS == 1110696:
-                self.assertEqual("unknown", type)
+                self.assertEqual("unknown", subtype)
             if var.POS == 1230237:
-                self.assertEqual("del", type)
+                self.assertEqual("del", subtype)
             elif var.POS == 1234567:
-                self.assertEqual("unknown", type)
+                self.assertEqual("unknown", subtype)
+        # SV tests
+        reader = vcf.Reader(fh('example-4.1-sv.vcf'))
+        for var in reader:
+            subtype = var.var_subtype
+            if var.POS == 2827693:
+                self.assertEqual("DEL", subtype)
+            if var.POS == 321682:
+                self.assertEqual("DEL", subtype)
+            if var.POS == 14477084:
+                self.assertEqual("DEL:ME:ALU", subtype)
+            if var.POS == 9425916:
+                self.assertEqual("INS:ME:L1", subtype)
+            elif var.POS == 12665100:
+                self.assertEqual("DUP", subtype)
+            elif var.POS == 18665128:
+                self.assertEqual("DUP:TANDEM", subtype)
+
+    def test_is_sv(self):
+        reader = vcf.Reader(fh('example-4.1-sv.vcf'))
+        for var in reader:
+            is_sv = var.is_sv
+            if var.POS == 2827693:
+                self.assertEqual(True, is_sv)
+            if var.POS == 321682:
+                self.assertEqual(True, is_sv)
+            if var.POS == 14477084:
+                self.assertEqual(True, is_sv)
+            if var.POS == 9425916:
+                self.assertEqual(True, is_sv)
+            elif var.POS == 12665100:
+                self.assertEqual(True, is_sv)
+            elif var.POS == 18665128:
+                self.assertEqual(True, is_sv)
+                
+        reader = vcf.Reader(fh('example-4.0.vcf'))
+        for var in reader:
+            is_sv = var.is_sv
+            if var.POS == 14370:
+                self.assertEqual(False, is_sv)
+            if var.POS == 17330:
+                self.assertEqual(False, is_sv)
+            if var.POS == 1110696:
+                self.assertEqual(False, is_sv)
+            if var.POS == 1230237:
+                self.assertEqual(False, is_sv)
+            elif var.POS == 1234567:
+                self.assertEqual(False, is_sv)
+                
+    def test_is_sv_precise(self):
+        reader = vcf.Reader(fh('example-4.1-sv.vcf'))
+        for var in reader:
+            is_precise = var.is_sv_precise
+            if var.POS == 2827693:
+                self.assertEqual(True, is_precise)
+            if var.POS == 321682:
+                self.assertEqual(False, is_precise)
+            if var.POS == 14477084:
+                self.assertEqual(False, is_precise)
+            if var.POS == 9425916:
+                self.assertEqual(False, is_precise)
+            elif var.POS == 12665100:
+                self.assertEqual(False, is_precise)
+            elif var.POS == 18665128:
+                self.assertEqual(False, is_precise)
+
+        reader = vcf.Reader(fh('example-4.0.vcf'))
+        for var in reader:
+            is_precise = var.is_sv_precise
+            if var.POS == 14370:
+                self.assertEqual(False, is_precise)
+            if var.POS == 17330:
+                self.assertEqual(False, is_precise)
+            if var.POS == 1110696:
+                self.assertEqual(False, is_precise)
+            if var.POS == 1230237:
+                self.assertEqual(False, is_precise)
+            elif var.POS == 1234567:
+                self.assertEqual(False, is_precise)
+
+    def test_sv_end(self):
+        reader = vcf.Reader(fh('example-4.1-sv.vcf'))
+        for var in reader:
+            sv_end = var.sv_end
+            if var.POS == 2827693:
+                self.assertEqual(2827680, sv_end)
+            if var.POS == 321682:
+                self.assertEqual(321887, sv_end)
+            if var.POS == 14477084:
+                self.assertEqual(14477381, sv_end)
+            if var.POS == 9425916:
+                self.assertEqual(9425916, sv_end)
+            elif var.POS == 12665100:
+                self.assertEqual(12686200, sv_end)
+            elif var.POS == 18665128:
+                self.assertEqual(18665204, sv_end)
+
+        reader = vcf.Reader(fh('example-4.0.vcf'))
+        for var in reader:
+            sv_end = var.sv_end
+            if var.POS == 14370:
+                self.assertEqual(None, sv_end)
+            if var.POS == 17330:
+                self.assertEqual(None, sv_end)
+            if var.POS == 1110696:
+                self.assertEqual(None, sv_end)
+            if var.POS == 1230237:
+                self.assertEqual(None, sv_end)
+            elif var.POS == 1234567:
+                self.assertEqual(None, sv_end)
+
 
 class TestCall(unittest.TestCase):
 

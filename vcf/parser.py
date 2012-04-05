@@ -354,13 +354,28 @@ class _Record(object):
     @property
     def is_indel(self):
         """ Return whether or not the variant is an INDEL """
-        if len(self.REF) > 1: return True
+        is_sv = self.is_sv
+        
+        if len(self.REF) > 1 and not is_sv: return True
         for alt in self.ALT:
             if alt is None:
                 return True
             elif len(alt) != len(self.REF):
-                return True
+                # the diff. b/w INDELs and SVs can be murky.
+                if not is_sv:
+                    # 1	2827693	.	CCCCTCGCA	C	.	PASS	AC=10;
+                    return True
+                else:
+                    # 1	2827693	.	CCCCTCGCA	C	.	PASS	SVTYPE=DEL;
+                    return False
         return False
+        
+    @property
+    def is_sv(self):
+        """ Return whether or not the variant is a structural variant """
+        if self.INFO.get('SVTYPE') is None:
+            return False
+        return True
 
     @property
     def is_transition(self):
@@ -405,14 +420,34 @@ class _Record(object):
             return "snp"
         elif self.is_indel:
             return "indel"
+        elif self.is_sv:
+            return "sv"
         else:
             return "unknown"
 
     @property
     def var_subtype(self):
         """
-        Return the subtype of variant [ts, tv, ins, del]
-        TO DO: support SV sub_types
+        Return the subtype of variant.
+        - For SNPs and INDELs, yeild one of: [ts, tv, ins, del]
+        - For SVs yield either "complex" or the SV type defined
+          in the ALT fields (removing the brackets).
+          E.g.:
+               <DEL>       -> DEL
+               <INS:ME:L1> -> INS:ME:L1
+               <DUP>       -> DUP
+        
+        The logic is meant to follow the rules outlined in the following
+        paragraph at:
+        
+        http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41
+        
+        "For precisely known variants, the REF and ALT fields should contain 
+        the full sequences for the alleles, following the usual VCF conventions. 
+        For imprecise variants, the REF field may contain a single base and the 
+        ALT fields should contain symbolic alleles (e.g. <ID>), described in more 
+        detail below. Imprecise variants should also be marked by the presence 
+        of an IMPRECISE flag in the INFO field."
         """
         if self.is_snp:
             if self.is_transition:
@@ -428,8 +463,35 @@ class _Record(object):
                 return "ins"
             else: # multiple ALT alleles.  unclear
                 return "unknown"
+        elif self.is_sv:
+            if self.INFO['SVTYPE'] == "BND":
+                return "complex"
+            elif self.is_sv_precise:
+                return self.INFO['SVTYPE']
+            else:
+                # first remove both "<" and ">" from ALT
+                return self.ALT[0].strip('<>') 
         else:
             return "unknown"
+
+    @property
+    def sv_end(self):
+        """ Return the end position for the SV """
+        if self.is_sv:
+            return self.INFO['END']
+        return None
+        
+    @property
+    def is_sv_precise(self):
+        """ Return whether the SV cordinates are mapped 
+            to 1 b.p. resolution.
+        """
+        if self.INFO.get('IMPRECISE') is None and not self.is_sv:
+            return False
+        elif self.INFO.get('IMPRECISE') is not None and self.is_sv:
+            return False
+        elif self.INFO.get('IMPRECISE') is None and self.is_sv:
+            return True
 
     @property
     def is_monomorphic(self):
