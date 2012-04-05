@@ -30,6 +30,7 @@ RESERVED_FORMAT = {
 _Info = collections.namedtuple('Info', ['id', 'num', 'type', 'desc'])
 _Filter = collections.namedtuple('Filter', ['id', 'desc'])
 _Format = collections.namedtuple('Format', ['id', 'num', 'type', 'desc'])
+_SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_types', 'gt_phases'])
 
 
 class _vcf_metadata_parser(object):
@@ -110,7 +111,6 @@ class _vcf_metadata_parser(object):
 
 class _Call(object):
     """ A genotype call, a cell entry in a VCF file"""
-
     def __init__(self, site, sample, data):
         #: The ``_Record`` for this ``_Call``
         self.site = site
@@ -206,8 +206,8 @@ class _Record(object):
 
         The list of genotype calls is in the ``samples`` property.
     """
-
-    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, sample_indexes, samples=None):
+    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, sample_indexes, samples=None,
+                 gt_bases = None, gt_types = None, gt_phases = None):
         self.CHROM = CHROM
         self.POS = POS
         self.ID = ID
@@ -227,6 +227,11 @@ class _Record(object):
         #: list of ``_Calls`` for each sample ordered as in source VCF
         self.samples = samples
         self._sample_indexes = sample_indexes
+        # lists of the pre-computed base-wise genotypes ('A/G'), types (0,1,2)
+        # and phases for each sample.
+        self.gt_bases = gt_bases
+        self.gt_types = gt_types
+        self.gt_phases = gt_phases
 
     def __eq__(self, other):
         """ _Records are equal if they describe the same variant (same position, alleles) """
@@ -639,6 +644,10 @@ class Reader(object):
         '''Parse a sample entry according to the format specified in the FORMAT
         column.'''
         samp_data = []# OrderedDict()
+        gt_bases  = []# A/A, A|G, G/G, etc.
+        gt_types  = []# 0, 1, 2, etc.
+        gt_phases = []# T, F, T, etc.
+        
         samp_fmt = samp_fmt.split(':')
 
         samp_fmt_types = []
@@ -659,9 +668,17 @@ class Reader(object):
 
         for name, sample in itertools.izip(self.samples, samples):
             sampdict = self._parse_sample(sample, samp_fmt, samp_fmt_types, samp_fmt_nums)
-            samp_data.append(_Call(site, name, sampdict))
+            call = _Call(site, name, sampdict)
+            samp_data.append(call)
 
-        return samp_data
+            bases = call.gt_bases
+            type = call.gt_type
+            phase = call.phased
+            gt_bases.append(bases) if bases is not None else './.'
+            gt_types.append(type) if type is not None else -1
+            gt_phases.append(phase) if phase is not None else False
+        
+        return _SampleInfo(samp_data, gt_bases, gt_types, gt_phases)
 
     def _parse_sample(self, sample, samp_fmt, samp_fmt_types, samp_fmt_nums):
         sampdict = dict([(x, None) for x in samp_fmt])
@@ -736,8 +753,11 @@ class Reader(object):
         record = _Record(chrom, pos, ID, ref, alt, qual, filt, info, fmt, self._sample_indexes)
 
         if fmt is not None:
-            samples = self._parse_samples(row[9:], fmt, record)
-            record.samples = samples
+            sample_info = self._parse_samples(row[9:], fmt, record)
+            record.samples = sample_info.samples
+            record.gt_bases = sample_info.gt_bases
+            record.gt_types = sample_info.gt_types
+            record.gt_phases = sample_info.gt_phases
 
         return record
 
