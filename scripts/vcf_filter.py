@@ -6,24 +6,48 @@ import pkg_resources
 import vcf
 from vcf.parser import _Filter
 
-parser = argparse.ArgumentParser(description='Filter a VCF file',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        add_help=False
-        )
-parser.add_argument('-h', '--help', action='store_true',
-        help='Show this help message and exit.')
-parser.add_argument('input', metavar='input', type=str, nargs='?', default=None,
-        help='File to process (use - for STDIN)')
-parser.add_argument('filters', metavar='filter', type=str, nargs='*', default=None,
-        help='Filters to use')
-parser.add_argument('--no-short-circuit', action='store_true',
-        help='Do not stop filter processing on a site if a single filter fails')
-parser.add_argument('--output', action='store', default=sys.stdout,
-        help='Filename to output [stdout]')
-parser.add_argument('--no-filtered', action='store_true',
-        help='Output only sites passing the filters')
-parser.add_argument('--local-script', action='store', default=None,
-        help='Python file in current working directory with the filter classes')
+def create_core_parser():
+    parser = argparse.ArgumentParser(description='Filter a VCF file',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            add_help=False
+            )
+    parser.add_argument('-h', '--help', action='store_true',
+            help='Show this help message and exit.')
+    parser.add_argument('input', metavar='input', type=argparse.FileType('rb'), nargs='?', default=None,
+            help='File to process (use - for STDIN)')
+    parser.add_argument('filters', metavar='filter', type=str, nargs='*', default=None,
+            help='Filters to use')
+    parser.add_argument('--no-short-circuit', action='store_true',
+            help='Do not stop filter processing on a site if a single filter fails')
+    parser.add_argument('--output', action='store', default=sys.stdout,
+            help='Filename to output [STDOUT]')
+    parser.add_argument('--no-filtered', action='store_true',
+            help='Output only sites passing the filters')
+    parser.add_argument('--local-script', action='store', default=None,
+            help='Python file in current working directory with the filter classes')
+    parser.add_argument('rest', nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
+    
+    return parser
+
+# argument parsing strategy
+# loading a script given at the command line poses a difficulty 
+# for using the argparse in a simple way -- the command line arguments
+# are not completely known the first time command line is parsed
+# requirements
+#  - display all options grouped by the filters in help screen
+#  - check if only arguments for currently used filters are given
+#  - to increase legibility when using more filters, arguments should 
+#    follow the filter name
+#  - it is good to specify the filters explicitly by name, 
+#    because the order of filtering can matter
+# solution
+# - change the command syntax to 
+#   vcf_filter.py --core-options input filter1 --filter1-args filter2 filter3
+# - parse the core program options with parse_known_args
+# - use add_argument_group for filters (subparsers won't work, they require 
+#   the second command in argv[1])
+# - create all-filters parser when displaying the help
+# - parse the arguments incrementally on argparse.REMAINDER of the previous
 
     # TODO: allow filter specification by short name
     # TODO: flag that writes filter output into INFO column
@@ -34,22 +58,21 @@ parser.add_argument('--local-script', action='store', default=None,
 def main():
     # dynamically build the list of available filters
     filters = {}
-    filter_args = None
-    filter_help = ['\navailable filters:']
 
     # parse command line args
     # (mainly because of local_script)
+    parser = create_core_parser()
     (args, unknown_args) = parser.parse_known_args()
 
-    def addfilt(filt, help):
+    def addfilt(filt):
         filters[filt.name] = filt
-        filt.customize_parser(parser)
-        help.append('  %s:\t%s' % (filt.name, filt.description))
+        arg_group = parser.add_argument_group(filt.name, filt.description)
+        filt.customize_parser(arg_group)
     
     # look for global extensions
     for p in pkg_resources.iter_entry_points('vcf.filters'):
         filt = p.load()
-        addfilt(filt, filter_help)
+        addfilt(filt)
 
     # add all classes from local script, if present
     if args.local_script != None:
@@ -60,27 +83,34 @@ def main():
         mod = __import__(module_name)
         classes = inspect.getmembers(mod, inspect.isclass)
         for name, cls in classes:
-            addfilt(cls, filter_help)
+            addfilt(cls)
 
-    # now all the arguments should be known
-    # (raise an error if not)
+    # consume all the filter arguments to correctly determine
+    # the input argument
     args = parser.parse_args()
-
-    parser.description += '\n'.join(filter_help)
-
+    
     # show help after loading of the local module
     # so it can include the additional options
     if args.help or len(args.filters) == 0 or args.input == None:
         parser.print_help()
         parser.exit()
 
-    fin = open(args.input) if args.input != '-' else sys.stdin
-    inp = vcf.Reader(fin)
+    inp = vcf.Reader(args.input)
+
+    # create an extra parser that keeps only the arguments
+    # of selected filters
+    filter_parser = argparse.ArgumentParser(description='Agruments of the selected filters', add_help=False)
+    for name in args.filters: filters[name].customize_parser(filter_parser)
+
+    # parse the arguments not known to the global arg parser
+    # (this raises error if there is some unknown argument)
+    print "unk:", unknown_args
+    filter_args = filter_parser.parse_args(unknown_args)
 
     # build filter chain
     chain = []
     for name in args.filters:
-        f = filters[name](args)
+        f = filters[name](filter_args)
         chain.append(f)
         inp.filters[f.filter_name()] = _Filter(f.filter_name(), f.description)
 
