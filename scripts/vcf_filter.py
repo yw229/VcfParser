@@ -6,19 +6,34 @@ import pkg_resources
 import vcf
 from vcf.parser import _Filter
 
-def create_core_parser():
-    parser = argparse.ArgumentParser(description='Filter a VCF file',
-            formatter_class=argparse.RawDescriptionHelpFormatter,
+def create_filt_parser(name):
+    parser = argparse.ArgumentParser(description='Parser for %s' % name,
             add_help=False
+            )
+    parser.add_argument('rest', nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
+    
+    return parser
+
+def create_core_parser():
+    # we have to use custom formatted usage, because of the 
+    # multi-stage argument parsing (otherwise the filter arguments
+    # are grouped together with the other optionals)
+    parser = argparse.ArgumentParser(description='Filter a VCF file',
+            add_help=False,
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+            usage="""%(prog)s [-h] [--no-short-circuit] [--no-filtered] 
+              [--output OUTPUT] [--local-script LOCAL_SCRIPT]
+              input filter [filter_args] [filter [filter_args]] ...
+            """
             )
     parser.add_argument('-h', '--help', action='store_true',
             help='Show this help message and exit.')
     parser.add_argument('input', metavar='input', type=argparse.FileType('rb'), nargs='?', default=None,
             help='File to process (use - for STDIN)')
-    parser.add_argument('filters', metavar='filter', type=str, nargs='*', default=None,
-            help='Filters to use')
+#    parser.add_argument('filters', metavar='filter', type=str, nargs='*', default=None,
+#            help='Filters to use')
     parser.add_argument('--no-short-circuit', action='store_true',
-            help='Do not stop filter processing on a site if a single filter fails')
+            help='Do not stop filter processing on a site if any filter is triggered')
     parser.add_argument('--output', action='store', default=sys.stdout,
             help='Filename to output [STDOUT]')
     parser.add_argument('--no-filtered', action='store_true',
@@ -33,8 +48,8 @@ def create_core_parser():
 # loading a script given at the command line poses a difficulty 
 # for using the argparse in a simple way -- the command line arguments
 # are not completely known the first time command line is parsed
-# requirements
-#  - display all options grouped by the filters in help screen
+# requirements:
+#  - display all filters with options grouped by the filters in help screen
 #  - check if only arguments for currently used filters are given
 #  - to increase legibility when using more filters, arguments should 
 #    follow the filter name
@@ -64,6 +79,8 @@ def main():
     parser = create_core_parser()
     (args, unknown_args) = parser.parse_known_args()
 
+    # add filter to dictionary, extend help message
+    # with help/arguments of each filter
     def addfilt(filt):
         filters[filt.name] = filt
         arg_group = parser.add_argument_group(filt.name, filt.description)
@@ -77,7 +94,7 @@ def main():
     # add all classes from local script, if present
     if args.local_script != None:
         import inspect
-        import sys, os
+        import os
         sys.path.insert(0, os.getcwd())
         module_name = args.local_script.replace('.py', '')
         mod = __import__(module_name)
@@ -85,36 +102,42 @@ def main():
         for name, cls in classes:
             addfilt(cls)
 
-    # consume all the filter arguments to correctly determine
-    # the input argument
-    args = parser.parse_args()
-    
-    # show help after loading of the local module
-    # so it can include the additional options
-    if args.help or len(args.filters) == 0 or args.input == None:
+    # go through the filters on the command line 
+    # one by one, trying to consume only the declared arguments
+    used_filters = []
+    while len(args.rest):
+        filter_name = args.rest.pop(0)
+        if filter_name not in filters:
+            sys.exit("%s is not a known filter (%s)" % (filter_name, str(filters.keys())))
+        
+        # create a parser only for arguments of current filter
+        filt_parser = create_filt_parser(filter_name)
+        filters[filter_name].customize_parser(filt_parser)
+        (known_filt_args, unknown_filt_args) = filt_parser.parse_known_args(args.rest)
+        if len(unknown_filt_args):
+            sys.exit("%s has no arguments like %s" % (filter_name, unknown_filt_args))
+
+        used_filters.append((filter_name, known_filt_args))
+        args.rest = known_filt_args.rest
+
+    # print help using the 'help' parser, so it includes 
+    # all possible filters and arguments
+    if args.help or len(used_filters) == 0 or args.input == None:
         parser.print_help()
         parser.exit()
 
     inp = vcf.Reader(args.input)
 
-    # create an extra parser that keeps only the arguments
-    # of selected filters
-    filter_parser = argparse.ArgumentParser(description='Agruments of the selected filters', add_help=False)
-    for name in args.filters: filters[name].customize_parser(filter_parser)
-
-    # parse the arguments not known to the global arg parser
-    # (this raises error if there is some unknown argument)
-    print "unk:", unknown_args
-    filter_args = filter_parser.parse_args(unknown_args)
-
     # build filter chain
     chain = []
-    for name in args.filters:
+    for (name, filter_args) in used_filters:
         f = filters[name](filter_args)
         chain.append(f)
+        # add a filter record to the output
         inp.filters[f.filter_name()] = _Filter(f.filter_name(), f.description)
 
-    oup = vcf.Writer(args.output, inp)
+    # output must be created after all the filter records have been added
+    output = vcf.Writer(args.output, inp)
 
     # apply filters
     short_circuit = not args.no_short_circuit
@@ -138,6 +161,6 @@ def main():
             # use PASS only if other filter names appear in the FILTER column 
             #FIXME: is this good idea?
             if record.FILTER == '.' and not drop_filtered: record.FILTER = 'PASS'
-            oup.write_record(record)
+            output.write_record(record)
 
 if __name__ == '__main__': main()
