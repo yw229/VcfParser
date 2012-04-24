@@ -518,7 +518,7 @@ class Reader(object):
 
             line = self.reader.next()
 
-        fields = line.split('\t')
+        fields = line.rstrip().split('\t')
         self.samples = fields[9:]
         self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
 
