@@ -10,8 +10,8 @@ from vcf import utils
 suite = doctest.DocTestSuite(vcf.parser)
 
 
-def fh(fname):
-    return file(os.path.join(os.path.dirname(__file__), fname))
+def fh(fname, mode='rt'):
+    return open(os.path.join(os.path.dirname(__file__), fname), mode)
 
 
 class TestVcfSpecs(unittest.TestCase):
@@ -160,7 +160,7 @@ class TestSamtoolsOutput(unittest.TestCase):
 class Test1kg(unittest.TestCase):
 
     def testParse(self):
-        reader = vcf.Reader(fh('1kg.vcf.gz'))
+        reader = vcf.Reader(fh('1kg.vcf.gz', 'rb'))
 
         self.assertEqual(len(reader.samples), 629)
         for _ in reader:
@@ -385,7 +385,7 @@ class TestCall(unittest.TestCase):
 class TestTabix(unittest.TestCase):
 
     def setUp(self):
-        self.reader = vcf.Reader(fh('tb.vcf.gz'))
+        self.reader = vcf.Reader(fh('tb.vcf.gz', 'rb'))
 
         self.run = vcf.parser.pysam is not None
 
@@ -432,7 +432,7 @@ class TestOpenMethods(unittest.TestCase):
         self.assertEqual(self.samples, r.samples)
 
     def testOpenFilehandleGzipped(self):
-        r = vcf.Reader(fh('tb.vcf.gz'))
+        r = vcf.Reader(fh('tb.vcf.gz', 'rb'))
         self.assertEqual(self.samples, r.samples)
 
     def testOpenFilenameGzipped(self):
