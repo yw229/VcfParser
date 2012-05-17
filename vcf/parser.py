@@ -5,6 +5,7 @@ import csv
 import gzip
 import sys
 import itertools
+import codecs
 
 try:
     import pysam
@@ -452,20 +453,19 @@ class Reader(object):
         if not (fsock or filename):
             raise Exception('You must provide at least fsock or filename')
 
-        if filename:
-            self.filename = filename
-            if fsock is None:
-                self.reader = file(filename)
-
         if fsock:
             self.reader = fsock
-            if filename is None:
-                if hasattr(fsock, 'name'):
-                    filename = fsock.name
-            self.filename = filename
-
-        if compressed or (filename and filename.endswith('.gz')):
+            if filename is None and hasattr(fsock, 'name'):
+                filename = fsock.name
+                compressed = compressed or filename.endswith('.gz')
+        elif filename:
+            compressed = compressed or filename.endswith('.gz')
+            self.reader = open(filename, 'rb' if compressed else 'rt')
+        self.filename = filename
+        if compressed:
             self.reader = gzip.GzipFile(fileobj=self.reader)
+            if sys.version > '3':
+                self.reader = codecs.getreader('ascii')(self.reader)
 
         #: metadata fields from header
         self.metadata = None
