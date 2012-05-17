@@ -177,7 +177,8 @@ class TestWriter(unittest.TestCase):
 
         records = list(reader)
 
-        map(writer.write_record, records)
+        for record in records:
+            writer.write_record(record)
         out.seek(0)
         reader2 = vcf.Reader(out)
 
@@ -499,7 +500,8 @@ class TestRegression(unittest.TestCase):
         assert p.samples
         out = StringIO()
         writer = vcf.Writer(out, p)
-        map(writer.write_record, p)
+        for record in p:
+            writer.write_record(record)
         out.seek(0)
         print out.getvalue()
         p2 = vcf.Reader(out)
