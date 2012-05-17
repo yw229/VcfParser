@@ -643,7 +643,8 @@ class Reader(object):
 
     def next(self):
         '''Return the next record in the file.'''
-        row = self.reader.next().split()
+        line = self.reader.next()
+        row = line.split()
         chrom = row[0]
         if self._prepend_chr:
             chrom = 'chr' + chrom
@@ -719,13 +720,13 @@ class Writer(object):
         self.writer = csv.writer(stream, delimiter="\t")
         self.template = template
 
-        for line in template.metadata.items():
+        for line in template.metadata.iteritems():
             stream.write('##%s=%s\n' % line)
-        for line in template.infos.values():
+        for line in template.infos.itervalues():
             stream.write('##INFO=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
-        for line in template.formats.values():
+        for line in template.formats.itervalues():
             stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
-        for line in template.filters.values():
+        for line in template.filters.itervalues():
             stream.write('##FILTER=<ID=%s,Description="%s">\n' % tuple(self._map(str, line)))
 
         self._write_header()
@@ -750,7 +751,7 @@ class Writer(object):
     def _format_info(self, info):
         if not info:
             return '.'
-        return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.items()])
+        return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.iteritems()])
 
     def _format_sample(self, fmt, sample):
         if sample.data["GT"] is None:
