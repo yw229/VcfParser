@@ -491,7 +491,8 @@ class TestRegression(unittest.TestCase):
 
     def test_issue_16(self):
         reader = vcf.Reader(fh('issue-16.vcf'))
-        assert reader.next().QUAL == None
+        n = reader.next()
+        assert n.QUAL == None
 
     def test_null_mono(self):
         # null qualities were written as blank, causing subsequent parse to fail
