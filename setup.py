@@ -28,9 +28,10 @@ setup(
     scripts=['scripts/vcf_melt', 'scripts/vcf_filter.py'],
     author='James Casbon and @jdoughertyii',
     author_email='casbon@gmail.com',
-    description='Variant Call Format (VCF) parser for python',
+    description='Variant Call Format (VCF) parser for Python',
     long_description=DOC,
     test_suite='test.test_vcf.suite',
+    install_requires=['distribute'],
     requires=requires,
     entry_points = {
         'vcf.filters': [
@@ -46,7 +47,9 @@ setup(
         'Intended Audience :: Science/Research',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering',
       ],
     keywords='bioinformatics',
+    use_2to3=True,
 )
