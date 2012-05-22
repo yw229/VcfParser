@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import doctest
 import os
@@ -61,22 +62,22 @@ class TestVcfSpecs(unittest.TestCase):
 
     def test_vcf_4_1_sv(self):
         return
-       
+
         reader = vcf.Reader(fh('example-4.1-sv.vcf'))
 
         assert 'SVLEN' in reader.infos
 
         # test we can walk the file at least
         for r in reader:
-            print r
+            print(r)
             for c in r:
-                print c
+                print(c)
                 assert c
 
         # asserting False while I work out what to check
         assert False
 
-        
+
 class TestGatkOutput(unittest.TestCase):
 
     filename = 'gatk.vcf'
@@ -139,7 +140,7 @@ class TestFreebayesOutput(TestGatkOutput):
 
 
 
-        print reader.samples
+        print(reader.samples)
         self.assertEqual(len(reader.samples), 7)
         n = 0
         for r in reader:
@@ -242,7 +243,7 @@ class TestRecord(unittest.TestCase):
                 self.assertEqual(0.0/6.0, pi)
             elif var.POS == 1234567:
                 self.assertEqual(None, pi)
-                
+
     def test_is_snp(self):
         reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
@@ -382,7 +383,7 @@ class TestRecord(unittest.TestCase):
                 self.assertEqual(True, is_sv)
             elif var.POS == 18665128:
                 self.assertEqual(True, is_sv)
-                
+
         reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
             is_sv = var.is_sv
@@ -396,7 +397,7 @@ class TestRecord(unittest.TestCase):
                 self.assertEqual(False, is_sv)
             elif var.POS == 1234567:
                 self.assertEqual(False, is_sv)
-                
+
     def test_is_sv_precise(self):
         reader = vcf.Reader(fh('example-4.1-sv.vcf'))
         for var in reader:
@@ -496,7 +497,7 @@ class TestCall(unittest.TestCase):
         reader = vcf.Reader(fh('example-4.0.vcf'))
         for var in reader:
             for s in var:
-                print s.data
+                print(s.data)
             gt_types = [s.gt_type for s in var.samples]
             if var.POS == 14370:
                 self.assertEqual([0,1,2], gt_types)
@@ -549,13 +550,17 @@ class TestOpenMethods(unittest.TestCase):
 
     samples = 'NA00001 NA00002 NA00003'.split()
 
+    def fp(self, fname):
+        return os.path.join(os.path.dirname(__file__), fname)
+
+
     def testOpenFilehandle(self):
         r = vcf.Reader(fh('example-4.0.vcf'))
         self.assertEqual(self.samples, r.samples)
         self.assertEqual('example-4.0.vcf', os.path.split(r.filename)[1])
 
     def testOpenFilename(self):
-        r = vcf.Reader(filename='test/example-4.0.vcf')
+        r = vcf.Reader(filename=self.fp('example-4.0.vcf'))
         self.assertEqual(self.samples, r.samples)
 
     def testOpenFilehandleGzipped(self):
@@ -563,7 +568,7 @@ class TestOpenMethods(unittest.TestCase):
         self.assertEqual(self.samples, r.samples)
 
     def testOpenFilenameGzipped(self):
-        r = vcf.Reader(filename='test/tb.vcf.gz')
+        r = vcf.Reader(filename=self.fp('tb.vcf.gz'))
         self.assertEqual(self.samples, r.samples)
 
 
@@ -572,20 +577,20 @@ class TestFilter(unittest.TestCase):
 
     def testApplyFilter(self):
         s, out = commands.getstatusoutput('python scripts/vcf_filter.py --site-quality 30 test/example-4.0.vcf sq')
-        #print out
+        #print(out)
         assert s == 0
         buf = StringIO()
         buf.write(out)
         buf.seek(0)
 
-        print buf.getvalue()
+        print(buf.getvalue())
         reader = vcf.Reader(buf)
 
 
         # check filter got into output file
         assert 'sq30' in reader.filters
 
-        print reader.filters
+        print(reader.filters)
 
         # check sites were filtered
         n = 0
@@ -602,18 +607,18 @@ class TestFilter(unittest.TestCase):
         s, out = commands.getstatusoutput('python scripts/vcf_filter.py --site-quality 30 '
         '--genotype-quality 50 test/example-4.0.vcf sq mgq')
         assert s == 0
-        #print out
+        #print(out)
         buf = StringIO()
         buf.write(out)
         buf.seek(0)
         reader = vcf.Reader(buf)
 
-        print reader.filters
+        print(reader.filters)
 
         assert 'mgq50' in reader.filters
         assert 'sq30' in reader.filters
 
-        
+
 class TestRegression(unittest.TestCase):
 
     def test_issue_16(self):
@@ -623,7 +628,7 @@ class TestRegression(unittest.TestCase):
 
     def test_null_mono(self):
         # null qualities were written as blank, causing subsequent parse to fail
-        print os.path.abspath(os.path.join(os.path.dirname(__file__),  'null_genotype_mono.vcf') )
+        print(os.path.abspath(os.path.join(os.path.dirname(__file__),  'null_genotype_mono.vcf') ))
         p = vcf.Reader(fh('null_genotype_mono.vcf'))
         assert p.samples
         out = StringIO()
@@ -631,7 +636,7 @@ class TestRegression(unittest.TestCase):
         for record in p:
             writer.write_record(record)
         out.seek(0)
-        print out.getvalue()
+        print(out.getvalue())
         p2 = vcf.Reader(out)
         rec = p2.next()
         assert rec.samples

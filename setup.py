@@ -24,13 +24,13 @@ for line in open('vcf/__init__.py'):
 
 setup(
     name='PyVCF',
-    packages=['vcf'],
+    packages=['vcf', 'vcf.test'],
     scripts=['scripts/vcf_melt', 'scripts/vcf_filter.py'],
     author='James Casbon and @jdoughertyii',
     author_email='casbon@gmail.com',
     description='Variant Call Format (VCF) parser for Python',
     long_description=DOC,
-    test_suite='test.test_vcf.suite',
+    test_suite='vcf.test.test_vcf.suite',
     install_requires=['distribute'],
     requires=requires,
     entry_points = {
@@ -52,4 +52,8 @@ setup(
       ],
     keywords='bioinformatics',
     use_2to3=True,
+    include_package_data=True,
+    package_data = {
+        '': ['*.vcf', '*.gz'],
+        }
 )
