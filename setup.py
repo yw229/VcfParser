@@ -54,6 +54,6 @@ setup(
     use_2to3=True,
     include_package_data=True,
     package_data = {
-        '': ['*.vcf', '*.gz'],
+        '': ['*.vcf', '*.gz', '*.tbi'],
         }
 )
