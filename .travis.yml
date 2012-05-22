@@ -8,4 +8,4 @@ install:
   - "if [[ $TRAVIS_PYTHON_VERSION != '2.7' ]]; then pip install --use-mirrors argparse; fi"
   - "if [[ $TRAVIS_PYTHON_VERSION != '3.2' ]]; then pip install --use-mirrors pysam; fi"
   - python setup.py install
-script: nosetests --with-doctest
+script: python setup.py test
