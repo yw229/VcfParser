@@ -1,12 +1,29 @@
 Development
 ===========
 
-Please use the repository at github: https://github.com/jamescasbon/PyVCF/
+Please use the `PyVCF repository <https://github.com/jamescasbon/PyVCF/>`_.
 Pull requests gladly accepted. 
 Issues should be reported at the github issue tracker.
 
+Running tests
+-------------
+
+Please check the tests by running them with::
+
+    python setup.py test 
+
+New features should have test code sent with them.
+
 Changes
 =======
+
+0.4.4 Release
+-------------
+
+* Support whitespace in sample names
+* SV work (thanks @arq5x)
+* Python 3 support via 2to3 (thanks @marcelm)
+* Improved filtering script, capable of importing local files
 
 0.4.3 Release
 -------------
@@ -79,9 +96,10 @@ Documentation release
 * Added extensible filter script (see FILTERS.md), vcf_filter.py 
 
 Contributions
--------------
+=============
 
 Project started by @jdoughertyii and taken over by @jamescasbon on 12th January 2011.
-Contributions from @arq5x, @brentp, @martijnvermaat, @ian1roberts.
+Contributions from @arq5x, @brentp, @martijnvermaat, @ian1roberts, @marcelm.
 
+This project was supported by `Population Genetics <http://www.populationgenetics.com/>`_.
 

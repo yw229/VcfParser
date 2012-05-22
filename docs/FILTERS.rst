@@ -15,8 +15,9 @@ Adding a filter
 You can reuse this work by providing a filter class, rather than writing your own filter.
 For example, lets say I want to filter each site based on the quality of the site.
 I can create a class like this::
-    
-    class SiteQuality(vcf.Filter):
+   
+    import vcf.filters
+    class SiteQuality(vcf.filters.Base):
 
         description = 'Filter sites by quality'
         name = 'sq'
@@ -34,7 +35,7 @@ I can create a class like this::
                 return record.QUAL
 
 
-This class subclasses ``vcf.Filter`` which provides the interface for VCF filters.
+This class subclasses ``vcf.filters.Base`` which provides the interface for VCF filters.
 The ``description``` and ``name`` are metadata about the parser.
 The ``customize_parser`` method allows you to add arguments to the script.
 We use the ``__init__`` method to grab the argument of interest from the parser.
@@ -42,8 +43,12 @@ Finally, the ``__call__`` method processes each record and returns a value if th
 filter failed.  The base class uses the ``name`` and ``threshold`` to create
 the filter ID in the VCF file.
 
-To make vcf_filter.py aware of the filter, you need to declare a ``vcf.filters`` entry 
-point in your ``setup``::
+To make vcf_filter.py aware of the filter, you can either use the local script option
+or declare an entry point.  To use a local script, simply call vcf_filter::
+
+    $ vcf_filter.py --local-script my_filters.py ...
+
+To use an entry point, you need to declare a ``vcf.filters`` entry point in your ``setup``::
 
     setup(
         ...
@@ -54,37 +59,38 @@ point in your ``setup``::
         }
     )
 
-Now when you call vcf_filter.py, you should see your filter in the list of available filters::
+Either way, when you call vcf_filter.py, you should see your filter in the list of available filters::
 
-    >$ vcf_filter.py --help
-    usage: vcf_filter.py [-h] [--no-short-circuit] [--output OUTPUT]
-                         [--site-quality SITE_QUALITY]
-                         [--genotype-quality GENOTYPE_QUALITY]
-                         input filter [filter ...]
+    usage: vcf_filter.py [-h] [--no-short-circuit] [--no-filtered] 
+                  [--output OUTPUT] [--local-script LOCAL_SCRIPT]
+                  input filter [filter_args] [filter [filter_args]] ...
+                
 
     Filter a VCF file
 
-    available filters:
-      sq:	Filter sites by quality
-
     positional arguments:
-      input                 File to process (use - for STDIN)
-      filter                Filters to use
+      input                 File to process (use - for STDIN) (default: None)
 
     optional arguments:
-      -h, --help            show this help message and exit
-      --no-short-circuit    Do not stop filter processing on a site if a single
-                            filter fails.
-      --output OUTPUT       Filename to output (default stdout)
+      -h, --help            Show this help message and exit. (default: False)
+      --no-short-circuit    Do not stop filter processing on a site if any filter
+                            is triggered (default: False)
+      --output OUTPUT       Filename to output [STDOUT] (default: <open file
+                            '<stdout>', mode 'w' at 0x1002841e0>)
+      --no-filtered         Output only sites passing the filters (default: False)
+      --local-script LOCAL_SCRIPT
+                            Python file in current working directory with the
+                            filter classes (default: None)
+
+    sq:
+      Filter sites by quality
+
       --site-quality SITE_QUALITY
-                            Filter sites below this quality
-      --genotype-quality GENOTYPE_QUALITY
-                            Filter sites with no genotypes above this quality
+                            Filter sites below this quality (default: 30)
 
+The filter base class: vcf.filters.Base
+---------------------------------------
 
-The filter base class: vcf.Filter
----------------------------------
-
-.. autoclass:: vcf.Filter
+.. autoclass:: vcf.filters.Base
    :members:
 
