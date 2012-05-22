@@ -10,8 +10,8 @@ from vcf import utils
 suite = doctest.DocTestSuite(vcf.parser)
 
 
-def fh(fname):
-    return file(os.path.join(os.path.dirname(__file__), fname))
+def fh(fname, mode='rt'):
+    return open(os.path.join(os.path.dirname(__file__), fname), mode)
 
 
 class TestVcfSpecs(unittest.TestCase):
@@ -160,7 +160,7 @@ class TestSamtoolsOutput(unittest.TestCase):
 class Test1kg(unittest.TestCase):
 
     def testParse(self):
-        reader = vcf.Reader(fh('1kg.vcf.gz'))
+        reader = vcf.Reader(fh('1kg.vcf.gz', 'rb'))
 
         self.assertEqual(len(reader.samples), 629)
         for _ in reader:
@@ -177,7 +177,8 @@ class TestWriter(unittest.TestCase):
 
         records = list(reader)
 
-        map(writer.write_record, records)
+        for record in records:
+            writer.write_record(record)
         out.seek(0)
         reader2 = vcf.Reader(out)
 
@@ -511,7 +512,7 @@ class TestCall(unittest.TestCase):
 class TestTabix(unittest.TestCase):
 
     def setUp(self):
-        self.reader = vcf.Reader(fh('tb.vcf.gz'))
+        self.reader = vcf.Reader(fh('tb.vcf.gz', 'rb'))
 
         self.run = vcf.parser.pysam is not None
 
@@ -558,7 +559,7 @@ class TestOpenMethods(unittest.TestCase):
         self.assertEqual(self.samples, r.samples)
 
     def testOpenFilehandleGzipped(self):
-        r = vcf.Reader(fh('tb.vcf.gz'))
+        r = vcf.Reader(fh('tb.vcf.gz', 'rb'))
         self.assertEqual(self.samples, r.samples)
 
     def testOpenFilenameGzipped(self):
@@ -617,7 +618,8 @@ class TestRegression(unittest.TestCase):
 
     def test_issue_16(self):
         reader = vcf.Reader(fh('issue-16.vcf'))
-        assert reader.next().QUAL == None
+        n = reader.next()
+        assert n.QUAL == None
 
     def test_null_mono(self):
         # null qualities were written as blank, causing subsequent parse to fail
@@ -626,7 +628,8 @@ class TestRegression(unittest.TestCase):
         assert p.samples
         out = StringIO()
         writer = vcf.Writer(out, p)
-        map(writer.write_record, p)
+        for record in p:
+            writer.write_record(record)
         out.seek(0)
         print out.getvalue()
         p2 = vcf.Reader(out)

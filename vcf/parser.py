@@ -5,6 +5,7 @@ import csv
 import gzip
 import sys
 import itertools
+import codecs
 
 try:
     import pysam
@@ -519,20 +520,19 @@ class Reader(object):
         if not (fsock or filename):
             raise Exception('You must provide at least fsock or filename')
 
-        if filename:
-            self.filename = filename
-            if fsock is None:
-                self.reader = file(filename)
-
         if fsock:
             self.reader = fsock
-            if filename is None:
-                if hasattr(fsock, 'name'):
-                    filename = fsock.name
-            self.filename = filename
-
-        if compressed or (filename and filename.endswith('.gz')):
+            if filename is None and hasattr(fsock, 'name'):
+                filename = fsock.name
+                compressed = compressed or filename.endswith('.gz')
+        elif filename:
+            compressed = compressed or filename.endswith('.gz')
+            self.reader = open(filename, 'rb' if compressed else 'rt')
+        self.filename = filename
+        if compressed:
             self.reader = gzip.GzipFile(fileobj=self.reader)
+            if sys.version > '3':
+                self.reader = codecs.getreader('ascii')(self.reader)
 
         #: metadata fields from header
         self.metadata = None
@@ -722,7 +722,8 @@ class Reader(object):
 
     def next(self):
         '''Return the next record in the file.'''
-        row = self.reader.next().split()
+        line = self.reader.next()
+        row = line.split()
         chrom = row[0]
         if self._prepend_chr:
             chrom = 'chr' + chrom
@@ -801,13 +802,13 @@ class Writer(object):
         self.writer = csv.writer(stream, delimiter="\t")
         self.template = template
 
-        for line in template.metadata.items():
+        for line in template.metadata.iteritems():
             stream.write('##%s=%s\n' % line)
-        for line in template.infos.values():
+        for line in template.infos.itervalues():
             stream.write('##INFO=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
-        for line in template.formats.values():
+        for line in template.formats.itervalues():
             stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
-        for line in template.filters.values():
+        for line in template.filters.itervalues():
             stream.write('##FILTER=<ID=%s,Description="%s">\n' % tuple(self._map(str, line)))
 
         self._write_header()
@@ -832,7 +833,7 @@ class Writer(object):
     def _format_info(self, info):
         if not info:
             return '.'
-        return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.items()])
+        return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.iteritems()])
 
     def _format_sample(self, fmt, sample):
         if sample.data["GT"] is None:
