@@ -5,6 +5,7 @@ import csv
 import gzip
 import sys
 import itertools
+import codecs
 
 try:
     import pysam
@@ -30,6 +31,7 @@ RESERVED_FORMAT = {
 _Info = collections.namedtuple('Info', ['id', 'num', 'type', 'desc'])
 _Filter = collections.namedtuple('Filter', ['id', 'desc'])
 _Format = collections.namedtuple('Format', ['id', 'num', 'type', 'desc'])
+_SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_types', 'gt_phases'])
 
 
 class _vcf_metadata_parser(object):
@@ -110,7 +112,6 @@ class _vcf_metadata_parser(object):
 
 class _Call(object):
     """ A genotype call, a cell entry in a VCF file"""
-
     def __init__(self, site, sample, data):
         #: The ``_Record`` for this ``_Call``
         self.site = site
@@ -166,18 +167,11 @@ class _Call(object):
             # grab the numeric alleles of the gt string; tokenize by phasing
             (a1, a2) = self.gt_nums.split("/") \
                 if not self.phased else self.gt_nums.split("|")
-            # infer genotype type from allele numbers
-            if (int(a1) == 0) and (int(a2) == 0): return 0
-            elif (int(a1) == 0) and (int(a2) >= 1): return 1
-            elif (int(a2) == 0) and (int(a1) >= 1): return 1
-            elif (int(a1) >= 1) and (int(a2) >= 1):
-                # same alt, so hom_alt
-                if a1 == a2: return 2
-                # diff alts, so het
-                else: return 1
-            else: return -1
-        else:
-            return None
+            if a1 == a2:
+                if a1 == "0": return 0
+                else: return 2
+            else: return 1
+        else: return None
 
     @property
     def phased(self):
@@ -213,8 +207,8 @@ class _Record(object):
 
         The list of genotype calls is in the ``samples`` property.
     """
-
-    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, sample_indexes, samples=None):
+    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, sample_indexes, samples=None,
+                 gt_bases = None, gt_types = None, gt_phases = None):
         self.CHROM = CHROM
         self.POS = POS
         self.ID = ID
@@ -234,6 +228,11 @@ class _Record(object):
         #: list of ``_Calls`` for each sample ordered as in source VCF
         self.samples = samples
         self._sample_indexes = sample_indexes
+        # lists of the pre-computed base-wise genotypes ('A/G'), types (0,1,2)
+        # and phases for each sample.
+        self.gt_bases = gt_bases
+        self.gt_types = gt_types
+        self.gt_phases = gt_phases
 
     def __eq__(self, other):
         """ _Records are equal if they describe the same variant (same position, alleles) """
@@ -255,7 +254,9 @@ class _Record(object):
         self.FORMAT = self.FORMAT + ':' + fmt
 
     def add_filter(self, flt):
-        if self.FILTER is None or self.FILTER == 'PASS':
+        if self.FILTER is None \
+        or self.FILTER == 'PASS'\
+        or self.FILTER == '.':
             self.FILTER = ''
         else:
             self.FILTER = self.FILTER + ';'
@@ -267,7 +268,7 @@ class _Record(object):
     def genotype(self, name):
         """ Lookup a ``_Call`` for the sample given in ``name`` """
         return self.samples[self._sample_indexes[name]]
-        
+
     @property
     def num_called(self):
         """ The number of called samples"""
@@ -350,6 +351,157 @@ class _Record(object):
         return [s for s in self.samples if s.gt_type is None]
 
     @property
+    def is_snp(self):
+        """ Return whether or not the variant is a SNP """
+        if len(self.REF) > 1: return False
+        for alt in self.ALT:
+            if alt not in ['A', 'C', 'G', 'T']:
+                return False
+        return True
+
+    @property
+    def is_indel(self):
+        """ Return whether or not the variant is an INDEL """
+        is_sv = self.is_sv
+        
+        if len(self.REF) > 1 and not is_sv: return True
+        for alt in self.ALT:
+            if alt is None:
+                return True
+            elif len(alt) != len(self.REF):
+                # the diff. b/w INDELs and SVs can be murky.
+                if not is_sv:
+                    # 1	2827693	.	CCCCTCGCA	C	.	PASS	AC=10;
+                    return True
+                else:
+                    # 1	2827693	.	CCCCTCGCA	C	.	PASS	SVTYPE=DEL;
+                    return False
+        return False
+        
+    @property
+    def is_sv(self):
+        """ Return whether or not the variant is a structural variant """
+        if self.INFO.get('SVTYPE') is None:
+            return False
+        return True
+
+    @property
+    def is_transition(self):
+        """ Return whether or not the SNP is a transition """
+        # if multiple alts, it is unclear if we have a transition
+        if len(self.ALT) > 1: return False
+
+        if self.is_snp:
+            # just one alt allele
+            alt_allele = self.ALT[0]
+            if ((self.REF == "A" and alt_allele == "G") or
+                (self.REF == "G" and alt_allele == "A") or
+                (self.REF == "C" and alt_allele == "T") or
+                (self.REF == "T" and alt_allele == "C")):
+                return True
+            else: return False
+        else: return False
+
+    @property
+    def is_deletion(self):
+        """ Return whether or not the INDEL is a deletion """
+        # if multiple alts, it is unclear if we have a transition
+        if len(self.ALT) > 1: return False
+
+        if self.is_indel:
+            # just one alt allele
+            alt_allele = self.ALT[0]
+            if alt_allele is None:
+                return True
+            if len(self.REF) > len(alt_allele):
+                return True
+            else: return False
+        else: return False
+
+    @property
+    def var_type(self):
+        """
+        Return the type of variant [snp, indel, unknown]
+        TO DO: support SVs
+        """
+        if self.is_snp:
+            return "snp"
+        elif self.is_indel:
+            return "indel"
+        elif self.is_sv:
+            return "sv"
+        else:
+            return "unknown"
+
+    @property
+    def var_subtype(self):
+        """
+        Return the subtype of variant.
+        - For SNPs and INDELs, yeild one of: [ts, tv, ins, del]
+        - For SVs yield either "complex" or the SV type defined
+          in the ALT fields (removing the brackets).
+          E.g.:
+               <DEL>       -> DEL
+               <INS:ME:L1> -> INS:ME:L1
+               <DUP>       -> DUP
+        
+        The logic is meant to follow the rules outlined in the following
+        paragraph at:
+        
+        http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41
+        
+        "For precisely known variants, the REF and ALT fields should contain 
+        the full sequences for the alleles, following the usual VCF conventions. 
+        For imprecise variants, the REF field may contain a single base and the 
+        ALT fields should contain symbolic alleles (e.g. <ID>), described in more 
+        detail below. Imprecise variants should also be marked by the presence 
+        of an IMPRECISE flag in the INFO field."
+        """
+        if self.is_snp:
+            if self.is_transition:
+                return "ts"
+            elif len(self.ALT) == 1:
+                return "tv"
+            else: # multiple ALT alleles.  unclear
+                return "unknown"
+        elif self.is_indel:
+            if self.is_deletion:
+                return "del"
+            elif len(self.ALT) == 1:
+                return "ins"
+            else: # multiple ALT alleles.  unclear
+                return "unknown"
+        elif self.is_sv:
+            if self.INFO['SVTYPE'] == "BND":
+                return "complex"
+            elif self.is_sv_precise:
+                return self.INFO['SVTYPE']
+            else:
+                # first remove both "<" and ">" from ALT
+                return self.ALT[0].strip('<>') 
+        else:
+            return "unknown"
+
+    @property
+    def sv_end(self):
+        """ Return the end position for the SV """
+        if self.is_sv:
+            return self.INFO['END']
+        return None
+        
+    @property
+    def is_sv_precise(self):
+        """ Return whether the SV cordinates are mapped 
+            to 1 b.p. resolution.
+        """
+        if self.INFO.get('IMPRECISE') is None and not self.is_sv:
+            return False
+        elif self.INFO.get('IMPRECISE') is not None and self.is_sv:
+            return False
+        elif self.INFO.get('IMPRECISE') is None and self.is_sv:
+            return True
+
+    @property
     def is_monomorphic(self):
         """ Return True for reference calls """
         return len(self.ALT) == 1 and self.ALT[0] is None
@@ -370,20 +522,19 @@ class Reader(object):
         if not (fsock or filename):
             raise Exception('You must provide at least fsock or filename')
 
-        if filename:
-            self.filename = filename
-            if fsock is None:
-                self.reader = file(filename)
-
         if fsock:
             self.reader = fsock
-            if filename is None:
-                if hasattr(fsock, 'name'):
-                    filename = fsock.name
-            self.filename = filename
-
-        if compressed or (filename and filename.endswith('.gz')):
+            if filename is None and hasattr(fsock, 'name'):
+                filename = fsock.name
+                compressed = compressed or filename.endswith('.gz')
+        elif filename:
+            compressed = compressed or filename.endswith('.gz')
+            self.reader = open(filename, 'rb' if compressed else 'rt')
+        self.filename = filename
+        if compressed:
             self.reader = gzip.GzipFile(fileobj=self.reader)
+            if sys.version > '3':
+                self.reader = codecs.getreader('ascii')(self.reader)
 
         #: metadata fields from header
         self.metadata = None
@@ -436,7 +587,7 @@ class Reader(object):
 
             line = self.reader.next()
 
-        fields = line.split()
+        fields = line.rstrip().split('\t')
         self.samples = fields[9:]
         self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
 
@@ -452,7 +603,7 @@ class Reader(object):
         '''
         if info_str == '.':
             return {}
-            
+
         entries = info_str.split(';')
         retdict = {}
 
@@ -482,7 +633,7 @@ class Reader(object):
                 val = entry[1]
 
             try:
-                if self.infos[ID].num == 1:
+                if self.infos[ID].num == 1 and entry_type != 'String':
                     val = val[0]
             except KeyError:
                 pass
@@ -495,11 +646,15 @@ class Reader(object):
         '''Parse a sample entry according to the format specified in the FORMAT
         column.'''
         samp_data = []# OrderedDict()
+        gt_bases  = []# A/A, A|G, G/G, etc.
+        gt_types  = []# 0, 1, 2, etc.
+        gt_phases = []# T, F, T, etc.
+        
         samp_fmt = samp_fmt.split(':')
 
         samp_fmt_types = []
         samp_fmt_nums = []
-        
+
         for fmt in samp_fmt:
             try:
                 entry_type = self.formats[fmt].type
@@ -515,9 +670,17 @@ class Reader(object):
 
         for name, sample in itertools.izip(self.samples, samples):
             sampdict = self._parse_sample(sample, samp_fmt, samp_fmt_types, samp_fmt_nums)
-            samp_data.append(_Call(site, name, sampdict))
+            call = _Call(site, name, sampdict)
+            samp_data.append(call)
 
-        return samp_data
+            bases = call.gt_bases
+            type = call.gt_type
+            phase = call.phased
+            gt_bases.append(bases) if bases is not None else './.'
+            gt_types.append(type) if type is not None else -1
+            gt_phases.append(phase) if phase is not None else False
+        
+        return _SampleInfo(samp_data, gt_bases, gt_types, gt_phases)
 
     def _parse_sample(self, sample, samp_fmt, samp_fmt_types, samp_fmt_nums):
         sampdict = dict([(x, None) for x in samp_fmt])
@@ -535,7 +698,7 @@ class Reader(object):
 
                 if entry_type == 'Integer':
                     sampdict[fmt] = int(vals)
-                elif sampdict[fmt] == 'Float':
+                elif entry_type == 'Float':
                     sampdict[fmt] = float(vals)
                 else:
                     sampdict[fmt] = vals
@@ -561,7 +724,8 @@ class Reader(object):
 
     def next(self):
         '''Return the next record in the file.'''
-        row = self.reader.next().split()
+        line = self.reader.next()
+        row = line.split()
         chrom = row[0]
         if self._prepend_chr:
             chrom = 'chr' + chrom
@@ -592,8 +756,11 @@ class Reader(object):
         record = _Record(chrom, pos, ID, ref, alt, qual, filt, info, fmt, self._sample_indexes)
 
         if fmt is not None:
-            samples = self._parse_samples(row[9:], fmt, record)
-            record.samples = samples
+            sample_info = self._parse_samples(row[9:], fmt, record)
+            record.samples = sample_info.samples
+            record.gt_bases = sample_info.gt_bases
+            record.gt_types = sample_info.gt_types
+            record.gt_phases = sample_info.gt_phases
 
         return record
 
@@ -637,13 +804,13 @@ class Writer(object):
         self.writer = csv.writer(stream, delimiter="\t")
         self.template = template
 
-        for line in template.metadata.items():
+        for line in template.metadata.iteritems():
             stream.write('##%s=%s\n' % line)
-        for line in template.infos.values():
+        for line in template.infos.itervalues():
             stream.write('##INFO=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
-        for line in template.formats.values():
+        for line in template.formats.itervalues():
             stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
-        for line in template.filters.values():
+        for line in template.filters.itervalues():
             stream.write('##FILTER=<ID=%s,Description="%s">\n' % tuple(self._map(str, line)))
 
         self._write_header()
@@ -668,7 +835,7 @@ class Writer(object):
     def _format_info(self, info):
         if not info:
             return '.'
-        return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.items()])
+        return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.iteritems()])
 
     def _format_sample(self, fmt, sample):
         if sample.data["GT"] is None:
@@ -686,8 +853,8 @@ class Writer(object):
                 for x in iterable]
 
 def __update_readme():
-    import sys
-    file('README.rst', 'w').write(sys.modules[__name__].__doc__)
+    import sys, vcf
+    file('README.rst', 'w').write(vcf.__doc__)
 
 
 # backwards compatibility
