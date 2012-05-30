@@ -32,8 +32,8 @@ for record in reader:
     fixed = [record.CHROM, record.POS, record.REF, record.ALT, record.ID]
     
     for sample in record.samples: 
-        row = [sample['name']]
-        row += [flatten(sample.get(x, None)) for x in formats]
+        row = [sample.sample]
+        row += [flatten(sample.data.get(x, None)) for x in formats]
         row += [record.FILTER or '.']
         row += fixed
         row += info_row

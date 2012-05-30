@@ -60,10 +60,9 @@ class VariantGenotypeQuality(Base):
         self.threshold = args.genotype_quality
 
     def __call__(self, record):
-        variants = (x for x in record.samples if x['GT'] != '0/0' and x['GT'] != './.')
-
-        vgq = max([max(x['GQ']) for x in variants if x.called])
-        if vgq < self.threshold:
-            return vgq
+        if not record.is_monomorphic:
+            vgq = max([x['GQ'] for x in record if x.is_variant])
+            if vgq < self.threshold:
+                return vgq
 
 
