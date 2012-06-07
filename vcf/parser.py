@@ -127,10 +127,10 @@ class _vcf_metadata_parser(object):
 
     def read_alt(self, alt_string):
         '''Read a meta-information ALTline.'''
-        match = self.alt_pattern.match(filter_string)
+        match = self.alt_pattern.match(alt_string)
         if not match:
             raise SyntaxError(
-                "One of the FILTER lines is malformed: %s" % filter_string)
+                "One of the FILTER lines is malformed: %s" % alt_string)
 
         alt = _Alt(match.group('id'), match.group('desc'))
 
