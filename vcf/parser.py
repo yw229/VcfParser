@@ -33,6 +33,28 @@ _Filter = collections.namedtuple('Filter', ['id', 'desc'])
 _Format = collections.namedtuple('Format', ['id', 'num', 'type', 'desc'])
 _SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_types', 'gt_phases'])
 
+class _AltRecord(str):
+    def __init__(self, newSequence, chr=None, pos=None, orientation=None, remoteOrientation=None):
+    	super(_AltRecord, self).__init__(newSequence)
+	self.reconnects = (self.chr is not None)
+	self.chr = chr
+	self.pos = pos
+	self.orientation = orientation
+	self.remoteOrientation = remoteOrientation
+
+    def __str__(self):
+    	if self.reconnects:
+		if self.remoteOrientation:
+			remoteString = '[%s:%i[' % (self.chr, self.pos)
+		else:
+			remoteString = ']%s:%i]' % (self.chr, self.pos)
+
+		if self.orientation:
+			return remoteString + self
+		else:
+			return self + remoteString
+	else:
+		return self
 
 class _vcf_metadata_parser(object):
     '''Parse the metadat in the header of a VCF file.'''
@@ -721,6 +743,21 @@ class Reader(object):
 
         return sampdict
 
+    def parseALT(self, str):
+	if re.search('[\[\]]', str) is not None:
+		items = re.split('[\[\]]', ALT)
+		remoteCoords = items[1].split(':')
+		chr = remoteCoords[0]
+		pos = remoteCoords[1]
+		orientation = (str[0] == '[' or str[0] == ']')
+		remoteOrientation = re.search('\[', ALT)
+		if orientation:
+			connectingSequence = items[2]
+		else:
+			connectingSequence = items[0]
+		return _AltRecord(str, chr, pos, orientation, remoteOrientation, connectingSequence) 
+	else:
+		return _AltRecord(str)
 
     def next(self):
         '''Return the next record in the file.'''
@@ -737,7 +774,7 @@ class Reader(object):
             ID = None
 
         ref = row[3]
-        alt = self._map(str, row[4].split(','))
+        alt = self._map(self.parseALT, row[4].split(','))
 
         if row[5] == '.':
             qual = None
