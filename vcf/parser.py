@@ -42,6 +42,7 @@ RESERVED_FORMAT = {
 
 _Info = collections.namedtuple('Info', ['id', 'num', 'type', 'desc'])
 _Filter = collections.namedtuple('Filter', ['id', 'desc'])
+_Alt = collections.namedtuple('Alt', ['id', 'desc'])
 _Format = collections.namedtuple('Format', ['id', 'num', 'type', 'desc'])
 _SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_types', 'gt_phases'])
 
@@ -56,17 +57,17 @@ class _AltRecord(str):
 
     def __str__(self):
         if self.reconnects:
-        if self.remoteOrientation:
-            remoteString = '[%s:%i[' % (self.chr, self.pos)
-        else:
-            remoteString = ']%s:%i]' % (self.chr, self.pos)
+            if self.remoteOrientation:
+                remoteString = '[%s:%i[' % (self.chr, self.pos)
+            else:
+                remoteString = ']%s:%i]' % (self.chr, self.pos)
 
-        if self.orientation:
-            return remoteString + self
+            if self.orientation:
+                return remoteString + self
+            else:
+                return self + remoteString
         else:
-            return self + remoteString
-    else:
-        return self
+            return self
 
 class _vcf_metadata_parser(object):
     '''Parse the metadat in the header of a VCF file.'''
@@ -131,7 +132,7 @@ class _vcf_metadata_parser(object):
             raise SyntaxError(
                 "One of the FILTER lines is malformed: %s" % filter_string)
 
-        alt = _ALT(match.group('id'), match.group('desc'))
+        alt = _Alt(match.group('id'), match.group('desc'))
 
         return (match.group('id'), alt)
 
