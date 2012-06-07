@@ -82,6 +82,10 @@ class _vcf_metadata_parser(object):
             ID=(?P<id>[^,]+),
             Description="(?P<desc>[^"]*)"
             >''', re.VERBOSE)
+        self.alt_pattern = re.compile(r'''\#\#ALT=<
+            ID=(?P<id>[^,]+),
+            Description="(?P<desc>[^"]*)"
+            >''', re.VERBOSE)
         self.format_pattern = re.compile(r'''\#\#FORMAT=<
             ID=(?P<id>.+),
             Number=(?P<number>-?\d+|\.|[AG]),
@@ -119,6 +123,17 @@ class _vcf_metadata_parser(object):
         filt = _Filter(match.group('id'), match.group('desc'))
 
         return (match.group('id'), filt)
+
+    def read_alt(self, alt_string):
+        '''Read a meta-information ALTline.'''
+        match = self.alt_pattern.match(filter_string)
+        if not match:
+            raise SyntaxError(
+                "One of the FILTER lines is malformed: %s" % filter_string)
+
+        alt = _ALT(match.group('id'), match.group('desc'))
+
+        return (match.group('id'), alt)
 
     def read_format(self, format_string):
         '''Read a meta-information FORMAT line.'''
@@ -576,6 +591,7 @@ class Reader(object):
         self.infos = None
         #: FILTER fields from header
         self.filters = None
+        self.alts = None
         #: FORMAT fields from header
         self.formats = None
         self.samples = None
@@ -593,7 +609,7 @@ class Reader(object):
 
         The end user shouldn't have to use this.  She can access the metainfo
         directly with ``self.metadata``.'''
-        for attr in ('metadata', 'infos', 'filters', 'formats'):
+        for attr in ('metadata', 'infos', 'filters', 'alts', 'formats'):
             setattr(self, attr, {})
 
         parser = _vcf_metadata_parser()
@@ -610,6 +626,10 @@ class Reader(object):
             elif line.startswith('##FILTER'):
                 key, val = parser.read_filter(line)
                 self.filters[key] = val
+
+            elif line.startswith('##ALT'):
+                key, val = parser.read_alt(line)
+                self.alts[key] = val
 
             elif line.startswith('##FORMAT'):
                 key, val = parser.read_format(line)
@@ -861,6 +881,8 @@ class Writer(object):
             stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
         for line in template.filters.itervalues():
             stream.write('##FILTER=<ID=%s,Description="%s">\n' % tuple(self._map(str, line)))
+        for line in template.alts.itervalues():
+            stream.write('##ALT=<ID=%s,Description="%s">\n' % tuple(self._map(str, line)))
 
         self._write_header()
 
