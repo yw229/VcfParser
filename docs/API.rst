@@ -25,5 +25,8 @@ vcf._Call
 .. autoclass:: vcf.parser._Call
    :members:
 
+vcf._AltRecord
+-----------
 
-
+.. autoclass:: vcf.parser._AltRecord
+   :members:

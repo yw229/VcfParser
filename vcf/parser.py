@@ -47,12 +47,18 @@ _Format = collections.namedtuple('Format', ['id', 'num', 'type', 'desc'])
 _SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_types', 'gt_phases'])
 
 class _AltRecord(str):
+    '''An alternative allele record: either replacement string, SV placeholder, or breakend'''
     def __init__(self, newSequence, chr=None, pos=None, orientation=None, remoteOrientation=None):
         super(_AltRecord, self).__init__(newSequence)
+        #: False (default) if simply substitution string or placeholder, True if breakend.
         self.reconnects = (chr is not None)
+	#: If reconnects is True, the chromosome of breakend's mate, else None.
         self.chr = chr
+	#: If reconnects is True, the coordinate of breakend's mate, else None.
         self.pos = pos
+	#: If reconnects is True, orientation of breakend, else None. If the sequence 3' of the breakend is connected, True, else if the sequence 5' of the breakend is connected, False.
         self.orientation = orientation
+	#: If reconnects is True, orientation of breakend's mate, else None. If the sequence 3' of the breakend's mate is connected, True, else if the sequence 5' of the breakend's mate is connected, False.
         self.remoteOrientation = remoteOrientation
 
     def __str__(self):
@@ -597,12 +603,13 @@ class Reader(object):
             if sys.version > '3':
                 self.reader = codecs.getreader('ascii')(self.reader)
 
-        #: metadata fields from header
+        #: metadata fields from header (string or hash, depending)
         self.metadata = None
         #: INFO fields from header
         self.infos = None
         #: FILTER fields from header
         self.filters = None
+        #: ALT fields from header
         self.alts = None
         #: FORMAT fields from header
         self.formats = None

@@ -72,6 +72,19 @@ class TestVcfSpecs(unittest.TestCase):
                 print(c)
                 assert c
 
+    def test_vcf_4_1_bnd(self):
+        reader = vcf.Reader(fh('example-4.1-bnd.vcf'))
+
+        # test we can walk the file at least
+        for r in reader:
+            print(r)
+            for c in r:
+                print(c)
+                assert c
+
+	# Work in progress
+	assert False
+
 class TestGatkOutput(unittest.TestCase):
 
     filename = 'gatk.vcf'
