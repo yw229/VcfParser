@@ -19,12 +19,24 @@ RESERVED_INFO = {
     'AA': 'String', 'AC': 'Integer', 'AF': 'Float', 'AN': 'Integer',
     'BQ': 'Float', 'CIGAR': 'String', 'DB': 'Flag', 'DP': 'Integer',
     'END': 'Integer', 'H2': 'Flag', 'MQ': 'Float', 'MQ0': 'Integer',
-    'NS': 'Integer', 'SB': 'String', 'SOMATIC': 'Flag', 'VALIDATED': 'Flag'
+    'NS': 'Integer', 'SB': 'String', 'SOMATIC': 'Flag', 'VALIDATED': 'Flag',
+
+    # VCF 4.1 Additions
+    'IMPRECISE':'Flag', 'NOVEL':'Flag', 'END':'Integer', 'SVTYPE':'String',
+    'CIPOS':'Integer','CIEND':'Integer','HOMLEN':'Integer','HOMSEQ':'Integer',
+    'BKPTID':'String','MEINFO':'String','METRANS':'String','DGVID':'String',
+    'DBVARID':'String','MATEID':'String','PARID':'String','EVENT':'String',
+    'CILEN':'Integer','CN':'Integer','CNADJ':'Integer','CICN':'Integer',
+    'CICNADJ':'Integer'
 }
 
 RESERVED_FORMAT = {
     'GT': 'String', 'DP': 'Integer', 'FT': 'String', 'GL': 'Float',
-    'GQ': 'Float', 'HQ': 'Float'
+    'GQ': 'Float', 'HQ': 'Float',
+
+    # VCF 4.1 Additions
+    'CN':'Integer','CNQ':'Float','CNL':'Float','NQ':'Integer','HAP':'Integer',
+    'AHAP':'Integer'
 }
 
 
