@@ -48,32 +48,27 @@ _SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_t
 
 class _AltRecord(str):
     '''An alternative allele record: either replacement string, SV placeholder, or breakend'''
-    def __init__(self, newSequence, chr=None, pos=None, orientation=None, remoteOrientation=None):
-        super(_AltRecord, self).__init__(newSequence)
+    def __init__(self, sequence):
+        #: Breakend connecting sequence
+	self.connectingSequence = None
         #: False (default) if simply substitution string or placeholder, True if breakend.
-        self.reconnects = (chr is not None)
-	#: If reconnects is True, the chromosome of breakend's mate, else None.
+        self.reconnects = False
+        #: If reconnects is True, the chromosome of breakend's mate, else None.
+        self.chr = None
+        #: If reconnects is True, the coordinate of breakend's mate, else None.
+        self.pos = None
+        #: If reconnects is True, orientation of breakend, else None. If the sequence 3' of the breakend is connected, True, else if the sequence 5' of the breakend is connected, False.
+        self.orientation = None
+        #: If reconnects is True, orientation of breakend's mate, else None. If the sequence 3' of the breakend's mate is connected, True, else if the sequence 5' of the breakend's mate is connected, False.
+        self.remoteOrientation = None
+
+    def makeBreakend(self, chr, pos, orientation, remoteOrientation, connectingSequence):
+        self.reconnects = True
         self.chr = chr
-	#: If reconnects is True, the coordinate of breakend's mate, else None.
         self.pos = pos
-	#: If reconnects is True, orientation of breakend, else None. If the sequence 3' of the breakend is connected, True, else if the sequence 5' of the breakend is connected, False.
         self.orientation = orientation
-	#: If reconnects is True, orientation of breakend's mate, else None. If the sequence 3' of the breakend's mate is connected, True, else if the sequence 5' of the breakend's mate is connected, False.
         self.remoteOrientation = remoteOrientation
-
-    def __str__(self):
-        if self.reconnects:
-            if self.remoteOrientation:
-                remoteString = '[%s:%i[' % (self.chr, self.pos)
-            else:
-                remoteString = ']%s:%i]' % (self.chr, self.pos)
-
-            if self.orientation:
-                return remoteString + self
-            else:
-                return self + remoteString
-        else:
-            return self
+	self.connectingSequence = connectingSequence
 
 class _vcf_metadata_parser(object):
     '''Parse the metadat in the header of a VCF file.'''
@@ -163,18 +158,18 @@ class _vcf_metadata_parser(object):
 
     def read_meta_hash(self, meta_string):
         items = re.split("[<>]", meta_string)
-	# Removing initial hash marks and final equal sign
-	key = items[0][2:-1]
-	hashItems = items[1].split(',')
-	val = dict(item.split("=") for item in hashItems)
-	return key, val
+        # Removing initial hash marks and final equal sign
+        key = items[0][2:-1]
+        hashItems = items[1].split(',')
+        val = dict(item.split("=") for item in hashItems)
+        return key, val
 
     def read_meta(self, meta_string):
         if re.match("##.+=<", meta_string): 
-		return self.read_meta_hash(meta_string)
-	else:
-		match = self.meta_pattern.match(meta_string)
-		return match.group('key'), match.group('val')
+            return self.read_meta_hash(meta_string)
+        else:
+            match = self.meta_pattern.match(meta_string)
+            return match.group('key'), match.group('val')
 
 
 class _Call(object):
@@ -191,7 +186,7 @@ class _Call(object):
         self.called = self.gt_nums is not None
 
     def __repr__(self):
-        return "Call(sample=%s, GT=%s, GQ=%s)" % (self.sample, self.gt_nums, self.data.get('GQ', ''))
+        return "Call(sample=%s, GT=%s%s)" % (self.sample, self.gt_nums, "".join([", %s=%s" % (X,self.data[X]) for X in self.data if X != 'GT']))
 
     def __eq__(self, other):
         """ Two _Calls are equal if their _Records are equal
@@ -210,12 +205,10 @@ class _Call(object):
         if self.called:
             # grab the numeric alleles of the gt string; tokenize by phasing
             phase_char = "/" if not self.phased else "|"
-            (a1, a2) = self.gt_nums.split(phase_char)
+            alleles = self.gt_nums.split(phase_char)
             # lookup and return the actual DNA alleles
             try:
-                return self.site.alleles[int(a1)] + \
-                       phase_char + \
-                       self.site.alleles[int(a2)]
+                return phase_char.join(self.site.alleles[int(X)] for X in alleles)
             except:
                 sys.stderr.write("Allele number not found in list of alleles\n")
         else:
@@ -232,10 +225,10 @@ class _Call(object):
         # extract the numeric alleles of the gt string
         if self.called:
             # grab the numeric alleles of the gt string; tokenize by phasing
-            (a1, a2) = self.gt_nums.split("/") \
-                if not self.phased else self.gt_nums.split("|")
-            if a1 == a2:
-                if a1 == "0": return 0
+            phase_char = "/" if not self.phased else "|"
+            alleles = self.gt_nums.split(phase_char)
+            if all(X == alleles[0] for X in alleles[1:]):
+                if alleles[0] == "0": return 0
                 else: return 2
             else: return 1
         else: return None
@@ -422,7 +415,8 @@ class _Record(object):
         """ Return whether or not the variant is a SNP """
         if len(self.REF) > 1: return False
         for alt in self.ALT:
-            if alt not in ['A', 'C', 'G', 'T']:
+	    if alt is None: return False
+            if not alt.reconnects and alt not in ['A', 'C', 'G', 'T']:
                 return False
         return True
 
@@ -460,6 +454,7 @@ class _Record(object):
 
         if self.is_snp:
             # just one alt allele
+	    if self.ALT[0].reconnects: return False
             alt_allele = self.ALT[0]
             if ((self.REF == "A" and alt_allele == "G") or
                 (self.REF == "G" and alt_allele == "A") or
@@ -660,7 +655,7 @@ class Reader(object):
 
             line = self.reader.next()
 
-        fields = line.rstrip().split('\t')
+        fields = re.split('\t| *', line.rstrip())
         self.samples = fields[9:]
         self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
 
@@ -796,24 +791,26 @@ class Reader(object):
 
     def parseALT(self, str):
         if re.search('[\[\]]', str) is not None:
-            items = re.split('[\[\]]', ALT)
+            items = re.split('[\[\]]', str)
             remoteCoords = items[1].split(':')
             chr = remoteCoords[0]
             pos = remoteCoords[1]
             orientation = (str[0] == '[' or str[0] == ']')
-            remoteOrientation = re.search('\[', ALT)
+            remoteOrientation = re.search('\[', str)
             if orientation:
                connectingSequence = items[2]
             else:
                connectingSequence = items[0]
-            return _AltRecord(connectingSequence, chr, pos, orientation, remoteOrientation) 
+            record = _AltRecord(str)
+	    record.makeBreakend(chr, pos, orientation, remoteOrientation, connectingSequence) 
+	    return record
         else:
             return _AltRecord(str)
 
     def next(self):
         '''Return the next record in the file.'''
         line = self.reader.next()
-        row = line.split()
+        row = re.split('\t| *', line.strip())
         chrom = row[0]
         if self._prepend_chr:
             chrom = 'chr' + chrom
@@ -920,7 +917,7 @@ class Writer(object):
         self.writer.writerow(ffs + samples)
 
     def _format_alt(self, alt):
-        return ','.join([x or '.' for x in alt])
+        return ','.join([str(x) or '.' for x in alt])
 
     def _format_info(self, info):
         if not info:
