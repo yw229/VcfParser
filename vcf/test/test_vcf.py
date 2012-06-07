@@ -44,28 +44,26 @@ class TestVcfSpecs(unittest.TestCase):
 
 
     def test_vcf_4_1(self):
-        return
         reader = vcf.Reader(fh('example-4.1.vcf'))
         self.assertEqual(reader.metadata['fileformat'],  'VCFv4.1')
 
         # contigs were added in vcf4.1
         # probably need to add a reader.contigs attribute
         assert 'contig' in reader.metadata
+	assert 'ID' in reader.metadata['contig']
+	assert reader.metadata['contig']['ID'] == '20'
 
         # test we can walk the file at least
         for r in reader:
             for c in r:
                 assert c
 
-        # asserting False while I work out what to check
-        assert False
-
     def test_vcf_4_1_sv(self):
-        return
-
         reader = vcf.Reader(fh('example-4.1-sv.vcf'))
 
         assert 'SVLEN' in reader.infos
+	assert 'fileDate' in reader.metadata
+	assert 'DEL' in reader.alts
 
         # test we can walk the file at least
         for r in reader:
@@ -73,10 +71,6 @@ class TestVcfSpecs(unittest.TestCase):
             for c in r:
                 print(c)
                 assert c
-
-        # asserting False while I work out what to check
-        assert False
-
 
 class TestGatkOutput(unittest.TestCase):
 
@@ -694,3 +688,4 @@ suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRecord))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCall))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRegression))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestVcfSpecs))

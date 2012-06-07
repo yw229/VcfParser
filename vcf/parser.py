@@ -49,7 +49,7 @@ _SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_t
 class _AltRecord(str):
     def __init__(self, newSequence, chr=None, pos=None, orientation=None, remoteOrientation=None):
         super(_AltRecord, self).__init__(newSequence)
-        self.reconnects = (self.chr is not None)
+        self.reconnects = (chr is not None)
         self.chr = chr
         self.pos = pos
         self.orientation = orientation
@@ -155,9 +155,20 @@ class _vcf_metadata_parser(object):
 
         return (match.group('id'), form)
 
+    def read_meta_hash(self, meta_string):
+        items = re.split("[<>]", meta_string)
+	# Removing initial hash marks and final equal sign
+	key = items[0][2:-1]
+	hashItems = items[1].split(',')
+	val = dict(item.split("=") for item in hashItems)
+	return key, val
+
     def read_meta(self, meta_string):
-        match = self.meta_pattern.match(meta_string)
-        return match.group('key'), match.group('val')
+        if re.match("##.+=<", meta_string): 
+		return self.read_meta_hash(meta_string)
+	else:
+		match = self.meta_pattern.match(meta_string)
+		return match.group('key'), match.group('val')
 
 
 class _Call(object):
