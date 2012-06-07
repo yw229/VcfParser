@@ -50,7 +50,7 @@ class _AltRecord(str):
     '''An alternative allele record: either replacement string, SV placeholder, or breakend'''
     def __init__(self, sequence):
         #: Breakend connecting sequence
-	self.connectingSequence = None
+        self.connectingSequence = None
         #: False (default) if simply substitution string or placeholder, True if breakend.
         self.reconnects = False
         #: If reconnects is True, the chromosome of breakend's mate, else None.
@@ -64,11 +64,11 @@ class _AltRecord(str):
 
     def makeBreakend(self, chr, pos, orientation, remoteOrientation, connectingSequence):
         self.reconnects = True
-        self.chr = chr
-        self.pos = pos
+        self.chr = str(chr)
+        self.pos = int(pos)
         self.orientation = orientation
         self.remoteOrientation = remoteOrientation
-	self.connectingSequence = connectingSequence
+        self.connectingSequence = connectingSequence
 
 class _vcf_metadata_parser(object):
     '''Parse the metadat in the header of a VCF file.'''
@@ -103,12 +103,15 @@ class _vcf_metadata_parser(object):
             raise SyntaxError(
                 "One of the INFO lines is malformed: %s" % info_string)
 
-        try:
-            num = int(match.group('number'))
-            if num < 0:
-                num = None
-        except ValueError:
+        num = match.group('number')
+        if num == '.':
             num = None
+        elif num == 'A':
+            num = -1
+        elif num == 'G':
+            num = -2
+        else:
+            num = int(num)
 
         info = _Info(match.group('id'), num,
                      match.group('type'), match.group('desc'))
@@ -144,12 +147,15 @@ class _vcf_metadata_parser(object):
             raise SyntaxError(
                 "One of the FORMAT lines is malformed: %s" % format_string)
 
-        try:
-            num = int(match.group('number'))
-            if num < 0:
-                num = None
-        except ValueError:
+        num = match.group('number')
+        if num == '.':
             num = None
+        elif num == 'A':
+            num = -1
+        elif num == 'G':
+            num = -2
+        else:
+            num = int(num)
 
         form = _Format(match.group('id'), num,
                        match.group('type'), match.group('desc'))
@@ -415,8 +421,9 @@ class _Record(object):
         """ Return whether or not the variant is a SNP """
         if len(self.REF) > 1: return False
         for alt in self.ALT:
-	    if alt is None: return False
-            if not alt.reconnects and alt not in ['A', 'C', 'G', 'T']:
+            if alt is None or alt.reconnects:
+                return False
+            if alt not in ['A', 'C', 'G', 'T']:
                 return False
         return True
 
@@ -454,7 +461,7 @@ class _Record(object):
 
         if self.is_snp:
             # just one alt allele
-	    if self.ALT[0].reconnects: return False
+            if self.ALT[0].reconnects: return False
             alt_allele = self.ALT[0]
             if ((self.REF == "A" and alt_allele == "G") or
                 (self.REF == "G" and alt_allele == "A") or
@@ -796,14 +803,14 @@ class Reader(object):
             chr = remoteCoords[0]
             pos = remoteCoords[1]
             orientation = (str[0] == '[' or str[0] == ']')
-            remoteOrientation = re.search('\[', str)
+            remoteOrientation = (re.search('\[', str) is not None)
             if orientation:
                connectingSequence = items[2]
             else:
                connectingSequence = items[0]
             record = _AltRecord(str)
-	    record.makeBreakend(chr, pos, orientation, remoteOrientation, connectingSequence) 
-	    return record
+            record.makeBreakend(chr, pos, orientation, remoteOrientation, connectingSequence) 
+            return record
         else:
             return _AltRecord(str)
 
