@@ -662,7 +662,7 @@ class Reader(object):
 
             line = self.reader.next()
 
-        fields = re.split('\t| *', line.rstrip())
+        fields = re.split('\t| +', line.rstrip())
         self.samples = fields[9:]
         self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
 
@@ -825,7 +825,7 @@ class Reader(object):
     def next(self):
         '''Return the next record in the file.'''
         line = self.reader.next()
-        row = re.split('\t| *', line.strip())
+        row = re.split('\t| +', line.strip())
         chrom = row[0]
         if self._prepend_chr:
             chrom = 'chr' + chrom
