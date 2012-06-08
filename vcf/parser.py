@@ -811,6 +811,14 @@ class Reader(object):
             record = _AltRecord(str)
             record.makeBreakend(chr, pos, orientation, remoteOrientation, connectingSequence) 
             return record
+        elif str[0] == '.' and len(str) > 1:
+            record = _AltRecord(str)
+            record.makeBreakend(None, None, True, None, str[1:]) 
+            return record
+        elif str[-1] == '.' and len(str) > 1:
+            record = _AltRecord(str)
+            record.makeBreakend(None, None, False, None, str[:-1]) 
+            return record
         else:
             return _AltRecord(str)
 
