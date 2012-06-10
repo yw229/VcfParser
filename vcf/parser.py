@@ -739,10 +739,14 @@ class Reader(object):
         ref = row[3]
         alt = self._map(str, row[4].split(','))
 
-        if row[5] == '.':
-            qual = None
-        else:
-            qual = float(row[5]) if '.' in row[5] else int(row[5])
+        try:
+            qual = int(row[5])
+        except ValueError:
+            try:
+                qual = float(row[5])
+            except ValueError:
+                qual = None
+
         filt = row[6].split(';') if ';' in row[6] else row[6]
         if filt == 'PASS':
             filt = None

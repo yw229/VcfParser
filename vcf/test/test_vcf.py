@@ -460,6 +460,24 @@ class TestRecord(unittest.TestCase):
             elif var.POS == 1234567:
                 self.assertEqual(None, sv_end)
 
+    def test_qual(self):
+        reader = vcf.Reader(fh('example-4.0.vcf'))
+        for var in reader:
+            qual = var.QUAL
+            qtype = type(qual)
+            if var.POS == 14370:
+                expected = 29
+            if var.POS == 17330:
+                expected = 3.0
+            if var.POS == 1110696:
+                expected = 1e+03
+            if var.POS == 1230237:
+                expected = 47
+            elif var.POS == 1234567:
+                expected = None
+            self.assertEqual(expected, qual)
+            self.assertEqual(type(expected), qtype)
+
 
 class TestCall(unittest.TestCase):
 
