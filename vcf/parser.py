@@ -71,7 +71,6 @@ class _AltRecord(str):
         self.orientation = orientation
         self.remoteOrientation = remoteOrientation
         self.connectingSequence = connectingSequence
-        self.externalContig = externalContig
         self.withinMainAssembly = withinMainAssembly
 
 class _vcf_metadata_parser(object):
