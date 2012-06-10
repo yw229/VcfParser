@@ -96,6 +96,20 @@ class _vcf_metadata_parser(object):
             >''', re.VERBOSE)
         self.meta_pattern = re.compile(r'''##(?P<key>.+)=(?P<val>.+)''')
 
+    def vcf_field_count(self, num_str):
+        if num_str == '.':
+            # Unknown number of values
+            return None
+        elif num_str == 'A':
+            # Equal to the number of alleles in a given record
+            return -1
+        elif num_str == 'G':
+            # Equal to the number of genotypes in a given record
+            return -2
+        else:
+            # Fixed, specified number
+            return int(num_str)
+
     def read_info(self, info_string):
         '''Read a meta-information INFO line.'''
         match = self.info_pattern.match(info_string)
@@ -103,15 +117,7 @@ class _vcf_metadata_parser(object):
             raise SyntaxError(
                 "One of the INFO lines is malformed: %s" % info_string)
 
-        num = match.group('number')
-        if num == '.':
-            num = None
-        elif num == 'A':
-            num = -1
-        elif num == 'G':
-            num = -2
-        else:
-            num = int(num)
+        num = self.vcf_field_count(match.group('number'))
 
         info = _Info(match.group('id'), num,
                      match.group('type'), match.group('desc'))
@@ -147,15 +153,7 @@ class _vcf_metadata_parser(object):
             raise SyntaxError(
                 "One of the FORMAT lines is malformed: %s" % format_string)
 
-        num = match.group('number')
-        if num == '.':
-            num = None
-        elif num == 'A':
-            num = -1
-        elif num == 'G':
-            num = -2
-        else:
-            num = int(num)
+        num = self.vcf_field_count(match.group('number'))
 
         form = _Format(match.group('id'), num,
                        match.group('type'), match.group('desc'))
@@ -202,6 +200,15 @@ class _Call(object):
                 and self.sample == other.sample
                 and self.gt_type == other.gt_type)
 
+    def gt_phase_char(self):
+        return "/" if not self.phased else "|"
+
+    @property
+    def gt_alleles(self):
+        '''The numbers of the alleles called at a given sample'''
+        # grab the numeric alleles of the gt string; tokenize by phasing
+        return self.gt_nums.split(self.gt_phase_char())
+
     @property
     def gt_bases(self):
         '''The actual genotype alleles.
@@ -209,12 +216,9 @@ class _Call(object):
         '''
         # nothing to do if no genotype call
         if self.called:
-            # grab the numeric alleles of the gt string; tokenize by phasing
-            phase_char = "/" if not self.phased else "|"
-            alleles = self.gt_nums.split(phase_char)
             # lookup and return the actual DNA alleles
             try:
-                return phase_char.join(self.site.alleles[int(X)] for X in alleles)
+                return self.gt_phase_char().join(self.site.alleles[int(X)] for X in self.gt_alleles)
             except:
                 sys.stderr.write("Allele number not found in list of alleles\n")
         else:
@@ -230,9 +234,7 @@ class _Call(object):
         '''
         # extract the numeric alleles of the gt string
         if self.called:
-            # grab the numeric alleles of the gt string; tokenize by phasing
-            phase_char = "/" if not self.phased else "|"
-            alleles = self.gt_nums.split(phase_char)
+            alleles = self.gt_alleles
             if all(X == alleles[0] for X in alleles[1:]):
                 if alleles[0] == "0": return 0
                 else: return 2
@@ -798,6 +800,7 @@ class Reader(object):
 
     def parseALT(self, str):
         if re.search('[\[\]]', str) is not None:
+            # Paired breakend
             items = re.split('[\[\]]', str)
             remoteCoords = items[1].split(':')
             chr = remoteCoords[0]
@@ -812,14 +815,17 @@ class Reader(object):
             record.makeBreakend(chr, pos, orientation, remoteOrientation, connectingSequence) 
             return record
         elif str[0] == '.' and len(str) > 1:
+            # Single breakend (positive orientation)
             record = _AltRecord(str)
             record.makeBreakend(None, None, True, None, str[1:]) 
             return record
         elif str[-1] == '.' and len(str) > 1:
+            # Single breakend (negative orientation)
             record = _AltRecord(str)
             record.makeBreakend(None, None, False, None, str[:-1]) 
             return record
         else:
+            # Basic allele (indel, substitution, or SV placeholder)
             return _AltRecord(str)
 
     def next(self):
