@@ -61,14 +61,18 @@ class _AltRecord(str):
         self.orientation = None
         #: If reconnects is True, orientation of breakend's mate, else None. If the sequence 3' of the breakend's mate is connected, True, else if the sequence 5' of the breakend's mate is connected, False.
         self.remoteOrientation = None
+        #: If the breakend mate is within the assembly, True, else False if the breakend mate is on a contig in an ancillary assembly file
+        self.withinMainAssembly = None
 
-    def makeBreakend(self, chr, pos, orientation, remoteOrientation, connectingSequence):
+    def makeBreakend(self, chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly=None):
         self.reconnects = True
         self.chr = str(chr)
         self.pos = int(pos)
         self.orientation = orientation
         self.remoteOrientation = remoteOrientation
         self.connectingSequence = connectingSequence
+        self.externalContig = externalContig
+        self.withinMainAssembly = withinMainAssembly
 
 class _vcf_metadata_parser(object):
     '''Parse the metadat in the header of a VCF file.'''
@@ -804,6 +808,11 @@ class Reader(object):
             items = re.split('[\[\]]', str)
             remoteCoords = items[1].split(':')
             chr = remoteCoords[0]
+            if chr[0] == '<':
+                chr = chr[1:-1]
+                withinMainAssembly = False
+            else:
+                withinMainAssembly = True
             pos = remoteCoords[1]
             orientation = (str[0] == '[' or str[0] == ']')
             remoteOrientation = (re.search('\[', str) is not None)
@@ -812,7 +821,7 @@ class Reader(object):
             else:
                connectingSequence = items[0]
             record = _AltRecord(str)
-            record.makeBreakend(chr, pos, orientation, remoteOrientation, connectingSequence) 
+            record.makeBreakend(chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly) 
             return record
         elif str[0] == '.' and len(str) > 1:
             # Single breakend (positive orientation)
