@@ -1,6 +1,6 @@
-##fileformat=VCFv4.2
+##fileformat=VCFv4.1
 ##fileDate=20110603
-##source=myImputationProgramV4.2
+##source=myImputationProgramV4.1
 ##reference=file:/seq/references/reference.fasta
 ##phasing=partial
 ##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
