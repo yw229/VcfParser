@@ -115,6 +115,9 @@ class _vcf_metadata_parser(object):
 
 
 class _Call(object):
+
+    __slots__ = ['site', 'sample', 'data', 'gt_nums', 'called']
+
     """ A genotype call, a cell entry in a VCF file"""
     def __init__(self, site, sample, data):
         #: The ``_Record`` for this ``_Call``
@@ -211,8 +214,8 @@ class _Record(object):
 
         The list of genotype calls is in the ``samples`` property.
     """
-    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, sample_indexes, samples=None,
-                 gt_bases = None, gt_types = None, gt_phases = None):
+    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT,
+            sample_indexes, samples=None):
         self.CHROM = CHROM
         self.POS = POS
         self.ID = ID
@@ -232,11 +235,6 @@ class _Record(object):
         #: list of ``_Calls`` for each sample ordered as in source VCF
         self.samples = samples
         self._sample_indexes = sample_indexes
-        # lists of the pre-computed base-wise genotypes ('A/G'), types (0,1,2)
-        # and phases for each sample.
-        self.gt_bases = gt_bases
-        self.gt_types = gt_types
-        self.gt_phases = gt_phases
 
     def __eq__(self, other):
         """ _Records are equal if they describe the same variant (same position, alleles) """
@@ -555,6 +553,7 @@ class Reader(object):
         self._tabix = None
         self._prepend_chr = prepend_chr
         self._parse_metainfo()
+        self._format_cache = {}
 
     def __iter__(self):
         return self
@@ -647,14 +646,8 @@ class Reader(object):
 
         return retdict
 
-    def _parse_samples(self, samples, samp_fmt, site):
-        '''Parse a sample entry according to the format specified in the FORMAT
-        column.'''
-        samp_data = []# OrderedDict()
-        gt_bases  = []# A/A, A|G, G/G, etc.
-        gt_types  = []# 0, 1, 2, etc.
-        gt_phases = []# T, F, T, etc.
-
+    def _parse_sample_format(self, samp_fmt):
+        """ Parse the format of the calls in this _Record """
         samp_fmt = samp_fmt.split(':')
 
         samp_fmt_types = []
@@ -672,60 +665,65 @@ class Reader(object):
                     entry_type = 'String'
             samp_fmt_types.append(entry_type)
             samp_fmt_nums.append(entry_num)
+        return samp_fmt, samp_fmt_types, samp_fmt_nums
+
+    def _parse_samples(self, samples, samp_fmt, site):
+        '''Parse a sample entry according to the format specified in the FORMAT
+        column.'''
+
+        # check whether we already know how to parse this format
+        if samp_fmt in self._format_cache:
+            samp_fmt, samp_fmt_types, samp_fmt_nums = \
+                    self._format_cache[samp_fmt]
+        else:
+            sf, samp_fmt_types, samp_fmt_nums = self._parse_sample_format(samp_fmt)
+            self._format_cache[samp_fmt] = (sf, samp_fmt_types, samp_fmt_nums)
+            samp_fmt = sf
+
+        samp_data = []
 
         for name, sample in itertools.izip(self.samples, samples):
-            sampdict = self._parse_sample(sample, samp_fmt, samp_fmt_types, samp_fmt_nums)
-            call = _Call(site, name, sampdict)
-            samp_data.append(call)
 
-            bases = call.gt_bases
-            type = call.gt_type
-            phase = call.phased
-            gt_bases.append(bases) if bases is not None else './.'
-            gt_types.append(type) if type is not None else -1
-            gt_phases.append(phase) if phase is not None else False
+            # parse the data for this sample
+            sampdict = dict([(x, None) for x in samp_fmt])
 
-        return _SampleInfo(samp_data, gt_bases, gt_types, gt_phases)
+            for fmt, entry_type, entry_num, vals in itertools.izip(
+                    samp_fmt, samp_fmt_types, samp_fmt_nums, sample.split(':')):
 
-    def _parse_sample(self, sample, samp_fmt, samp_fmt_types, samp_fmt_nums):
-        sampdict = dict([(x, None) for x in samp_fmt])
+                # short circuit the most common
+                if vals == '.' or vals == './.':
+                    sampdict[fmt] = None
+                    continue
 
-        for fmt, entry_type, entry_num, vals in itertools.izip(
-                samp_fmt, samp_fmt_types, samp_fmt_nums, sample.split(':')):
+                # we don't need to split single entries
+                if entry_num == 1 or ',' not in vals:
 
-            # short circuit the most common
-            if vals == '.' or vals == './.':
-                sampdict[fmt] = None
-                continue
+                    if entry_type == 'Integer':
+                        sampdict[fmt] = int(vals)
+                    elif entry_type == 'Float':
+                        sampdict[fmt] = float(vals)
+                    else:
+                        sampdict[fmt] = vals
 
-            # we don't need to split single entries
-            if entry_num == 1 or ',' not in vals:
+                    if entry_num != 1:
+                        sampdict[fmt] = (sampdict[fmt])
+
+                    continue
+
+                vals = vals.split(',')
 
                 if entry_type == 'Integer':
-                    sampdict[fmt] = int(vals)
-                elif entry_type == 'Float':
-                    sampdict[fmt] = float(vals)
+                    sampdict[fmt] = self._map(int, vals)
+                elif entry_type == 'Float' or entry_type == 'Numeric':
+                    sampdict[fmt] = self._map(float, vals)
                 else:
                     sampdict[fmt] = vals
 
-                if entry_num != 1:
-                    sampdict[fmt] = (sampdict[fmt])
+            # create a call object
+            call = _Call(site, name, sampdict)
+            samp_data.append(call)
 
-                continue
-
-
-            vals = vals.split(',')
-
-            if entry_type == 'Integer':
-                sampdict[fmt] = self._map(int, vals)
-            elif entry_type == 'Float' or entry_type == 'Numeric':
-                sampdict[fmt] = self._map(float, vals)
-            else:
-                sampdict[fmt] = vals
-
-
-        return sampdict
-
+        return samp_data
 
     def next(self):
         '''Return the next record in the file.'''
@@ -762,14 +760,12 @@ class Reader(object):
         except IndexError:
             fmt = None
 
-        record = _Record(chrom, pos, ID, ref, alt, qual, filt, info, fmt, self._sample_indexes)
+        record = _Record(chrom, pos, ID, ref, alt, qual, filt,
+                info, fmt, self._sample_indexes)
 
         if fmt is not None:
-            sample_info = self._parse_samples(row[9:], fmt, record)
-            record.samples = sample_info.samples
-            record.gt_bases = sample_info.gt_bases
-            record.gt_types = sample_info.gt_types
-            record.gt_phases = sample_info.gt_phases
+            samples = self._parse_samples(row[9:], fmt, record)
+            record.samples = samples
 
         return record
 

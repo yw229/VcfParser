@@ -5,7 +5,7 @@ import pstats
 import sys
 
 def parse_1kg():
-    for line in vcf.Reader(filename='test/1kg.vcf.gz'):
+    for line in vcf.Reader(filename='vcf/test/1kg.vcf.gz'):
         pass
 
 if len(sys.argv) == 1:
