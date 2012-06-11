@@ -94,3 +94,14 @@ The filter base class: vcf.filters.Base
 .. autoclass:: vcf.filters.Base
    :members:
 
+
+
+Utilities
+=========
+
+.. automodule:: vcf.utils
+
+Simultaneously iterate two or more files
+----------------------------------------
+
+.. autofunction:: vcf.utils.walk_together

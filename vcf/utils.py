@@ -1,7 +1,11 @@
+"""
+Utilities for VCF files.
+"""
 
 
 def walk_together(*readers):
-    """ Walk a set of readers and return lists of records from each
+    """ Simultaneously iteratate two or more VCF readers and return
+        lists of concurrent records from each
         reader, with None if no record present.  Caller must check the
         inputs are sorted in the same way and use the same reference
         otherwise behaviour is undefined.
@@ -18,7 +22,7 @@ def walk_together(*readers):
 
         # update nexts that we just yielded
         for i, n in enumerate(nexts):
-            
+
             if n is not None and n == min_next:
                 try:
                     nexts[i] = readers[i].next()

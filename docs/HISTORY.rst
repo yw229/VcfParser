@@ -17,6 +17,12 @@ New features should have test code sent with them.
 Changes
 =======
 
+0.4.5 Release
+-------------
+
+* Support exponent syntax qual values (#43, #44) (thanks @martijnvermaat) 
+* Preserve order of header lines (#45) 
+
 0.4.4 Release
 -------------
 
