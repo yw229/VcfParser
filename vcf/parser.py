@@ -8,10 +8,14 @@ import itertools
 import codecs
 
 try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
+
+try:
     import pysam
 except ImportError:
     pysam = None
-
 
 
 # Metadata parsers/constants
@@ -363,7 +367,7 @@ class _Record(object):
     def is_indel(self):
         """ Return whether or not the variant is an INDEL """
         is_sv = self.is_sv
-        
+
         if len(self.REF) > 1 and not is_sv: return True
         for alt in self.ALT:
             if alt is None:
@@ -377,7 +381,7 @@ class _Record(object):
                     # 1	2827693	.	CCCCTCGCA	C	.	PASS	SVTYPE=DEL;
                     return False
         return False
-        
+
     @property
     def is_sv(self):
         """ Return whether or not the variant is a structural variant """
@@ -444,17 +448,17 @@ class _Record(object):
                <DEL>       -> DEL
                <INS:ME:L1> -> INS:ME:L1
                <DUP>       -> DUP
-        
+
         The logic is meant to follow the rules outlined in the following
         paragraph at:
-        
+
         http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41
-        
-        "For precisely known variants, the REF and ALT fields should contain 
-        the full sequences for the alleles, following the usual VCF conventions. 
-        For imprecise variants, the REF field may contain a single base and the 
-        ALT fields should contain symbolic alleles (e.g. <ID>), described in more 
-        detail below. Imprecise variants should also be marked by the presence 
+
+        "For precisely known variants, the REF and ALT fields should contain
+        the full sequences for the alleles, following the usual VCF conventions.
+        For imprecise variants, the REF field may contain a single base and the
+        ALT fields should contain symbolic alleles (e.g. <ID>), described in more
+        detail below. Imprecise variants should also be marked by the presence
         of an IMPRECISE flag in the INFO field."
         """
         if self.is_snp:
@@ -478,7 +482,7 @@ class _Record(object):
                 return self.INFO['SVTYPE']
             else:
                 # first remove both "<" and ">" from ALT
-                return self.ALT[0].strip('<>') 
+                return self.ALT[0].strip('<>')
         else:
             return "unknown"
 
@@ -488,10 +492,10 @@ class _Record(object):
         if self.is_sv:
             return self.INFO['END']
         return None
-        
+
     @property
     def is_sv_precise(self):
-        """ Return whether the SV cordinates are mapped 
+        """ Return whether the SV cordinates are mapped
             to 1 b.p. resolution.
         """
         if self.INFO.get('IMPRECISE') is None and not self.is_sv:
@@ -505,6 +509,7 @@ class _Record(object):
     def is_monomorphic(self):
         """ Return True for reference calls """
         return len(self.ALT) == 1 and self.ALT[0] is None
+
 
 class Reader(object):
     """ Reader for a VCF v 4.0 file, an iterator returning ``_Record objects`` """
@@ -560,7 +565,7 @@ class Reader(object):
         The end user shouldn't have to use this.  She can access the metainfo
         directly with ``self.metadata``.'''
         for attr in ('metadata', 'infos', 'filters', 'formats'):
-            setattr(self, attr, {})
+            setattr(self, attr, OrderedDict())
 
         parser = _vcf_metadata_parser()
 
@@ -649,7 +654,7 @@ class Reader(object):
         gt_bases  = []# A/A, A|G, G/G, etc.
         gt_types  = []# 0, 1, 2, etc.
         gt_phases = []# T, F, T, etc.
-        
+
         samp_fmt = samp_fmt.split(':')
 
         samp_fmt_types = []
@@ -679,7 +684,7 @@ class Reader(object):
             gt_bases.append(bases) if bases is not None else './.'
             gt_types.append(type) if type is not None else -1
             gt_phases.append(phase) if phase is not None else False
-        
+
         return _SampleInfo(samp_data, gt_bases, gt_types, gt_phases)
 
     def _parse_sample(self, sample, samp_fmt, samp_fmt_types, samp_fmt_nums):
@@ -739,10 +744,14 @@ class Reader(object):
         ref = row[3]
         alt = self._map(str, row[4].split(','))
 
-        if row[5] == '.':
-            qual = None
-        else:
-            qual = float(row[5]) if '.' in row[5] else int(row[5])
+        try:
+            qual = int(row[5])
+        except ValueError:
+            try:
+                qual = float(row[5])
+            except ValueError:
+                qual = None
+
         filt = row[6].split(';') if ';' in row[6] else row[6]
         if filt == 'PASS':
             filt = None
