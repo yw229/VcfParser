@@ -610,7 +610,7 @@ class Reader(object):
             return {}
 
         entries = info_str.split(';')
-        retdict = {}
+        retdict = OrderedDict()
 
         for entry in entries:
             entry = entry.split('=')
