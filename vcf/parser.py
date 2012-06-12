@@ -23,20 +23,59 @@ RESERVED_INFO = {
     'AA': 'String', 'AC': 'Integer', 'AF': 'Float', 'AN': 'Integer',
     'BQ': 'Float', 'CIGAR': 'String', 'DB': 'Flag', 'DP': 'Integer',
     'END': 'Integer', 'H2': 'Flag', 'MQ': 'Float', 'MQ0': 'Integer',
-    'NS': 'Integer', 'SB': 'String', 'SOMATIC': 'Flag', 'VALIDATED': 'Flag'
+    'NS': 'Integer', 'SB': 'String', 'SOMATIC': 'Flag', 'VALIDATED': 'Flag',
+
+    # VCF 4.1 Additions
+    'IMPRECISE':'Flag', 'NOVEL':'Flag', 'END':'Integer', 'SVTYPE':'String',
+    'CIPOS':'Integer','CIEND':'Integer','HOMLEN':'Integer','HOMSEQ':'Integer',
+    'BKPTID':'String','MEINFO':'String','METRANS':'String','DGVID':'String',
+    'DBVARID':'String','MATEID':'String','PARID':'String','EVENT':'String',
+    'CILEN':'Integer','CN':'Integer','CNADJ':'Integer','CICN':'Integer',
+    'CICNADJ':'Integer'
 }
 
 RESERVED_FORMAT = {
     'GT': 'String', 'DP': 'Integer', 'FT': 'String', 'GL': 'Float',
-    'GQ': 'Float', 'HQ': 'Float'
+    'GQ': 'Float', 'HQ': 'Float',
+
+    # VCF 4.1 Additions
+    'CN':'Integer','CNQ':'Float','CNL':'Float','NQ':'Integer','HAP':'Integer',
+    'AHAP':'Integer'
 }
 
 
 _Info = collections.namedtuple('Info', ['id', 'num', 'type', 'desc'])
 _Filter = collections.namedtuple('Filter', ['id', 'desc'])
+_Alt = collections.namedtuple('Alt', ['id', 'desc'])
 _Format = collections.namedtuple('Format', ['id', 'num', 'type', 'desc'])
 _SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_types', 'gt_phases'])
 
+class _AltRecord(str):
+    '''An alternative allele record: either replacement string, SV placeholder, or breakend'''
+    def __init__(self, sequence):
+        #: Breakend connecting sequence
+        self.connectingSequence = None
+        #: False (default) if simply substitution string or placeholder, True if breakend.
+        self.reconnects = False
+        #: If reconnects is True, the chromosome of breakend's mate, else None.
+        self.chr = None
+        #: If reconnects is True, the coordinate of breakend's mate, else None.
+        self.pos = None
+        #: If reconnects is True, orientation of breakend, else None. If the sequence 3' of the breakend is connected, True, else if the sequence 5' of the breakend is connected, False.
+        self.orientation = None
+        #: If reconnects is True, orientation of breakend's mate, else None. If the sequence 3' of the breakend's mate is connected, True, else if the sequence 5' of the breakend's mate is connected, False.
+        self.remoteOrientation = None
+        #: If the breakend mate is within the assembly, True, else False if the breakend mate is on a contig in an ancillary assembly file
+        self.withinMainAssembly = None
+
+    def makeBreakend(self, chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly=None):
+        self.reconnects = True
+        self.chr = str(chr)
+        self.pos = int(pos)
+        self.orientation = orientation
+        self.remoteOrientation = remoteOrientation
+        self.connectingSequence = connectingSequence
+        self.withinMainAssembly = withinMainAssembly
 
 class _vcf_metadata_parser(object):
     '''Parse the metadat in the header of a VCF file.'''
@@ -52,6 +91,10 @@ class _vcf_metadata_parser(object):
             ID=(?P<id>[^,]+),
             Description="(?P<desc>[^"]*)"
             >''', re.VERBOSE)
+        self.alt_pattern = re.compile(r'''\#\#ALT=<
+            ID=(?P<id>[^,]+),
+            Description="(?P<desc>[^"]*)"
+            >''', re.VERBOSE)
         self.format_pattern = re.compile(r'''\#\#FORMAT=<
             ID=(?P<id>.+),
             Number=(?P<number>-?\d+|\.|[AG]),
@@ -60,6 +103,20 @@ class _vcf_metadata_parser(object):
             >''', re.VERBOSE)
         self.meta_pattern = re.compile(r'''##(?P<key>.+)=(?P<val>.+)''')
 
+    def vcf_field_count(self, num_str):
+        if num_str == '.':
+            # Unknown number of values
+            return None
+        elif num_str == 'A':
+            # Equal to the number of alleles in a given record
+            return -1
+        elif num_str == 'G':
+            # Equal to the number of genotypes in a given record
+            return -2
+        else:
+            # Fixed, specified number
+            return int(num_str)
+
     def read_info(self, info_string):
         '''Read a meta-information INFO line.'''
         match = self.info_pattern.match(info_string)
@@ -67,12 +124,7 @@ class _vcf_metadata_parser(object):
             raise SyntaxError(
                 "One of the INFO lines is malformed: %s" % info_string)
 
-        try:
-            num = int(match.group('number'))
-            if num < 0:
-                num = None
-        except ValueError:
-            num = None
+        num = self.vcf_field_count(match.group('number'))
 
         info = _Info(match.group('id'), num,
                      match.group('type'), match.group('desc'))
@@ -90,6 +142,17 @@ class _vcf_metadata_parser(object):
 
         return (match.group('id'), filt)
 
+    def read_alt(self, alt_string):
+        '''Read a meta-information ALTline.'''
+        match = self.alt_pattern.match(alt_string)
+        if not match:
+            raise SyntaxError(
+                "One of the FILTER lines is malformed: %s" % alt_string)
+
+        alt = _Alt(match.group('id'), match.group('desc'))
+
+        return (match.group('id'), alt)
+
     def read_format(self, format_string):
         '''Read a meta-information FORMAT line.'''
         match = self.format_pattern.match(format_string)
@@ -97,21 +160,27 @@ class _vcf_metadata_parser(object):
             raise SyntaxError(
                 "One of the FORMAT lines is malformed: %s" % format_string)
 
-        try:
-            num = int(match.group('number'))
-            if num < 0:
-                num = None
-        except ValueError:
-            num = None
+        num = self.vcf_field_count(match.group('number'))
 
         form = _Format(match.group('id'), num,
                        match.group('type'), match.group('desc'))
 
         return (match.group('id'), form)
 
+    def read_meta_hash(self, meta_string):
+        items = re.split("[<>]", meta_string)
+        # Removing initial hash marks and final equal sign
+        key = items[0][2:-1]
+        hashItems = items[1].split(',')
+        val = dict(item.split("=") for item in hashItems)
+        return key, val
+
     def read_meta(self, meta_string):
-        match = self.meta_pattern.match(meta_string)
-        return match.group('key'), match.group('val')
+        if re.match("##.+=<", meta_string):
+            return self.read_meta_hash(meta_string)
+        else:
+            match = self.meta_pattern.match(meta_string)
+            return match.group('key'), match.group('val')
 
 
 class _Call(object):
@@ -131,7 +200,7 @@ class _Call(object):
         self.called = self.gt_nums is not None
 
     def __repr__(self):
-        return "Call(sample=%s, GT=%s, GQ=%s)" % (self.sample, self.gt_nums, self.data.get('GQ', ''))
+        return "Call(sample=%s, GT=%s%s)" % (self.sample, self.gt_nums, "".join([", %s=%s" % (X,self.data[X]) for X in self.data if X != 'GT']))
 
     def __eq__(self, other):
         """ Two _Calls are equal if their _Records are equal
@@ -141,6 +210,15 @@ class _Call(object):
                 and self.sample == other.sample
                 and self.gt_type == other.gt_type)
 
+    def gt_phase_char(self):
+        return "/" if not self.phased else "|"
+
+    @property
+    def gt_alleles(self):
+        '''The numbers of the alleles called at a given sample'''
+        # grab the numeric alleles of the gt string; tokenize by phasing
+        return self.gt_nums.split(self.gt_phase_char())
+
     @property
     def gt_bases(self):
         '''The actual genotype alleles.
@@ -148,14 +226,9 @@ class _Call(object):
         '''
         # nothing to do if no genotype call
         if self.called:
-            # grab the numeric alleles of the gt string; tokenize by phasing
-            phase_char = "/" if not self.phased else "|"
-            (a1, a2) = self.gt_nums.split(phase_char)
             # lookup and return the actual DNA alleles
             try:
-                return self.site.alleles[int(a1)] + \
-                       phase_char + \
-                       self.site.alleles[int(a2)]
+                return self.gt_phase_char().join(self.site.alleles[int(X)] for X in self.gt_alleles)
             except:
                 sys.stderr.write("Allele number not found in list of alleles\n")
         else:
@@ -171,11 +244,9 @@ class _Call(object):
         '''
         # extract the numeric alleles of the gt string
         if self.called:
-            # grab the numeric alleles of the gt string; tokenize by phasing
-            (a1, a2) = self.gt_nums.split("/") \
-                if not self.phased else self.gt_nums.split("|")
-            if a1 == a2:
-                if a1 == "0": return 0
+            alleles = self.gt_alleles
+            if all(X == alleles[0] for X in alleles[1:]):
+                if alleles[0] == "0": return 0
                 else: return 2
             else: return 1
         else: return None
@@ -357,6 +428,8 @@ class _Record(object):
         """ Return whether or not the variant is a SNP """
         if len(self.REF) > 1: return False
         for alt in self.ALT:
+            if alt is None or alt.reconnects:
+                return False
             if alt not in ['A', 'C', 'G', 'T']:
                 return False
         return True
@@ -395,6 +468,7 @@ class _Record(object):
 
         if self.is_snp:
             # just one alt allele
+            if self.ALT[0].reconnects: return False
             alt_allele = self.ALT[0]
             if ((self.REF == "A" and alt_allele == "G") or
                 (self.REF == "G" and alt_allele == "A") or
@@ -539,12 +613,14 @@ class Reader(object):
             if sys.version > '3':
                 self.reader = codecs.getreader('ascii')(self.reader)
 
-        #: metadata fields from header
+        #: metadata fields from header (string or hash, depending)
         self.metadata = None
         #: INFO fields from header
         self.infos = None
         #: FILTER fields from header
         self.filters = None
+        #: ALT fields from header
+        self.alts = None
         #: FORMAT fields from header
         self.formats = None
         self.samples = None
@@ -563,7 +639,7 @@ class Reader(object):
 
         The end user shouldn't have to use this.  She can access the metainfo
         directly with ``self.metadata``.'''
-        for attr in ('metadata', 'infos', 'filters', 'formats'):
+        for attr in ('metadata', 'infos', 'filters', 'alts', 'formats'):
             setattr(self, attr, OrderedDict())
 
         parser = _vcf_metadata_parser()
@@ -581,6 +657,10 @@ class Reader(object):
                 key, val = parser.read_filter(line)
                 self.filters[key] = val
 
+            elif line.startswith('##ALT'):
+                key, val = parser.read_alt(line)
+                self.alts[key] = val
+
             elif line.startswith('##FORMAT'):
                 key, val = parser.read_format(line)
                 self.formats[key] = val
@@ -591,7 +671,7 @@ class Reader(object):
 
             line = self.reader.next()
 
-        fields = line.rstrip().split('\t')
+        fields = re.split('\t| +', line.rstrip())
         self.samples = fields[9:]
         self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
 
@@ -725,10 +805,45 @@ class Reader(object):
 
         return samp_data
 
+    def parseALT(self, str):
+        if re.search('[\[\]]', str) is not None:
+            # Paired breakend
+            items = re.split('[\[\]]', str)
+            remoteCoords = items[1].split(':')
+            chr = remoteCoords[0]
+            if chr[0] == '<':
+                chr = chr[1:-1]
+                withinMainAssembly = False
+            else:
+                withinMainAssembly = True
+            pos = remoteCoords[1]
+            orientation = (str[0] == '[' or str[0] == ']')
+            remoteOrientation = (re.search('\[', str) is not None)
+            if orientation:
+               connectingSequence = items[2]
+            else:
+               connectingSequence = items[0]
+            record = _AltRecord(str)
+            record.makeBreakend(chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly)
+            return record
+        elif str[0] == '.' and len(str) > 1:
+            # Single breakend (positive orientation)
+            record = _AltRecord(str)
+            record.makeBreakend(None, None, True, None, str[1:])
+            return record
+        elif str[-1] == '.' and len(str) > 1:
+            # Single breakend (negative orientation)
+            record = _AltRecord(str)
+            record.makeBreakend(None, None, False, None, str[:-1])
+            return record
+        else:
+            # Basic allele (indel, substitution, or SV placeholder)
+            return _AltRecord(str)
+
     def next(self):
         '''Return the next record in the file.'''
         line = self.reader.next()
-        row = line.split()
+        row = re.split('\t| +', line.strip())
         chrom = row[0]
         if self._prepend_chr:
             chrom = 'chr' + chrom
@@ -740,7 +855,7 @@ class Reader(object):
             ID = None
 
         ref = row[3]
-        alt = self._map(str, row[4].split(','))
+        alt = self._map(self.parseALT, row[4].split(','))
 
         try:
             qual = int(row[5])
@@ -817,6 +932,8 @@ class Writer(object):
             stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
         for line in template.filters.itervalues():
             stream.write('##FILTER=<ID=%s,Description="%s">\n' % tuple(self._map(str, line)))
+        for line in template.alts.itervalues():
+            stream.write('##ALT=<ID=%s,Description="%s">\n' % tuple(self._map(str, line)))
 
         self._write_header()
 
@@ -835,7 +952,7 @@ class Writer(object):
         self.writer.writerow(ffs + samples)
 
     def _format_alt(self, alt):
-        return ','.join([x or '.' for x in alt])
+        return ','.join([str(x) or '.' for x in alt])
 
     def _format_info(self, info):
         if not info:

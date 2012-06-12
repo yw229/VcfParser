@@ -20,6 +20,8 @@ Changes
 0.5.0 Release (pending)
 -----------------------
 
+VCF 4.1 support: 
+ * support missing genotype #28 (thanks @martijnvermaat)
 
 0.4.6 Release
 -------------

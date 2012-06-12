@@ -44,28 +44,26 @@ class TestVcfSpecs(unittest.TestCase):
 
 
     def test_vcf_4_1(self):
-        return
         reader = vcf.Reader(fh('example-4.1.vcf'))
         self.assertEqual(reader.metadata['fileformat'],  'VCFv4.1')
 
         # contigs were added in vcf4.1
         # probably need to add a reader.contigs attribute
         assert 'contig' in reader.metadata
+        assert 'ID' in reader.metadata['contig']
+        assert reader.metadata['contig']['ID'] == '20'
 
         # test we can walk the file at least
         for r in reader:
             for c in r:
                 assert c
 
-        # asserting False while I work out what to check
-        assert False
-
     def test_vcf_4_1_sv(self):
-        return
-
         reader = vcf.Reader(fh('example-4.1-sv.vcf'))
 
         assert 'SVLEN' in reader.infos
+        assert 'fileDate' in reader.metadata
+        assert 'DEL' in reader.alts
 
         # test we can walk the file at least
         for r in reader:
@@ -74,9 +72,31 @@ class TestVcfSpecs(unittest.TestCase):
                 print(c)
                 assert c
 
-        # asserting False while I work out what to check
-        assert False
+    def test_vcf_4_1_bnd(self):
+        reader = vcf.Reader(fh('example-4.1-bnd.vcf'))
 
+        # test we can walk the file at least
+        for r in reader:
+            print(r)
+	    if r.ID == "bnd1":
+		    assert len(r.ALT) == 1
+		    assert r.ALT[0].reconnects
+		    assert r.ALT[0].chr == "2"
+		    assert r.ALT[0].pos == 3
+		    assert r.ALT[0].orientation == False
+		    assert r.ALT[0].remoteOrientation == True
+		    assert r.ALT[0].connectingSequence == "T"
+	    if r.ID == "bnd4":
+		    assert len(r.ALT) == 1
+		    assert r.ALT[0].reconnects
+		    assert r.ALT[0].chr == "1"
+		    assert r.ALT[0].pos == 2
+		    assert r.ALT[0].orientation == True
+		    assert r.ALT[0].remoteOrientation == False
+		    assert r.ALT[0].connectingSequence == "G"
+            for c in r:
+                print(c)
+                assert c
 
 class TestGatkOutput(unittest.TestCase):
 
@@ -136,10 +156,6 @@ class TestFreebayesOutput(TestGatkOutput):
 
     def testParse(self):
         reader = vcf.Reader(fh('freebayes.vcf'))
-
-
-
-
         print(reader.samples)
         self.assertEqual(len(reader.samples), 7)
         n = 0
@@ -255,6 +271,11 @@ class TestRecord(unittest.TestCase):
 
     def test_is_snp(self):
         reader = vcf.Reader(fh('example-4.0.vcf'))
+        for r in reader:
+            print(r)
+            for c in r:
+                print(c)
+                assert c
         for var in reader:
             is_snp = var.is_snp
             if var.POS == 14370:
@@ -721,3 +742,4 @@ suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRecord))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCall))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRegression))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestVcfSpecs))
