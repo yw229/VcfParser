@@ -158,6 +158,15 @@ class TestSamtoolsOutput(unittest.TestCase):
         self.assertEqual(sum(1 for _ in reader), 11)
 
 
+class TestBcfToolsOutput(unittest.TestCase):
+    def testParse(self):
+        reader = vcf.Reader(fh('bcftools.vcf'))
+        self.assertEqual(len(reader.samples), 1)
+        for r in reader:
+            for s in r.samples:
+                s.phased
+
+
 class Test1kg(unittest.TestCase):
 
     def testParse(self):
