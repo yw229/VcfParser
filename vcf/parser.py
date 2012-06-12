@@ -99,14 +99,18 @@ class _Breakend(_AltRecord):
         self.connectingSequence = connectingSequence
 
     def __str__(self):
-        if self.withinAssembly:
-            remoteChr = self.chr
+        if self.chr is None:
+            remoteTag = '.' 
         else:
-            remoteChr = "<" + self.chr + ">"
-        if self.remoteOrientation:
-            remoteTag = "[" + remoteChr + ":" + self.pos + "["
-        else:
-            remoteTag = "]" + remoteChr + ":" + self.pos + "]"
+            if self.withinAssembly:
+                remoteChr = self.chr
+            else:
+                remoteChr = "<" + self.chr + ">"
+            if self.remoteOrientation:
+                remoteTag = "[" + remoteChr + ":" + self.pos + "["
+            else:
+                remoteTag = "]" + remoteChr + ":" + self.pos + "]"
+
         if self.orientation:
             return remoteTag + self.connectingSequence
         else:
@@ -119,12 +123,6 @@ class _SingleBreakend(_Breakend):
     '''A single breakend'''
     def __init__(self, orientation, connectingSequence):
         super(_SingleBreakend, self).__init__(None, None, orientation, None, connectingSequence, None)
-
-    def __str__(self):
-        if self.orientation:
-            return "." + self.connectingSequence
-        else:
-            return self.connectingSequence + "."
 
 class _SV(_AltRecord):
     '''An SV placeholder'''
