@@ -123,7 +123,7 @@ class _Call(object):
         self.sample = sample
         #: Dictionary of data from the VCF file
         self.data = data
-        self.gt_nums = self.data['GT']
+        self.gt_nums = self.data.get('GT')
         #: True if the GT is not ./.
         self.called = self.gt_nums is not None
 
@@ -182,7 +182,7 @@ class _Call(object):
         '''A boolean indicating whether or not
            the genotype is phased for this sample
         '''
-        return self.data['GT'] is not None and self.data['GT'].find("|") >= 0
+        return self.gt_nums is not None and self.gt_nums.find("|") >= 0
 
     def __getitem__(self, key):
         """ Lookup value, backwards compatibility """
