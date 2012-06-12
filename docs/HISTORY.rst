@@ -22,6 +22,7 @@ Changes
 
 VCF 4.1 support: 
  * support missing genotype #28 (thanks @martijnvermaat)
+ * parseALT for svs #42 (thanks @dzerbino)
 
 0.4.6 Release
 -------------
