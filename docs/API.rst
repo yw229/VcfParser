@@ -49,8 +49,8 @@ vcf._SingleBreakend
 .. autoclass:: vcf.parser._SingleBreakend
    :members:
 
-vcf._PairedBreakend
+vcf._Breakend
 -----------
 
-.. autoclass:: vcf.parser._PairedBreakend
+.. autoclass:: vcf.parser._Breakend
    :members:
