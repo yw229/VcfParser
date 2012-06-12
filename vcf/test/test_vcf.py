@@ -1,6 +1,6 @@
 from __future__ import print_function
 import unittest
-/mport doctest
+import doctest
 import os
 import commands
 from StringIO import StringIO
