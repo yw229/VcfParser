@@ -761,6 +761,7 @@ class Reader(object):
             samp_fmt = sf
 
         samp_data = []
+        _map = self._map
 
         for name, sample in itertools.izip(self.samples, samples):
 
@@ -793,9 +794,9 @@ class Reader(object):
                 vals = vals.split(',')
 
                 if entry_type == 'Integer':
-                    sampdict[fmt] = self._map(int, vals)
+                    sampdict[fmt] = _map(int, vals)
                 elif entry_type == 'Float' or entry_type == 'Numeric':
-                    sampdict[fmt] = self._map(float, vals)
+                    sampdict[fmt] = _map(float, vals)
                 else:
                     sampdict[fmt] = vals
 
