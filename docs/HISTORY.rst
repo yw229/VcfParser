@@ -17,6 +17,12 @@ New features should have test code sent with them.
 Changes
 =======
 
+0.4.6 Release
+-------------
+
+* Performance improvements (#47) 
+* Preserve order of INFO column (#46)
+
 0.4.5 Release
 -------------
 
