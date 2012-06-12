@@ -168,4 +168,4 @@ from parser import VCFReader, VCFWriter
 from filters import Base as Filter
 from parser import RESERVED_INFO, RESERVED_FORMAT
 
-VERSION = '0.4.4'
+VERSION = '0.5.0-pre'

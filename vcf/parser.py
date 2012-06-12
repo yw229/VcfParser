@@ -8,10 +8,14 @@ import itertools
 import codecs
 
 try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
+
+try:
     import pysam
 except ImportError:
     pysam = None
-
 
 
 # Metadata parsers/constants
@@ -232,7 +236,7 @@ class _vcf_metadata_parser(object):
         return key, val
 
     def read_meta(self, meta_string):
-        if re.match("##.+=<", meta_string): 
+        if re.match("##.+=<", meta_string):
             return self.read_meta_hash(meta_string)
         else:
             match = self.meta_pattern.match(meta_string)
@@ -240,6 +244,9 @@ class _vcf_metadata_parser(object):
 
 
 class _Call(object):
+
+    __slots__ = ['site', 'sample', 'data', 'gt_nums', 'called']
+
     """ A genotype call, a cell entry in a VCF file"""
     def __init__(self, site, sample, data):
         #: The ``_Record`` for this ``_Call``
@@ -248,7 +255,7 @@ class _Call(object):
         self.sample = sample
         #: Dictionary of data from the VCF file
         self.data = data
-        self.gt_nums = self.data['GT']
+        self.gt_nums = self.data.get('GT')
         #: True if the GT is not ./.
         self.called = self.gt_nums is not None
 
@@ -309,7 +316,7 @@ class _Call(object):
         '''A boolean indicating whether or not
            the genotype is phased for this sample
         '''
-        return self.data['GT'] is not None and self.data['GT'].find("|") >= 0
+        return self.gt_nums is not None and self.gt_nums.find("|") >= 0
 
     def __getitem__(self, key):
         """ Lookup value, backwards compatibility """
@@ -338,8 +345,8 @@ class _Record(object):
 
         The list of genotype calls is in the ``samples`` property.
     """
-    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT, sample_indexes, samples=None,
-                 gt_bases = None, gt_types = None, gt_phases = None):
+    def __init__(self, CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT,
+            sample_indexes, samples=None):
         self.CHROM = CHROM
         self.POS = POS
         self.ID = ID
@@ -359,11 +366,6 @@ class _Record(object):
         #: list of ``_Calls`` for each sample ordered as in source VCF
         self.samples = samples
         self._sample_indexes = sample_indexes
-        # lists of the pre-computed base-wise genotypes ('A/G'), types (0,1,2)
-        # and phases for each sample.
-        self.gt_bases = gt_bases
-        self.gt_types = gt_types
-        self.gt_phases = gt_phases
 
     def __eq__(self, other):
         """ _Records are equal if they describe the same variant (same position, alleles) """
@@ -496,7 +498,7 @@ class _Record(object):
     def is_indel(self):
         """ Return whether or not the variant is an INDEL """
         is_sv = self.is_sv
-        
+
         if len(self.REF) > 1 and not is_sv: return True
         for alt in self.ALT:
             if alt is None:
@@ -512,7 +514,7 @@ class _Record(object):
                     # 1	2827693	.	CCCCTCGCA	C	.	PASS	SVTYPE=DEL;
                     return False
         return False
-        
+
     @property
     def is_sv(self):
         """ Return whether or not the variant is a structural variant """
@@ -579,17 +581,17 @@ class _Record(object):
                <DEL>       -> DEL
                <INS:ME:L1> -> INS:ME:L1
                <DUP>       -> DUP
-        
+
         The logic is meant to follow the rules outlined in the following
         paragraph at:
-        
+
         http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41
-        
-        "For precisely known variants, the REF and ALT fields should contain 
-        the full sequences for the alleles, following the usual VCF conventions. 
-        For imprecise variants, the REF field may contain a single base and the 
-        ALT fields should contain symbolic alleles (e.g. <ID>), described in more 
-        detail below. Imprecise variants should also be marked by the presence 
+
+        "For precisely known variants, the REF and ALT fields should contain
+        the full sequences for the alleles, following the usual VCF conventions.
+        For imprecise variants, the REF field may contain a single base and the
+        ALT fields should contain symbolic alleles (e.g. <ID>), described in more
+        detail below. Imprecise variants should also be marked by the presence
         of an IMPRECISE flag in the INFO field."
         """
         if self.is_snp:
@@ -622,10 +624,10 @@ class _Record(object):
         if self.is_sv:
             return self.INFO['END']
         return None
-        
+
     @property
     def is_sv_precise(self):
-        """ Return whether the SV cordinates are mapped 
+        """ Return whether the SV cordinates are mapped
             to 1 b.p. resolution.
         """
         if self.INFO.get('IMPRECISE') is None and not self.is_sv:
@@ -639,6 +641,7 @@ class _Record(object):
     def is_monomorphic(self):
         """ Return True for reference calls """
         return len(self.ALT) == 1 and self.ALT[0] is None
+
 
 class Reader(object):
     """ Reader for a VCF v 4.0 file, an iterator returning ``_Record objects`` """
@@ -686,6 +689,7 @@ class Reader(object):
         self._tabix = None
         self._prepend_chr = prepend_chr
         self._parse_metainfo()
+        self._format_cache = {}
 
     def __iter__(self):
         return self
@@ -696,7 +700,7 @@ class Reader(object):
         The end user shouldn't have to use this.  She can access the metainfo
         directly with ``self.metadata``.'''
         for attr in ('metadata', 'infos', 'filters', 'alts', 'formats'):
-            setattr(self, attr, {})
+            setattr(self, attr, OrderedDict())
 
         parser = _vcf_metadata_parser()
 
@@ -745,7 +749,7 @@ class Reader(object):
             return {}
 
         entries = info_str.split(';')
-        retdict = {}
+        retdict = OrderedDict()
 
         for entry in entries:
             entry = entry.split('=')
@@ -782,14 +786,8 @@ class Reader(object):
 
         return retdict
 
-    def _parse_samples(self, samples, samp_fmt, site):
-        '''Parse a sample entry according to the format specified in the FORMAT
-        column.'''
-        samp_data = []# OrderedDict()
-        gt_bases  = []# A/A, A|G, G/G, etc.
-        gt_types  = []# 0, 1, 2, etc.
-        gt_phases = []# T, F, T, etc.
-        
+    def _parse_sample_format(self, samp_fmt):
+        """ Parse the format of the calls in this _Record """
         samp_fmt = samp_fmt.split(':')
 
         samp_fmt_types = []
@@ -807,59 +805,66 @@ class Reader(object):
                     entry_type = 'String'
             samp_fmt_types.append(entry_type)
             samp_fmt_nums.append(entry_num)
+        return samp_fmt, samp_fmt_types, samp_fmt_nums
+
+    def _parse_samples(self, samples, samp_fmt, site):
+        '''Parse a sample entry according to the format specified in the FORMAT
+        column.'''
+
+        # check whether we already know how to parse this format
+        if samp_fmt in self._format_cache:
+            samp_fmt, samp_fmt_types, samp_fmt_nums = \
+                    self._format_cache[samp_fmt]
+        else:
+            sf, samp_fmt_types, samp_fmt_nums = self._parse_sample_format(samp_fmt)
+            self._format_cache[samp_fmt] = (sf, samp_fmt_types, samp_fmt_nums)
+            samp_fmt = sf
+
+        samp_data = []
+        _map = self._map
 
         for name, sample in itertools.izip(self.samples, samples):
-            sampdict = self._parse_sample(sample, samp_fmt, samp_fmt_types, samp_fmt_nums)
-            call = _Call(site, name, sampdict)
-            samp_data.append(call)
 
-            bases = call.gt_bases
-            type = call.gt_type
-            phase = call.phased
-            gt_bases.append(bases) if bases is not None else './.'
-            gt_types.append(type) if type is not None else -1
-            gt_phases.append(phase) if phase is not None else False
-        
-        return _SampleInfo(samp_data, gt_bases, gt_types, gt_phases)
+            # parse the data for this sample
+            sampdict = dict([(x, None) for x in samp_fmt])
 
-    def _parse_sample(self, sample, samp_fmt, samp_fmt_types, samp_fmt_nums):
-        sampdict = dict([(x, None) for x in samp_fmt])
+            for fmt, entry_type, entry_num, vals in itertools.izip(
+                    samp_fmt, samp_fmt_types, samp_fmt_nums, sample.split(':')):
 
-        for fmt, entry_type, entry_num, vals in itertools.izip(
-                samp_fmt, samp_fmt_types, samp_fmt_nums, sample.split(':')):
+                # short circuit the most common
+                if vals == '.' or vals == './.':
+                    sampdict[fmt] = None
+                    continue
 
-            # short circuit the most common
-            if vals == '.' or vals == './.':
-                sampdict[fmt] = None
-                continue
+                # we don't need to split single entries
+                if entry_num == 1 or ',' not in vals:
 
-            # we don't need to split single entries
-            if entry_num == 1 or ',' not in vals:
+                    if entry_type == 'Integer':
+                        sampdict[fmt] = int(vals)
+                    elif entry_type == 'Float':
+                        sampdict[fmt] = float(vals)
+                    else:
+                        sampdict[fmt] = vals
+
+                    if entry_num != 1:
+                        sampdict[fmt] = (sampdict[fmt])
+
+                    continue
+
+                vals = vals.split(',')
 
                 if entry_type == 'Integer':
-                    sampdict[fmt] = int(vals)
-                elif entry_type == 'Float':
-                    sampdict[fmt] = float(vals)
+                    sampdict[fmt] = _map(int, vals)
+                elif entry_type == 'Float' or entry_type == 'Numeric':
+                    sampdict[fmt] = _map(float, vals)
                 else:
                     sampdict[fmt] = vals
 
-                if entry_num != 1:
-                    sampdict[fmt] = (sampdict[fmt])
+            # create a call object
+            call = _Call(site, name, sampdict)
+            samp_data.append(call)
 
-                continue
-
-
-            vals = vals.split(',')
-
-            if entry_type == 'Integer':
-                sampdict[fmt] = self._map(int, vals)
-            elif entry_type == 'Float' or entry_type == 'Numeric':
-                sampdict[fmt] = self._map(float, vals)
-            else:
-                sampdict[fmt] = vals
-
-
-        return sampdict
+        return samp_data
 
     def parseALT(self, str):
         if re.search('[\[\]]', str) is not None:
@@ -906,10 +911,14 @@ class Reader(object):
         ref = row[3]
         alt = self._map(self.parseALT, row[4].split(','))
 
-        if row[5] == '.':
-            qual = None
-        else:
-            qual = float(row[5]) if '.' in row[5] else int(row[5])
+        try:
+            qual = int(row[5])
+        except ValueError:
+            try:
+                qual = float(row[5])
+            except ValueError:
+                qual = None
+
         filt = row[6].split(';') if ';' in row[6] else row[6]
         if filt == 'PASS':
             filt = None
@@ -920,14 +929,12 @@ class Reader(object):
         except IndexError:
             fmt = None
 
-        record = _Record(chrom, pos, ID, ref, alt, qual, filt, info, fmt, self._sample_indexes)
+        record = _Record(chrom, pos, ID, ref, alt, qual, filt,
+                info, fmt, self._sample_indexes)
 
         if fmt is not None:
-            sample_info = self._parse_samples(row[9:], fmt, record)
-            record.samples = sample_info.samples
-            record.gt_bases = sample_info.gt_bases
-            record.gt_types = sample_info.gt_types
-            record.gt_phases = sample_info.gt_phases
+            samples = self._parse_samples(row[9:], fmt, record)
+            record.samples = samples
 
         return record
 

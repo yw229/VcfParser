@@ -78,22 +78,22 @@ class TestVcfSpecs(unittest.TestCase):
         # test we can walk the file at least
         for r in reader:
             print(r)
-	    if r.ID == "bnd1":
-		    assert len(r.ALT) == 1
-		    assert r.ALT[0].type == "BND"
-		    assert r.ALT[0].chr == "2"
-		    assert r.ALT[0].pos == 3
-		    assert r.ALT[0].orientation == False
-		    assert r.ALT[0].remoteOrientation == True
-		    assert r.ALT[0].connectingSequence == "T"
-	    if r.ID == "bnd4":
-		    assert len(r.ALT) == 1
-		    assert r.ALT[0].type == "BND"
-		    assert r.ALT[0].chr == "1"
-		    assert r.ALT[0].pos == 2
-		    assert r.ALT[0].orientation == True
-		    assert r.ALT[0].remoteOrientation == False
-		    assert r.ALT[0].connectingSequence == "G"
+            if r.ID == "bnd1":
+                    assert len(r.ALT) == 1
+                    assert r.ALT[0].type == "BND"
+                    assert r.ALT[0].chr == "2"
+                    assert r.ALT[0].pos == 3
+                    assert r.ALT[0].orientation == False
+                    assert r.ALT[0].remoteOrientation == True
+                    assert r.ALT[0].connectingSequence == "T"
+            if r.ID == "bnd4":
+                    assert len(r.ALT) == 1
+                    assert r.ALT[0].type == "BND"
+                    assert r.ALT[0].chr == "1"
+                    assert r.ALT[0].pos == 2
+                    assert r.ALT[0].orientation == True
+                    assert r.ALT[0].remoteOrientation == False
+                    assert r.ALT[0].connectingSequence == "G"
             for c in r:
                 print(c)
                 assert c
@@ -172,6 +172,15 @@ class TestSamtoolsOutput(unittest.TestCase):
 
         self.assertEqual(len(reader.samples), 1)
         self.assertEqual(sum(1 for _ in reader), 11)
+
+
+class TestBcfToolsOutput(unittest.TestCase):
+    def testParse(self):
+        reader = vcf.Reader(fh('bcftools.vcf'))
+        self.assertEqual(len(reader.samples), 1)
+        for r in reader:
+            for s in r.samples:
+                s.phased
 
 
 class Test1kg(unittest.TestCase):
@@ -480,6 +489,24 @@ class TestRecord(unittest.TestCase):
                 self.assertEqual(None, sv_end)
             elif var.POS == 1234567:
                 self.assertEqual(None, sv_end)
+
+    def test_qual(self):
+        reader = vcf.Reader(fh('example-4.0.vcf'))
+        for var in reader:
+            qual = var.QUAL
+            qtype = type(qual)
+            if var.POS == 14370:
+                expected = 29
+            if var.POS == 17330:
+                expected = 3.0
+            if var.POS == 1110696:
+                expected = 1e+03
+            if var.POS == 1230237:
+                expected = 47
+            elif var.POS == 1234567:
+                expected = None
+            self.assertEqual(expected, qual)
+            self.assertEqual(type(expected), qtype)
 
 
 class TestCall(unittest.TestCase):

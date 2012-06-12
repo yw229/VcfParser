@@ -8,6 +8,13 @@ try:
 except ImportError:
     requires.append('argparse')
 
+
+try:
+    import collections
+    collections.OrderedDict
+except AttributeError:
+    requires.append('ordereddict')
+
 # get the version without an import
 VERSION = "Undefined"
 DOC = ""
@@ -42,7 +49,7 @@ setup(
     url='https://github.com/jamescasbon/PyVCF',
     version=VERSION,
     classifiers = [
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'Operating System :: OS Independent',

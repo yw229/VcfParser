@@ -17,6 +17,25 @@ New features should have test code sent with them.
 Changes
 =======
 
+0.5.0 Release (pending)
+-----------------------
+
+VCF 4.1 support: 
+ * support missing genotype #28 (thanks @martijnvermaat)
+ * parseALT for svs #42 (thanks @dzerbino)
+
+0.4.6 Release
+-------------
+
+* Performance improvements (#47) 
+* Preserve order of INFO column (#46)
+
+0.4.5 Release
+-------------
+
+* Support exponent syntax qual values (#43, #44) (thanks @martijnvermaat) 
+* Preserve order of header lines (#45) 
+
 0.4.4 Release
 -------------
 
