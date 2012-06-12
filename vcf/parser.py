@@ -81,28 +81,10 @@ class _Substitution(_AltRecord):
     def __eq__(self, other):
         return super(_Substitution, self).__eq__(other) and self.sequence == other.sequence
 
-class _SingleBreakend(_AltRecord):
-    '''A single breakend'''
-    def __init__(self, orientation, connectingSequence):
-        super(_SingleBreakend, self).__init__("BND")
-        #: The orientation of breakend. If the sequence 3' of the breakend is connected, True, else if the sequence 5' of the breakend is connected, False.
-        self.orientation = orientation
-        #: The breakpoint's connecting sequence.
-        self.connectingSequence = connectingSequence
-
-    def __str__(self):
-        if self.orientation:
-            return "." + self.connectingSequence
-        else:
-            return self.connectingSequence + "."
-
-    def __eq__(self, other):
-        return super(_SingleBreakend, self).__eq__(other) and self.orientation == other.orientation and self.connectingSequence == other.connectingSequence
-
-class _PairedBreakend(_SingleBreakend):
+class _Breakend(_AltRecord):
     '''A breakend which is paired to a remote location on or off the genome'''
     def __init__(self, chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly):
-        super(_PairedBreakend, self).__init__(orientation, connectingSequence)
+        super(_Breakend, self).__init__("BND")
         #: The chromosome of breakend's mate.
         self.chr = str(chr)
         #: The coordinate of breakend's mate.
@@ -111,6 +93,10 @@ class _PairedBreakend(_SingleBreakend):
         self.remoteOrientation = remoteOrientation
         #: If the breakend mate is within the assembly, True, else False if the breakend mate is on a contig in an ancillary assembly file.
         self.withinMainAssembly = withinMainAssembly
+        #: The orientation of breakend. If the sequence 3' of the breakend is connected, True, else if the sequence 5' of the breakend is connected, False.
+        self.orientation = orientation
+        #: The breakpoint's connecting sequence.
+        self.connectingSequence = connectingSequence
 
     def __str__(self):
         if self.withinAssembly:
@@ -127,7 +113,18 @@ class _PairedBreakend(_SingleBreakend):
             return self.connectingSequence + remoteTag
 
     def __eq__(self, other):
-        return super(_PairedBreakend, self).__eq__(other) and self.chr == other.chr and self.pos == other.pos and self.remoteOrientation == other.remoteOrientation and self.withinMainAssembly == other.withinMainAssembly
+        return super(_PairedBreakend, self).__eq__(other) and self.chr == other.chr and self.pos == other.pos and self.remoteOrientation == other.remoteOrientation and self.withinMainAssembly == other.withinMainAssembly and self.orientation == other.orientation and self.connectingSequence == other.connectingSequence
+
+class _SingleBreakend(_Breakend):
+    '''A single breakend'''
+    def __init__(self, orientation, connectingSequence):
+        super(_SingleBreakend, self).__init__(None, None, orientation, None, connectingSequence, None)
+
+    def __str__(self):
+        if self.orientation:
+            return "." + self.connectingSequence
+        else:
+            return self.connectingSequence + "."
 
 class _SV(_AltRecord):
     '''An SV placeholder'''
@@ -503,8 +500,8 @@ class _Record(object):
         for alt in self.ALT:
             if alt is None:
                 return True
-	    if alt.type != "SNV" and alt.type != "SNV":
-		return False
+            if alt.type != "SNV" and alt.type != "MNV":
+                return False
             elif len(alt) != len(self.REF):
                 # the diff. b/w INDELs and SVs can be murky.
                 if not is_sv:
@@ -884,7 +881,7 @@ class Reader(object):
                connectingSequence = items[2]
             else:
                connectingSequence = items[0]
-            return _PairedBreakend(chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly)
+            return _Breakend(chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly)
         elif str[0] == '.' and len(str) > 1:
             return _SingleBreakend(True,str[1:])
         elif str[-1] == '.' and len(str) > 1:
