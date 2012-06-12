@@ -1,6 +1,6 @@
 from __future__ import print_function
 import unittest
-import doctest
+/mport doctest
 import os
 import commands
 from StringIO import StringIO
@@ -78,22 +78,22 @@ class TestVcfSpecs(unittest.TestCase):
         # test we can walk the file at least
         for r in reader:
             print(r)
-	    if r.ID == "bnd1":
-		    assert len(r.ALT) == 1
-		    assert r.ALT[0].reconnects
-		    assert r.ALT[0].chr == "2"
-		    assert r.ALT[0].pos == 3
-		    assert r.ALT[0].orientation == False
-		    assert r.ALT[0].remoteOrientation == True
-		    assert r.ALT[0].connectingSequence == "T"
-	    if r.ID == "bnd4":
-		    assert len(r.ALT) == 1
-		    assert r.ALT[0].reconnects
-		    assert r.ALT[0].chr == "1"
-		    assert r.ALT[0].pos == 2
-		    assert r.ALT[0].orientation == True
-		    assert r.ALT[0].remoteOrientation == False
-		    assert r.ALT[0].connectingSequence == "G"
+        if r.ID == "bnd1":
+            assert len(r.ALT) == 1
+            assert r.ALT[0].reconnects
+            assert r.ALT[0].chr == "2"
+            assert r.ALT[0].pos == 3
+            assert r.ALT[0].orientation == False
+            assert r.ALT[0].remoteOrientation == True
+            assert r.ALT[0].connectingSequence == "T"
+        if r.ID == "bnd4":
+            assert len(r.ALT) == 1
+            assert r.ALT[0].reconnects
+            assert r.ALT[0].chr == "1"
+            assert r.ALT[0].pos == 2
+            assert r.ALT[0].orientation == True
+            assert r.ALT[0].remoteOrientation == False
+            assert r.ALT[0].connectingSequence == "G"
             for c in r:
                 print(c)
                 assert c
