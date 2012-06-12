@@ -80,7 +80,7 @@ class TestVcfSpecs(unittest.TestCase):
             print(r)
 	    if r.ID == "bnd1":
 		    assert len(r.ALT) == 1
-		    assert r.ALT[0].reconnects
+		    assert r.ALT[0].type == "BND"
 		    assert r.ALT[0].chr == "2"
 		    assert r.ALT[0].pos == 3
 		    assert r.ALT[0].orientation == False
@@ -88,7 +88,7 @@ class TestVcfSpecs(unittest.TestCase):
 		    assert r.ALT[0].connectingSequence == "T"
 	    if r.ID == "bnd4":
 		    assert len(r.ALT) == 1
-		    assert r.ALT[0].reconnects
+		    assert r.ALT[0].type == "BND"
 		    assert r.ALT[0].chr == "1"
 		    assert r.ALT[0].pos == 2
 		    assert r.ALT[0].orientation == True
