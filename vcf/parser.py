@@ -70,7 +70,7 @@ class _Substitution(_AltRecord):
         else:
             super(_Substitution, self).__init__("MNV")
         #: Alternate sequence
-        self.sequence = nucleotides
+        self.sequence = str(nucleotides)
 
     def __str__(self):
         return self.sequence
@@ -79,7 +79,10 @@ class _Substitution(_AltRecord):
         return len(self.sequence)
 
     def __eq__(self, other):
-        return super(_Substitution, self).__eq__(other) and self.sequence == other.sequence
+        if isinstance(other, basestring):
+            return self.sequence == other
+        else:
+            return super(_Substitution, self).__eq__(other) and self.sequence == other.sequence
 
 class _Breakend(_AltRecord):
     '''A breakend which is paired to a remote location on or off the genome'''
@@ -485,7 +488,7 @@ class _Record(object):
         for alt in self.ALT:
             if alt is None or alt.type != "SNV":
                 return False
-            if alt.sequence not in ['A', 'C', 'G', 'T']:
+            if alt not in ['A', 'C', 'G', 'T']:
                 return False
         return True
 
@@ -526,10 +529,10 @@ class _Record(object):
         if self.is_snp:
             # just one alt allele
             alt_allele = self.ALT[0]
-            if ((self.REF == "A" and alt_allele.sequence == "G") or
-                (self.REF == "G" and alt_allele.sequence == "A") or
-                (self.REF == "C" and alt_allele.sequence == "T") or
-                (self.REF == "T" and alt_allele.sequence == "C")):
+            if ((self.REF == "A" and alt_allele == "G") or
+                (self.REF == "G" and alt_allele == "A") or
+                (self.REF == "C" and alt_allele == "T") or
+                (self.REF == "T" and alt_allele == "C")):
                 return True
             else: return False
         else: return False
