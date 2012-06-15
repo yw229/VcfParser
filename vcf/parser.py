@@ -705,6 +705,8 @@ class Reader(object):
                     else:
                         entry_type = 'Flag'
 
+            print entry_type
+
             if entry_type == 'Integer':
                 vals = entry[1].split(',')
                 val = self._map(int, vals)
@@ -714,7 +716,10 @@ class Reader(object):
             elif entry_type == 'Flag':
                 val = True
             elif entry_type == 'String':
-                val = entry[1]
+                try:
+                    val = entry[1]
+                except IndexError:
+                    val = True
 
             try:
                 if self.infos[ID].num == 1 and entry_type != 'String':
