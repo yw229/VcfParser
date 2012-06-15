@@ -50,32 +50,90 @@ _Alt = collections.namedtuple('Alt', ['id', 'desc'])
 _Format = collections.namedtuple('Format', ['id', 'num', 'type', 'desc'])
 _SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_types', 'gt_phases'])
 
-class _AltRecord(str):
+class _AltRecord(object):
     '''An alternative allele record: either replacement string, SV placeholder, or breakend'''
-    def __init__(self, sequence):
-        #: Breakend connecting sequence
-        self.connectingSequence = None
-        #: False (default) if simply substitution string or placeholder, True if breakend.
-        self.reconnects = False
-        #: If reconnects is True, the chromosome of breakend's mate, else None.
-        self.chr = None
-        #: If reconnects is True, the coordinate of breakend's mate, else None.
-        self.pos = None
-        #: If reconnects is True, orientation of breakend, else None. If the sequence 3' of the breakend is connected, True, else if the sequence 5' of the breakend is connected, False.
-        self.orientation = None
-        #: If reconnects is True, orientation of breakend's mate, else None. If the sequence 3' of the breakend's mate is connected, True, else if the sequence 5' of the breakend's mate is connected, False.
-        self.remoteOrientation = None
-        #: If the breakend mate is within the assembly, True, else False if the breakend mate is on a contig in an ancillary assembly file
-        self.withinMainAssembly = None
+    def __init__(self, type):
+        #: String to describe the type of variant, by default "SNV" or "MNV", but can be extended to any of the types described in the ALT lines of the header (e.g. "DUP", "DEL", "INS"...)
+        self.type=type
 
-    def makeBreakend(self, chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly=None):
-        self.reconnects = True
+    def __str__(self):
+        assert False, "_AltRecord is an abstract class, you should be using a subclass instead"    
+
+    def __eq__(self, other):
+        return self.type == other.type
+
+class _Substitution(_AltRecord):
+    '''A basic ALT record, where a REF sequence is replaced by an ALT sequence'''
+    def __init__(self, nucleotides):
+        if len(nucleotides) == 1:
+            super(_Substitution, self).__init__("SNV")
+        else:
+            super(_Substitution, self).__init__("MNV")
+        #: Alternate sequence
+        self.sequence = str(nucleotides)
+
+    def __str__(self):
+        return self.sequence
+
+    def __len__(self):
+        return len(self.sequence)
+
+    def __eq__(self, other):
+        if isinstance(other, basestring):
+            return self.sequence == other
+        else:
+            return super(_Substitution, self).__eq__(other) and self.sequence == other.sequence
+
+class _Breakend(_AltRecord):
+    '''A breakend which is paired to a remote location on or off the genome'''
+    def __init__(self, chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly):
+        super(_Breakend, self).__init__("BND")
+        #: The chromosome of breakend's mate.
         self.chr = str(chr)
+        #: The coordinate of breakend's mate.
         self.pos = int(pos)
-        self.orientation = orientation
+        #: The orientation of breakend's mate. If the sequence 3' of the breakend's mate is connected, True, else if the sequence 5' of the breakend's mate is connected, False.
         self.remoteOrientation = remoteOrientation
-        self.connectingSequence = connectingSequence
+        #: If the breakend mate is within the assembly, True, else False if the breakend mate is on a contig in an ancillary assembly file.
         self.withinMainAssembly = withinMainAssembly
+        #: The orientation of breakend. If the sequence 3' of the breakend is connected, True, else if the sequence 5' of the breakend is connected, False.
+        self.orientation = orientation
+        #: The breakpoint's connecting sequence.
+        self.connectingSequence = connectingSequence
+
+    def __str__(self):
+        if self.chr is None:
+            remoteTag = '.' 
+        else:
+            if self.withinAssembly:
+                remoteChr = self.chr
+            else:
+                remoteChr = "<" + self.chr + ">"
+            if self.remoteOrientation:
+                remoteTag = "[" + remoteChr + ":" + self.pos + "["
+            else:
+                remoteTag = "]" + remoteChr + ":" + self.pos + "]"
+
+        if self.orientation:
+            return remoteTag + self.connectingSequence
+        else:
+            return self.connectingSequence + remoteTag
+
+    def __eq__(self, other):
+        return super(_PairedBreakend, self).__eq__(other) and self.chr == other.chr and self.pos == other.pos and self.remoteOrientation == other.remoteOrientation and self.withinMainAssembly == other.withinMainAssembly and self.orientation == other.orientation and self.connectingSequence == other.connectingSequence
+
+class _SingleBreakend(_Breakend):
+    '''A single breakend'''
+    def __init__(self, orientation, connectingSequence):
+        super(_SingleBreakend, self).__init__(None, None, orientation, None, connectingSequence, None)
+
+class _SV(_AltRecord):
+    '''An SV placeholder'''
+    def __init__(self, type):
+        super(_SV, self).__init__(type)
+
+    def __str__(self):
+        return "<" + self.type + ">"
 
 class _vcf_metadata_parser(object):
     '''Parse the metadat in the header of a VCF file.'''
@@ -228,7 +286,7 @@ class _Call(object):
         if self.called:
             # lookup and return the actual DNA alleles
             try:
-                return self.gt_phase_char().join(self.site.alleles[int(X)] for X in self.gt_alleles)
+                return self.gt_phase_char().join(str(self.site.alleles[int(X)]) for X in self.gt_alleles)
             except:
                 sys.stderr.write("Allele number not found in list of alleles\n")
         else:
@@ -428,7 +486,7 @@ class _Record(object):
         """ Return whether or not the variant is a SNP """
         if len(self.REF) > 1: return False
         for alt in self.ALT:
-            if alt is None or alt.reconnects:
+            if alt is None or alt.type != "SNV":
                 return False
             if alt not in ['A', 'C', 'G', 'T']:
                 return False
@@ -443,6 +501,8 @@ class _Record(object):
         for alt in self.ALT:
             if alt is None:
                 return True
+            if alt.type != "SNV" and alt.type != "MNV":
+                return False
             elif len(alt) != len(self.REF):
                 # the diff. b/w INDELs and SVs can be murky.
                 if not is_sv:
@@ -468,7 +528,6 @@ class _Record(object):
 
         if self.is_snp:
             # just one alt allele
-            if self.ALT[0].reconnects: return False
             alt_allele = self.ALT[0]
             if ((self.REF == "A" and alt_allele == "G") or
                 (self.REF == "G" and alt_allele == "A") or
@@ -553,8 +612,7 @@ class _Record(object):
             elif self.is_sv_precise:
                 return self.INFO['SVTYPE']
             else:
-                # first remove both "<" and ">" from ALT
-                return self.ALT[0].strip('<>')
+                return self.ALT[0].type
         else:
             return "unknown"
 
@@ -827,22 +885,15 @@ class Reader(object):
                connectingSequence = items[2]
             else:
                connectingSequence = items[0]
-            record = _AltRecord(str)
-            record.makeBreakend(chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly)
-            return record
+            return _Breakend(chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly)
         elif str[0] == '.' and len(str) > 1:
-            # Single breakend (positive orientation)
-            record = _AltRecord(str)
-            record.makeBreakend(None, None, True, None, str[1:])
-            return record
+            return _SingleBreakend(True,str[1:])
         elif str[-1] == '.' and len(str) > 1:
-            # Single breakend (negative orientation)
-            record = _AltRecord(str)
-            record.makeBreakend(None, None, False, None, str[:-1])
-            return record
+            return _SingleBreakend(False, str[:-1])
+        elif str[0] == "<" and str[-1] == ">":
+            return _SV(str[1:-1])
         else:
-            # Basic allele (indel, substitution, or SV placeholder)
-            return _AltRecord(str)
+            return _Substitution(str)
 
     def next(self):
         '''Return the next record in the file.'''
