@@ -705,8 +705,6 @@ class Reader(object):
                     else:
                         entry_type = 'Flag'
 
-            print entry_type
-
             if entry_type == 'Integer':
                 vals = entry[1].split(',')
                 val = self._map(int, vals)
