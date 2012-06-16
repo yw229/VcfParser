@@ -159,7 +159,7 @@ class _vcf_metadata_parser(object):
             Type=(?P<type>.+),
             Description="(?P<desc>.*)"
             >''', re.VERBOSE)
-        self.meta_pattern = re.compile(r'''##(?P<key>.+)=(?P<val>.+)''')
+        self.meta_pattern = re.compile(r'''##(?P<key>.+?)=(?P<val>.+)''')
 
     def vcf_field_count(self, num_str):
         if num_str == '.':
