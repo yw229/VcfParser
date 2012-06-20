@@ -985,18 +985,17 @@ class Writer(object):
 
         two = '##{key}=<ID={0},Description="{1}">\n'
         four = '##{key}=<ID={0},Number={num},Type={2},Description="{3}">\n'
+        _num = self._fix_field_count
         for line in template.metadata.iteritems():
             stream.write('##{0}={1}\n'.format(*line))
         for line in template.infos.itervalues():
-            stream.write(four.format(key="INFO", *self._map(str, line),
-                                     num=self._field_count(line.num)))
+            stream.write(four.format(key="INFO", *line, num=_num(line.num)))
         for line in template.formats.itervalues():
-            stream.write(four.format(key="FORMAT", *self._map(str, line),
-                                     num=self._field_count(line.num)))
+            stream.write(four.format(key="FORMAT", *line, num=_num(line.num)))
         for line in template.filters.itervalues():
-            stream.write(two.format(key="FILTER", *self._map(str, line)))
+            stream.write(two.format(key="FILTER", *line))
         for line in template.alts.itervalues():
-            stream.write(two.format(key="ALT", *self._map(str, line)))
+            stream.write(two.format(key="ALT", *line))
 
         self._write_header()
 
@@ -1014,7 +1013,7 @@ class Writer(object):
             for sample in record.samples]
         self.writer.writerow(ffs + samples)
 
-    def _field_count(self, num_str):
+    def _fix_field_count(self, num_str):
         """Restore header number to original state"""
         if num_str not in self.counts:
             return num_str
