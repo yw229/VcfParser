@@ -43,6 +43,13 @@ RESERVED_FORMAT = {
     'AHAP':'Integer'
 }
 
+# Conversion between value in file and Python value
+field_counts = {
+    '.': None,  # Unknown number of values
+    'A': -1,  # Equal to the number of alleles in a given record
+    'G': -2,  # Equal to the number of genotypes in a given record
+}
+
 
 _Info = collections.namedtuple('Info', ['id', 'num', 'type', 'desc'])
 _Filter = collections.namedtuple('Filter', ['id', 'desc'])
@@ -162,17 +169,12 @@ class _vcf_metadata_parser(object):
         self.meta_pattern = re.compile(r'''##(?P<key>.+?)=(?P<val>.+)''')
 
     def vcf_field_count(self, num_str):
-        # XXX worth storing at module level for undoing this?
-        counts = {
-            '.': None,  # Unknown number of values
-            'A': -1,  # Equal to the number of alleles in a given record
-            'G': -2,  # Equal to the number of genotypes in a given record
-        }
-        if num_str not in counts:
+        """Cast vcf header numbers to integer or None"""
+        if num_str not in field_counts:
             # Fixed, specified number
             return int(num_str)
         else:
-            return counts[num_str]
+            return field_counts[num_str]
 
     def read_info(self, info_string):
         '''Read a meta-information INFO line.'''
@@ -974,20 +976,27 @@ class Writer(object):
 
     fixed_fields = "#CHROM POS ID REF ALT QUAL FILTER INFO FORMAT".split()
 
+    # Reverse keys and values in header field count dictionary
+    counts = dict((v,k) for k,v in field_counts.iteritems())
+
     def __init__(self, stream, template):
         self.writer = csv.writer(stream, delimiter="\t")
         self.template = template
 
+        two = '##{key}=<ID={0},Description="{1}">\n'
+        four = '##{key}=<ID={0},Number={num},Type={2},Description="{3}">\n'
         for line in template.metadata.iteritems():
-            stream.write('##%s=%s\n' % line)
+            stream.write('##{0}={1}\n'.format(*line))
         for line in template.infos.itervalues():
-            stream.write('##INFO=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
+            stream.write(four.format(key="INFO", *self._map(str, line),
+                                     num=self._field_count(line.num)))
         for line in template.formats.itervalues():
-            stream.write('##FORMAT=<ID=%s,Number=%s,Type=%s,Description="%s">\n' % tuple(self._map(str, line)))
+            stream.write(four.format(key="FORMAT", *self._map(str, line),
+                                     num=self._field_count(line.num)))
         for line in template.filters.itervalues():
-            stream.write('##FILTER=<ID=%s,Description="%s">\n' % tuple(self._map(str, line)))
+            stream.write(two.format(key="FILTER", *self._map(str, line)))
         for line in template.alts.itervalues():
-            stream.write('##ALT=<ID=%s,Description="%s">\n' % tuple(self._map(str, line)))
+            stream.write(two.format(key="ALT", *self._map(str, line)))
 
         self._write_header()
 
@@ -1004,6 +1013,13 @@ class Writer(object):
         samples = [self._format_sample(record.FORMAT, sample)
             for sample in record.samples]
         self.writer.writerow(ffs + samples)
+
+    def _field_count(self, num_str):
+        """Restore header number to original state"""
+        if num_str not in self.counts:
+            return num_str
+        else:
+            return self.counts[num_str]
 
     def _format_alt(self, alt):
         return ','.join([str(x) or '.' for x in alt])
