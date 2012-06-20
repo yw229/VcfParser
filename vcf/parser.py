@@ -162,18 +162,17 @@ class _vcf_metadata_parser(object):
         self.meta_pattern = re.compile(r'''##(?P<key>.+?)=(?P<val>.+)''')
 
     def vcf_field_count(self, num_str):
-        if num_str == '.':
-            # Unknown number of values
-            return None
-        elif num_str == 'A':
-            # Equal to the number of alleles in a given record
-            return -1
-        elif num_str == 'G':
-            # Equal to the number of genotypes in a given record
-            return -2
-        else:
+        # XXX worth storing at module level for undoing this?
+        counts = {
+            '.': None,  # Unknown number of values
+            'A': -1,  # Equal to the number of alleles in a given record
+            'G': -2,  # Equal to the number of genotypes in a given record
+        }
+        if num_str not in counts:
             # Fixed, specified number
             return int(num_str)
+        else:
+            return counts[num_str]
 
     def read_info(self, info_string):
         '''Read a meta-information INFO line.'''
