@@ -1021,7 +1021,7 @@ class Writer(object):
             return self.counts[num_str]
 
     def _format_alt(self, alt):
-        return ','.join([str(x) or '.' for x in alt])
+        return ','.join(self._map(str, alt))
 
     def _format_info(self, info):
         if not info:
