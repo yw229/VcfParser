@@ -161,6 +161,9 @@ class _SV(_AltRecord):
     def __str__(self):
         return "<" + self.type + ">"
 
+    def __repr__(self):
+        return str(self)
+
 
 class _vcf_metadata_parser(object):
     '''Parse the metadat in the header of a VCF file.'''
