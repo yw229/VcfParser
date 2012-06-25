@@ -14,14 +14,14 @@ There main interface is the class: ``Reader``.  It takes a file-like
 object and acts as a reader::
 
     >>> import vcf
-    >>> vcf_reader = vcf.Reader(open('test/example-4.0.vcf', 'rb'))
+    >>> vcf_reader = vcf.Reader(open('vcf/test/example-4.0.vcf', 'rb'))
     >>> for record in vcf_reader:
     ...     print record
-    Record(CHROM=20, POS=14370, REF=G, ALT=['A'])
-    Record(CHROM=20, POS=17330, REF=T, ALT=['A'])
-    Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
+    Record(CHROM=20, POS=14370, REF=G, ALT=[A])
+    Record(CHROM=20, POS=17330, REF=T, ALT=[A])
+    Record(CHROM=20, POS=1110696, REF=A, ALT=[G, T])
     Record(CHROM=20, POS=1230237, REF=T, ALT=[None])
-    Record(CHROM=20, POS=1234567, REF=GTCT, ALT=['G', 'GTACT'])
+    Record(CHROM=20, POS=1234567, REF=GTCT, ALT=[G, GTACT])
 
 
 This produces a great deal of information, but it is conveniently accessed.
@@ -49,12 +49,12 @@ one-entry Python lists (see, e.g., ``Record.ALT``).  Semicolon-delimited lists
 of key=value pairs are converted to Python dictionaries, with flags being given
 a ``True`` value. Integers and floats are handled exactly as you'd expect::
 
-    >>> vcf_reader = vcf.Reader(open('test/example-4.0.vcf', 'rb'))
+    >>> vcf_reader = vcf.Reader(open('vcf/test/example-4.0.vcf', 'rb'))
     >>> record = vcf_reader.next()
     >>> print record.POS
     14370
     >>> print record.ALT
-    ['A']
+    [A]
     >>> print record.INFO['AF']
     [0.5]
 
@@ -68,7 +68,7 @@ examine properties of interest::
     >>> print record.nucl_diversity, record.aaf
     0.6 0.5
     >>> print record.get_hets()
-    [Call(sample=NA00002, GT=1|0, GQ=48)]
+    [Call(sample=NA00002, GT=1|0, HQ=[51, 51], DP=8, GQ=48)]
     >>> print record.is_snp, record.is_indel, record.is_transition, record.is_deletion
     True False True False
     >>> print record.var_type, record.var_subtype
@@ -97,7 +97,7 @@ call data in ``data``::
 
      >>> call = record.genotype('NA00001')
      >>> print call.site
-     Record(CHROM=20, POS=17330, REF=T, ALT=['A'])
+     Record(CHROM=20, POS=17330, REF=T, ALT=[A])
      >>> print call.sample
      NA00001
      >>> print call.data
@@ -129,29 +129,29 @@ For example::
     >>> vcf_reader.samples
     ['NA00001', 'NA00002', 'NA00003']
     >>> vcf_reader.filters
-    {'q10': Filter(id='q10', desc='Quality below 10'), 's50': Filter(id='s50', desc='Less than 50% of samples have data')}
+    OrderedDict([('q10', Filter(id='q10', desc='Quality below 10')), ('s50', Filter(id='s50', desc='Less than 50% of samples have data'))])
     >>> vcf_reader.infos['AA'].desc
     'Ancestral Allele'
 
 Random access is supported for files with tabix indexes.  Simply call fetch for the
 region you are interested in::
 
-    >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
+    >>> vcf_reader = vcf.Reader(filename='vcf/test/tb.vcf.gz')
     >>> for record in vcf_reader.fetch('20', 1110696, 1230237):
     ...     print record
-    Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
+    Record(CHROM=20, POS=1110696, REF=A, ALT=[G, T])
     Record(CHROM=20, POS=1230237, REF=T, ALT=[None])
 
 Or extract a single row::
 
     >>> print vcf_reader.fetch('20', 1110696)
-    Record(CHROM=20, POS=1110696, REF=A, ALT=['G', 'T'])
+    Record(CHROM=20, POS=1110696, REF=A, ALT=[G, T])
 
 
 The ``Writer`` class provides a way of writing a VCF file.  Currently, you must specify a
 template ``Reader`` which provides the metadata::
 
-    >>> vcf_reader = vcf.Reader(filename='test/tb.vcf.gz')
+    >>> vcf_reader = vcf.Reader(filename='vcf/test/tb.vcf.gz')
     >>> vcf_writer = vcf.Writer(file('/dev/null', 'w'), vcf_reader)
     >>> for record in vcf_reader:
     ...     vcf_writer.write_record(record)

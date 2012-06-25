@@ -8,7 +8,7 @@ from StringIO import StringIO
 import vcf
 from vcf import utils
 
-suite = doctest.DocTestSuite(vcf.parser)
+suite = doctest.DocTestSuite(vcf)
 
 
 def fh(fname, mode='rt'):

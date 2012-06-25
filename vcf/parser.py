@@ -50,20 +50,24 @@ _Alt = collections.namedtuple('Alt', ['id', 'desc'])
 _Format = collections.namedtuple('Format', ['id', 'num', 'type', 'desc'])
 _SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_types', 'gt_phases'])
 
+
 class _AltRecord(object):
     '''An alternative allele record: either replacement string, SV placeholder, or breakend'''
+
     def __init__(self, type):
         #: String to describe the type of variant, by default "SNV" or "MNV", but can be extended to any of the types described in the ALT lines of the header (e.g. "DUP", "DEL", "INS"...)
-        self.type=type
+        self.type = type
 
     def __str__(self):
-        assert False, "_AltRecord is an abstract class, you should be using a subclass instead"    
+        assert False, "_AltRecord is an abstract class, you should be using a subclass instead"
 
     def __eq__(self, other):
         return self.type == other.type
 
+
 class _Substitution(_AltRecord):
     '''A basic ALT record, where a REF sequence is replaced by an ALT sequence'''
+
     def __init__(self, nucleotides):
         if len(nucleotides) == 1:
             super(_Substitution, self).__init__("SNV")
@@ -75,6 +79,9 @@ class _Substitution(_AltRecord):
     def __str__(self):
         return self.sequence
 
+    def __repr__(self):
+        return str(self)
+
     def __len__(self):
         return len(self.sequence)
 
@@ -84,8 +91,10 @@ class _Substitution(_AltRecord):
         else:
             return super(_Substitution, self).__eq__(other) and self.sequence == other.sequence
 
+
 class _Breakend(_AltRecord):
     '''A breakend which is paired to a remote location on or off the genome'''
+
     def __init__(self, chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly):
         super(_Breakend, self).__init__("BND")
         #: The chromosome of breakend's mate.
@@ -103,7 +112,7 @@ class _Breakend(_AltRecord):
 
     def __str__(self):
         if self.chr is None:
-            remoteTag = '.' 
+            remoteTag = '.'
         else:
             if self.withinAssembly:
                 remoteChr = self.chr
@@ -120,20 +129,31 @@ class _Breakend(_AltRecord):
             return self.connectingSequence + remoteTag
 
     def __eq__(self, other):
-        return super(_PairedBreakend, self).__eq__(other) and self.chr == other.chr and self.pos == other.pos and self.remoteOrientation == other.remoteOrientation and self.withinMainAssembly == other.withinMainAssembly and self.orientation == other.orientation and self.connectingSequence == other.connectingSequence
+        return super(_Breakend, self).__eq__(other) \
+                and self.chr == other.chr \
+                and self.pos == other.pos \
+                and self.remoteOrientation == other.remoteOrientation \
+                and self.withinMainAssembly == other.withinMainAssembly \
+                and self.orientation == other.orientation \
+                and self.connectingSequence == other.connectingSequence
+
 
 class _SingleBreakend(_Breakend):
     '''A single breakend'''
+
     def __init__(self, orientation, connectingSequence):
         super(_SingleBreakend, self).__init__(None, None, orientation, None, connectingSequence, None)
 
+
 class _SV(_AltRecord):
     '''An SV placeholder'''
+
     def __init__(self, type):
         super(_SV, self).__init__(type)
 
     def __str__(self):
         return "<" + self.type + ">"
+
 
 class _vcf_metadata_parser(object):
     '''Parse the metadat in the header of a VCF file.'''
@@ -258,7 +278,8 @@ class _Call(object):
         self.called = self.gt_nums is not None
 
     def __repr__(self):
-        return "Call(sample=%s, GT=%s%s)" % (self.sample, self.gt_nums, "".join([", %s=%s" % (X,self.data[X]) for X in self.data if X != 'GT']))
+        return "Call(sample=%s, GT=%s%s)" % (self.sample, self.gt_nums,
+                "".join([", %s=%s" % (X, self.data[X]) for X in self.data if X != 'GT']))
 
     def __eq__(self, other):
         """ Two _Calls are equal if their _Records are equal
@@ -442,8 +463,8 @@ class _Record(object):
         hom_ref = self.num_hom_ref
         het = self.num_het
         hom_alt = self.num_hom_alt
-        num_chroms = float(2.0*self.num_called)
-        return float(het + 2*hom_alt)/float(num_chroms)
+        num_chroms = float(2.0 * self.num_called)
+        return float(het + 2 * hom_alt) / float(num_chroms)
 
     @property
     def nucl_diversity(self):
@@ -461,9 +482,9 @@ class _Record(object):
         if len(self.ALT) > 1:
             return None
         p = self.aaf
-        q = 1.0-p
-        num_chroms = float(2.0*self.num_called)
-        return float(num_chroms/(num_chroms-1.0)) * (2.0 * p * q)
+        q = 1.0 - p
+        num_chroms = float(2.0 * self.num_called)
+        return float(num_chroms / (num_chroms - 1.0)) * (2.0 * p * q)
 
     def get_hom_refs(self):
         """ The list of hom ref genotypes"""
@@ -882,12 +903,12 @@ class Reader(object):
             orientation = (str[0] == '[' or str[0] == ']')
             remoteOrientation = (re.search('\[', str) is not None)
             if orientation:
-               connectingSequence = items[2]
+                connectingSequence = items[2]
             else:
-               connectingSequence = items[0]
+                connectingSequence = items[0]
             return _Breakend(chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly)
         elif str[0] == '.' and len(str) > 1:
-            return _SingleBreakend(True,str[1:])
+            return _SingleBreakend(True, str[1:])
         elif str[-1] == '.' and len(str) > 1:
             return _SingleBreakend(False, str[:-1])
         elif str[0] == "<" and str[-1] == ">":
@@ -960,7 +981,7 @@ class Reader(object):
         start = start - 1
 
         if end is None:
-            self.reader = self._tabix.fetch(chrom, start, start+1)
+            self.reader = self._tabix.fetch(chrom, start, start + 1)
             try:
                 return self.next()
             except StopIteration:
@@ -1028,6 +1049,7 @@ class Writer(object):
         '''``map``, but make None values none.'''
         return [func(x) if x is not None else none
                 for x in iterable]
+
 
 def __update_readme():
     import sys, vcf
