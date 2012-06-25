@@ -50,8 +50,8 @@ class TestVcfSpecs(unittest.TestCase):
         # contigs were added in vcf4.1
         # probably need to add a reader.contigs attribute
         assert 'contig' in reader.metadata
-        assert 'ID' in reader.metadata['contig']
-        assert reader.metadata['contig']['ID'] == '20'
+        assert 'ID' in reader.metadata['contig'][0]
+        assert reader.metadata['contig'][0]['ID'] == '20'
 
         # test we can walk the file at least
         for r in reader:

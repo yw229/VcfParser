@@ -43,6 +43,10 @@ RESERVED_FORMAT = {
     'AHAP':'Integer'
 }
 
+# Spec is a bit weak on which metadata lines are singular, like fileformat
+# and which can have repeats, like contig
+SINGULAR_METADATA = ['fileformat', 'fileDate', 'reference']
+
 # Conversion between value in file and Python value
 field_counts = {
     '.': None,  # Unknown number of values
@@ -750,7 +754,12 @@ class Reader(object):
 
             else:
                 key, val = parser.read_meta(line.strip())
-                self.metadata[key] = val
+                if key in SINGULAR_METADATA:
+                    self.metadata[key] = val
+                else:
+                    if key not in self.metadata:
+                        self.metadata[key] = []
+                    self.metadata[key].append(val)
 
             line = self.reader.next()
 
@@ -1010,8 +1019,11 @@ class Writer(object):
         two = '##{key}=<ID={0},Description="{1}">\n'
         four = '##{key}=<ID={0},Number={num},Type={2},Description="{3}">\n'
         _num = self._fix_field_count
-        for line in template.metadata.iteritems():
-            stream.write('##{0}={1}\n'.format(*line))
+        for (key, vals) in template.metadata.iteritems():
+            if key in SINGULAR_METADATA:
+                vals = [vals]
+            for val in vals:
+                stream.write('##{0}={1}\n'.format(key, val))
         for line in template.infos.itervalues():
             stream.write(four.format(key="INFO", *line, num=_num(line.num)))
         for line in template.formats.itervalues():
