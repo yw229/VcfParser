@@ -44,6 +44,7 @@ setup(
         'vcf.filters': [
             'site_quality = vcf.filters:SiteQuality',
             'vgq = vcf.filters:VariantGenotypeQuality',
+            'eb = vcf.filters:ErrorBiasFilter',
         ]
     },
     url='https://github.com/jamescasbon/PyVCF',

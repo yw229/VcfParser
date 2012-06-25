@@ -9,6 +9,18 @@ operation that PyVCF offers an extensible script.  ``vcf_filter.py`` does
 the work of reading input, updating the metadata and filtering the records.
 
 
+Existing Filters
+----------------
+
+.. autoclass:: vcf.filters.SiteQuality
+
+.. autoclass:: vcf.filters.VariantGenotypeQuality
+
+.. autoclass:: vcf.filters.ErrorBiasFilter
+
+
+
+
 Adding a filter
 ---------------
 
