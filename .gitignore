@@ -6,3 +6,4 @@ docs/_build
 .ropeproject
 1kg.prof
 .noseids
+.tox
