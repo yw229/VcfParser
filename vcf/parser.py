@@ -1,4 +1,3 @@
-
 import collections
 import re
 import csv
@@ -1015,8 +1014,8 @@ class Writer(object):
     # Reverse keys and values in header field count dictionary
     counts = dict((v,k) for k,v in field_counts.iteritems())
 
-    def __init__(self, stream, template):
-        self.writer = csv.writer(stream, delimiter="\t")
+    def __init__(self, stream, template, lineterminator="\r\n"):
+        self.writer = csv.writer(stream, delimiter="\t", lineterminator=lineterminator)
         self.template = template
 
         two = '##{key}=<ID={0},Description="{1}">\n'
@@ -1045,7 +1044,7 @@ class Writer(object):
     def write_record(self, record):
         """ write a record to the file """
         ffs = self._map(str, [record.CHROM, record.POS, record.ID, record.REF]) \
-              + [self._format_alt(record.ALT), record.QUAL or '.', record.FILTER or '.',
+              + [self._format_alt(record.ALT), record.QUAL or '.', self._format_filter(record.FILTER),
                  self._format_info(record.INFO), record.FORMAT]
 
         samples = [self._format_sample(record.FORMAT, sample)
@@ -1061,21 +1060,29 @@ class Writer(object):
 
     def _format_alt(self, alt):
         return ','.join(self._map(str, alt))
+    
+    def _format_filter(self, flt):
+        return self._stringify(flt, none='PASS', delim=';')
 
     def _format_info(self, info):
         if not info:
             return '.'
-        return ';'.join(["%s=%s" % (x, self._stringify(y)) for x, y in info.iteritems()])
+        return ';'.join([self._stringify_pair(x,y)) for x, y in info.iteritems()])
 
     def _format_sample(self, fmt, sample):
         if sample.data["GT"] is None:
             return "./."
         return ':'.join(self._stringify(sample.data[f]) for f in fmt.split(':'))
 
-    def _stringify(self, x, none='.'):
+    def _stringify(self, x, none='.', delim=','):
         if type(x) == type([]):
-            return ','.join(self._map(str, x, none))
+            return delim.join(self._map(str, x, none))
         return str(x) if x is not None else none
+
+    def _stringify_pair(self, x, y, none='.', delim=','):
+        if isinstance(y, bool):
+            return str(x)
+        return "%s=%s" % (str(x), self._stringify(y, none=none, delim=delim))
 
     def _map(self, func, iterable, none='.'):
         '''``map``, but make None values none.'''
