@@ -121,18 +121,21 @@ class _Breakend(_AltRecord):
         #: The breakpoint's connecting sequence.
         self.connectingSequence = connectingSequence
 
+    def __repr__(self):
+        return str(self)
+
     def __str__(self):
         if self.chr is None:
             remoteTag = '.'
         else:
-            if self.withinAssembly:
+            if self.withinMainAssembly:
                 remoteChr = self.chr
             else:
                 remoteChr = "<" + self.chr + ">"
             if self.remoteOrientation:
-                remoteTag = "[" + remoteChr + ":" + self.pos + "["
+                remoteTag = "[" + remoteChr + ":" + str(self.pos) + "["
             else:
-                remoteTag = "]" + remoteChr + ":" + self.pos + "]"
+                remoteTag = "]" + remoteChr + ":" + str(self.pos) + "]"
 
         if self.orientation:
             return remoteTag + self.connectingSequence

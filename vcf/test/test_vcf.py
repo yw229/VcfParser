@@ -68,6 +68,8 @@ class TestVcfSpecs(unittest.TestCase):
         # test we can walk the file at least
         for r in reader:
             print(r)
+            for a in r.ALT:
+                print(a)
             for c in r:
                 print(c)
                 assert c
@@ -78,6 +80,8 @@ class TestVcfSpecs(unittest.TestCase):
         # test we can walk the file at least
         for r in reader:
             print(r)
+            for a in r.ALT:
+                print(a)
             if r.ID == "bnd1":
                     assert len(r.ALT) == 1
                     assert r.ALT[0].type == "BND"
