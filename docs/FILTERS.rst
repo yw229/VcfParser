@@ -117,3 +117,33 @@ Simultaneously iterate two or more files
 ----------------------------------------
 
 .. autofunction:: vcf.utils.walk_together
+
+Trim common suffix
+--------------------
+.. autofunction:: vcf.utils.trim_common_suffix
+
+
+vcf_melt
+--------
+
+This script converts a VCF file from wide format (many calls per row) 
+to a long format (one call per row).  This is useful if you want to grep per sample
+or for really quick import into, say, a spreadsheet::
+
+    $ vcf_melt < vcf/test/gatk.vcf 
+    SAMPLE	AD	DP	GQ	GT	PL	FILTER	CHROM	POS	REF	ALT	ID	info.AC	info.AF	info.AN	info.BaseQRankSum	info.DB	info.DP	info.DS	info.Dels	info.FS	info.HRun	info.HaplotypeScore	info.InbreedingCoeff	info.MQ	info.MQ0	info.MQRankSum	info.QD	info.ReadPosRankSum
+    BLANK	6,0	6	18.04	0/0	0,18,211	.	chr22	42522392	G	[A]	rs28371738	2	0.143	14	0.375	True	1506	True	0.0	0.0	0	123.5516		253.92	0	0.685	5.9	0.59
+    NA12878	138,107	250	99.0	0/1	1961,0,3049	.	chr22	42522392	G	[A]	rs28371738	2	0.143	14	0.375	True	1506	True	0.0	0.0	0	123.5516		253.92	0	0.685	5.9	0.59
+    NA12891	169,77	250	99.0	0/1	1038,0,3533	.	chr22	42522392	G	[A]	rs28371738	2	0.143	14	0.375	True	1506	True	0.0	0.0	0	123.5516		253.92	0	0.685	5.9	0.59
+    NA12892	249,0	250	99.0	0/0	0,600,5732	.	chr22	42522392	G	[A]	rs28371738	2	0.143	14	0.375	True	1506	True	0.0	0.0	0	123.5516		253.92	0	0.685	5.9	0.59
+    NA19238	248,1	250	99.0	0/0	0,627,6191	.	chr22	42522392	G	[A]	rs28371738	2	0.143	14	0.375	True	1506	True	0.0	0.0	0	123.5516		253.92	0	0.685	5.9	0.59
+    NA19239	250,0	250	99.0	0/0	0,615,5899	.	chr22	42522392	G	[A]	rs28371738	2	0.143	14	0.375	True	1506	True	0.0	0.0	0	123.5516		253.92	0	0.685	5.9	0.59
+    NA19240	250,0	250	99.0	0/0	0,579,5674	.	chr22	42522392	G	[A]	rs28371738	2	0.143	14	0.375	True	1506	True	0.0	0.0	0	123.5516		253.92	0	0.685	5.9	0.59
+    BLANK	13,4	17	62.64	0/1	63,0,296	.	chr22	42522613	G	[C]	rs1135840	6	0.429	14	16.289	True	1518	True	0.03	0.0	0	142.5716		242.46	0	2.01	9.16	-1.731
+    NA12878	118,127	246	99.0	0/1	2396,0,1719	.	chr22	42522613	G	[C]	rs1135840	6	0.429	14	16.289	True	1518	True	0.03	0.0	0	142.5716		242.46	0	2.01	9.16	-1.731
+    NA12891	241,0	244	99.0	0/0	0,459,4476	.	chr22	42522613	G	[C]	rs1135840	6	0.429	14	16.289	True	1518	True	0.03	0.0	0	142.5716		242.46	0	2.01	9.16	-1.731
+    NA12892	161,85	246	99.0	0/1	1489,0,2353	.	chr22	42522613	G	[C]	rs1135840	6	0.429	14	16.289	True	1518	True	0.03	0.0	0	142.5716		242.46	0	2.01	9.16	-1.731
+    NA19238	110,132	242	99.0	0/1	2561,0,1488	.	chr22	42522613	G	[C]	rs1135840	6	0.429	14	16.289	True	1518	True	0.03	0.0	0	142.5716		242.46	0	2.01	9.16	-1.731
+    NA19239	106,135	242	99.0	0/1	2613,0,1389	.	chr22	42522613	G	[C]	rs1135840	6	0.429	14	16.289	True	1518	True	0.03	0.0	0	142.5716		242.46	0	2.01	9.16	-1.731
+    NA19240	116,126	243	99.0	0/1	2489,0,1537	.	chr22	42522613	G	[C]	rs1135840	6	0.429	14	16.289	True	1518	True	0.03	0.0	0	142.5716		242.46	0	2.01	9.16	-1.731
+

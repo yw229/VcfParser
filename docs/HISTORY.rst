@@ -22,7 +22,15 @@ Changes
 
 VCF 4.1 support: 
  * support missing genotype #28 (thanks @martijnvermaat)
- * parseALT for svs #42 (thanks @dzerbino)
+ * parseALT for svs #42, #48 (thanks @dzerbino)
+* `trim_common_suffix` method #22 (thanks @martijnvermaat)
+* Multiple metadata with the same key is stored (#52)
+Writer improvements
+ * A/G in Number INFO fields #53 (thanks @lennax) 
+ * Better output #55 (thanks @cmclean)
+* Allow malformed INFO fields #49 (thanks @ilyaminkin)
+* Added bayes factor error bias VCF filter
+* Added docs on vcf_melt
 
 0.4.6 Release
 -------------
