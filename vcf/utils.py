@@ -33,9 +33,33 @@ def walk_together(*readers):
             break
 
 
+def trim_common_suffix(*sequences):
+    """
+    Trim a list of sequences by removing the longest common suffix while
+    leaving all of them at least one character in length.
 
+    Standard convention with VCF is to place an indel at the left-most
+    position, but some tools add additional context to the right of the
+    sequences (e.g. samtools). These common suffixes are undesirable when
+    comparing variants, for example in variant databases.
 
+        >>> trim_common_suffix('TATATATA', 'TATATA')
+        ['TAT', 'T']
 
+        >>> trim_common_suffix('ACCCCC', 'ACCCCCCCC', 'ACCCCCCC', 'ACCCCCCCCC')
+        ['A', 'ACCC', 'ACC', 'ACCCC']
 
-
-
+    """
+    if not sequences:
+        return []
+    reverses = [seq[::-1] for seq in sequences]
+    rev_min = min(reverses)
+    rev_max = max(reverses)
+    if len(rev_min) < 2:
+        return sequences
+    for i, c in enumerate(rev_min[:-1]):
+        if c != rev_max[i]:
+            if i == 0:
+                return sequences
+            return [seq[:-i] for seq in sequences]
+    return [seq[:-(i + 1)] for seq in sequences]
