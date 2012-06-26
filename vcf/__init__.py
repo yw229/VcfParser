@@ -172,9 +172,9 @@ declared by other packages will be available for use in this script.  Please
 see :doc:`FILTERS` for full description.
 
 '''
-from parser import Reader, Writer
-from parser import VCFReader, VCFWriter
-from filters import Base as Filter
-from parser import RESERVED_INFO, RESERVED_FORMAT
+from vcf.parser import Reader, Writer
+from vcf.parser import VCFReader, VCFWriter
+from vcf.filters import Base as Filter
+from vcf.parser import RESERVED_INFO, RESERVED_FORMAT
 
 VERSION = '0.5.0-pre'
