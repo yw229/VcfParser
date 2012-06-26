@@ -1060,14 +1060,14 @@ class Writer(object):
 
     def _format_alt(self, alt):
         return ','.join(self._map(str, alt))
-    
+
     def _format_filter(self, flt):
         return self._stringify(flt, none='PASS', delim=';')
 
     def _format_info(self, info):
         if not info:
             return '.'
-        return ';'.join([self._stringify_pair(x,y)) for x, y in info.iteritems()])
+        return ';'.join([self._stringify_pair(x,y) for x, y in info.iteritems()])
 
     def _format_sample(self, fmt, sample):
         if sample.data["GT"] is None:
