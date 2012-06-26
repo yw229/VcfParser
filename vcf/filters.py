@@ -51,8 +51,9 @@ class SiteQuality(Base):
 
 
 class VariantGenotypeQuality(Base):
-    """ Filters sites with low quality variants.  i.e. it is possible
-        to have a high site quality with many low quality calls.  This
+    """ Filters sites with only low quality variants.
+
+        It is possible to have a high site quality with many low quality calls.  This
         filter demands at least one call be above a threshold quality.
     """
 
@@ -74,7 +75,9 @@ class VariantGenotypeQuality(Base):
 
 
 class ErrorBiasFilter(Base):
-    """ Some sequencing technologies, notably pyrosequencing, produce mutation
+    """ Filter sites that look like correlated sequencing errors.
+
+        Some sequencing technologies, notably pyrosequencing, produce mutation
         hotspots where there is a constant level of noise, producing some reference
         and some heterozygote calls.
 
@@ -98,7 +101,7 @@ class ErrorBiasFilter(Base):
                 help='Filter sites above this error log odds ratio')
 
     def __init__(self, args):
-        self.threshold = args.errlr
+        self.threshold = args.eblr
         if robjects is None:
             raise Exception('Please install rpy2')
         self.ll_test = robjects.r('''

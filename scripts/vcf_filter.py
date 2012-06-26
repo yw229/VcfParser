@@ -134,7 +134,9 @@ def main():
         f = filters[name](filter_args)
         chain.append(f)
         # add a filter record to the output
-        inp.filters[f.filter_name()] = _Filter(f.filter_name(), f.description)
+        short_doc = f.__doc__ or ''
+        short_doc = short_doc.split('\n')[0].lstrip()
+        inp.filters[f.filter_name()] = _Filter(f.filter_name(), short_doc)
 
     # output must be created after all the filter records have been added
     output = vcf.Writer(args.output, inp)

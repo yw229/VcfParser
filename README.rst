@@ -1,4 +1,4 @@
-A VCFv4.0 parser for Python.
+A VCFv4.0 and 4.1 parser for Python.
 
 Online version of PyVCF documentation is available at http://pyvcf.rtfd.org/
 
@@ -112,7 +112,6 @@ There are also a number of methods::
     >>> print call.called, call.gt_type, call.gt_bases, call.phased
     True 0 T|T True
 
-
 Metadata regarding the VCF file itself can be investigated through the
 following attributes:
 
@@ -132,6 +131,16 @@ For example::
     OrderedDict([('q10', Filter(id='q10', desc='Quality below 10')), ('s50', Filter(id='s50', desc='Less than 50% of samples have data'))])
     >>> vcf_reader.infos['AA'].desc
     'Ancestral Allele'
+
+ALT records are actually classes, so that you can interrogate them::
+
+    >>> reader = vcf.Reader(file('vcf/test/example-4.1-bnd.vcf'))
+    >>> _ = reader.next(); row = reader.next()
+    >>> print row
+    Record(CHROM=1, POS=2, REF=T, ALT=[T[2:3[])
+    >>> bnd = row.ALT[0]
+    >>> print bnd.withinMainAssembly, bnd.orientation, bnd.remoteOrientation, bnd.connectingSequence
+    True False True T
 
 Random access is supported for files with tabix indexes.  Simply call fetch for the
 region you are interested in::

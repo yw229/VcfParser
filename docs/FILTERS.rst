@@ -54,7 +54,10 @@ I can create a class like this::
 
 
 This class subclasses ``vcf.filters.Base`` which provides the interface for VCF filters.
-The docstring  and ``name`` are metadata about the parser.
+The docstring  and ``name`` are metadata about the parser.  The docstring provides
+the help for the script, and the first line is included in the FILTER metadata when 
+applied to a file.
+
 The ``customize_parser`` method allows you to add arguments to the script.
 We use the ``__init__`` method to grab the argument of interest from the parser.
 Finally, the ``__call__`` method processes each record and returns a value if the 
