@@ -18,6 +18,12 @@ Existing Filters
 
 .. autoclass:: vcf.filters.ErrorBiasFilter
 
+.. autoclass:: vcf.filters.DepthPerSample
+
+.. autoclass:: vcf.filters.AvgDepthPerSample
+
+.. autoclass:: vcf.filters.SnpOnly
+
 
 
 
@@ -30,8 +36,8 @@ I can create a class like this::
    
     import vcf.filters
     class SiteQuality(vcf.filters.Base):
+        'Filter sites by quality'
 
-        description = 'Filter sites by quality'
         name = 'sq'
 
         @classmethod
@@ -48,7 +54,7 @@ I can create a class like this::
 
 
 This class subclasses ``vcf.filters.Base`` which provides the interface for VCF filters.
-The ``description``` and ``name`` are metadata about the parser.
+The docstring  and ``name`` are metadata about the parser.
 The ``customize_parser`` method allows you to add arguments to the script.
 We use the ``__init__`` method to grab the argument of interest from the parser.
 Finally, the ``__call__`` method processes each record and returns a value if the 

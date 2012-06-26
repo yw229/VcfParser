@@ -11,17 +11,17 @@ def create_filt_parser(name):
             add_help=False
             )
     parser.add_argument('rest', nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
-    
+
     return parser
 
 def create_core_parser():
-    # we have to use custom formatted usage, because of the 
+    # we have to use custom formatted usage, because of the
     # multi-stage argument parsing (otherwise the filter arguments
     # are grouped together with the other optionals)
     parser = argparse.ArgumentParser(description='Filter a VCF file',
             add_help=False,
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-            usage="""%(prog)s [-h] [--no-short-circuit] [--no-filtered] 
+            usage="""%(prog)s [-h] [--no-short-circuit] [--no-filtered]
               [--output OUTPUT] [--local-script LOCAL_SCRIPT]
               input filter [filter_args] [filter [filter_args]] ...
             """
@@ -41,25 +41,25 @@ def create_core_parser():
     parser.add_argument('--local-script', action='store', default=None,
             help='Python file in current working directory with the filter classes')
     parser.add_argument('rest', nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
-    
+
     return parser
 
 # argument parsing strategy
-# loading a script given at the command line poses a difficulty 
+# loading a script given at the command line poses a difficulty
 # for using the argparse in a simple way -- the command line arguments
 # are not completely known the first time command line is parsed
 # requirements:
 #  - display all filters with options grouped by the filters in help screen
 #  - check if only arguments for currently used filters are given
-#  - to increase legibility when using more filters, arguments should 
+#  - to increase legibility when using more filters, arguments should
 #    follow the filter name
-#  - it is good to specify the filters explicitly by name, 
+#  - it is good to specify the filters explicitly by name,
 #    because the order of filtering can matter
 # solution
-# - change the command syntax to 
+# - change the command syntax to
 #   vcf_filter.py --core-options input filter1 --filter1-args filter2 filter3
 # - parse the core program options with parse_known_args
-# - use add_argument_group for filters (subparsers won't work, they require 
+# - use add_argument_group for filters (subparsers won't work, they require
 #   the second command in argv[1])
 # - create all-filters parser when displaying the help
 # - parse the arguments incrementally on argparse.REMAINDER of the previous
@@ -83,9 +83,9 @@ def main():
     # with help/arguments of each filter
     def addfilt(filt):
         filters[filt.name] = filt
-        arg_group = parser.add_argument_group(filt.name, filt.description)
+        arg_group = parser.add_argument_group(filt.name, filt.__doc__)
         filt.customize_parser(arg_group)
-    
+
     # look for global extensions
     for p in pkg_resources.iter_entry_points('vcf.filters'):
         filt = p.load()
@@ -102,14 +102,14 @@ def main():
         for name, cls in classes:
             addfilt(cls)
 
-    # go through the filters on the command line 
+    # go through the filters on the command line
     # one by one, trying to consume only the declared arguments
     used_filters = []
     while len(args.rest):
         filter_name = args.rest.pop(0)
         if filter_name not in filters:
             sys.exit("%s is not a known filter (%s)" % (filter_name, str(filters.keys())))
-        
+
         # create a parser only for arguments of current filter
         filt_parser = create_filt_parser(filter_name)
         filters[filter_name].customize_parser(filt_parser)
@@ -120,7 +120,7 @@ def main():
         used_filters.append((filter_name, known_filt_args))
         args.rest = known_filt_args.rest
 
-    # print help using the 'help' parser, so it includes 
+    # print help using the 'help' parser, so it includes
     # all possible filters and arguments
     if args.help or len(used_filters) == 0 or args.input == None:
         parser.print_help()
@@ -150,15 +150,15 @@ def main():
             if result == None: continue
 
             # save some work by skipping the rest of the code
-            if drop_filtered: 
+            if drop_filtered:
                 output_record = False
                 break
-            
+
             record.add_filter(filt.filter_name())
             if short_circuit: break
 
         if output_record:
-            # use PASS only if other filter names appear in the FILTER column 
+            # use PASS only if other filter names appear in the FILTER column
             #FIXME: is this good idea?
             if record.FILTER == '.' and not drop_filtered: record.FILTER = 'PASS'
             output.write_record(record)

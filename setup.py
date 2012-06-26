@@ -45,6 +45,9 @@ setup(
             'site_quality = vcf.filters:SiteQuality',
             'vgq = vcf.filters:VariantGenotypeQuality',
             'eb = vcf.filters:ErrorBiasFilter',
+            'dps = vcf.filters:DepthPerSample',
+            'avg-dps = vcf.filters:AvgDepthPerSample',
+            'snp-only = vcf.filters:SnpOnly',
         ]
     },
     url='https://github.com/jamescasbon/PyVCF',

@@ -31,6 +31,8 @@ Writer improvements
 * Allow malformed INFO fields #49 (thanks @ilyaminkin)
 * Added bayes factor error bias VCF filter
 * Added docs on vcf_melt
+* filters from @libor-m (SNP only, depth per sample, avg depth per sample)
+* change to the filter API, use docstring for filter description
 
 0.4.6 Release
 -------------

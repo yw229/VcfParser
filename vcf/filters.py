@@ -5,13 +5,14 @@ except:
 
 
 class Base(object):
-    """ Base class for vcf_filter.py filters """
+    """ Base class for vcf_filter.py filters.
+
+        Use the class docstring to provide the filter description
+        as it appears in vcf_filter.py
+    """
 
     name = 'f'
     """ name used to activate filter and in VCF headers """
-
-    description = 'VCF filter base class'
-    """ descrtiption used in vcf headers """
 
     @classmethod
     def customize_parser(self, parser):
@@ -34,7 +35,6 @@ class Base(object):
 class SiteQuality(Base):
     """ Filter low quailty sites """
 
-    description = 'Filter sites by quality'
     name = 'sq'
 
     @classmethod
@@ -56,7 +56,6 @@ class VariantGenotypeQuality(Base):
         filter demands at least one call be above a threshold quality.
     """
 
-    description = 'Demand a minimum quality associated with a non reference call'
     name = 'mgq'
 
     @classmethod
@@ -64,8 +63,8 @@ class VariantGenotypeQuality(Base):
         parser.add_argument('--genotype-quality', type=int, default=50,
                 help='Filter sites with no genotypes above this quality')
 
-    def __init__(self, args):
-        self.threshold = args.genotype_quality
+        def __init__(self, args):
+            self.threshold = args.genotype_quality
 
     def __call__(self, record):
         if not record.is_monomorphic:
@@ -82,8 +81,8 @@ class ErrorBiasFilter(Base):
         This filter computes a Bayes Factor for each site by comparing
         the binomial likelihood of the observed allelic depths under:
 
-        * A model with constant error equal to the MAF
-        * A model where each sample is the ploidy reported by the caller
+        * A model with constant error equal to the MAF.
+        * A model where each sample is the ploidy reported by the caller.
 
         The test value is the log of the bayes factor.  Higher values
         are more likely to be errors.
@@ -91,12 +90,11 @@ class ErrorBiasFilter(Base):
         Note: this filter requires rpy2
     """
 
-    description = 'Filter sites with a constant level of mutation across all samples'
     name = 'eb'
 
     @classmethod
     def customize_parser(self, parser):
-        parser.add_argument('--errlr', type=int, default=-10,
+        parser.add_argument('--eblr', type=int, default=-10,
                 help='Filter sites above this error log odds ratio')
 
     def __init__(self, args):
@@ -150,3 +148,58 @@ class ErrorBiasFilter(Base):
         test_val, ab = self.ll_test(ra, aa, gt)
 
         return test_val < 0, test_val, ab
+
+
+class DepthPerSample(Base):
+    'Threshold read depth per sample'
+
+    name = 'dps'
+
+    @classmethod
+    def customize_parser(self, parser):
+        parser.add_argument('--depth-per-sample', type=int, default=5,
+                help='Minimum required coverage in each sample')
+
+    def __init__(self, args):
+        self.threshold = args.depth_per_sample
+
+    def __call__(self, record):
+        # do not test depth for indels
+        if record.is_indel:
+            return
+
+        mindepth = min([sam['DP'] for sam in record.samples])
+        if mindepth < self.threshold:
+            return mindepth
+
+
+class AvgDepthPerSample(Base):
+    'Threshold average read depth per sample (read_depth / sample_count)'
+
+    name = 'avg-dps'
+
+    @classmethod
+    def customize_parser(self, parser):
+        parser.add_argument('--avg-depth-per-sample', type=int, default=3,
+              help='Minimum required average coverage per sample')
+
+    def __init__(self, args):
+        self.threshold = args.avg_depth_per_sample
+
+    def __call__(self, record):
+        avgcov = float(record.INFO['DP']) / len(record.samples)
+        if avgcov < self.threshold:
+            return avgcov
+
+
+class SnpOnly(Base):
+    'Choose only SNP variants'
+
+    name = 'snp-only'
+
+    def __call__(self, record):
+        if not record.is_snp:
+            return True
+
+    def filter_name(self):
+        return self.name
