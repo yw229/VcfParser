@@ -198,7 +198,7 @@ class Test1kg(unittest.TestCase):
 
     def test_issue_49(self):
         """docstring for test_issue_49"""
-        reader = vcf.Reader(fh('issue_49.vcf', 'rb'))
+        reader = vcf.Reader(fh('issue_49.vcf', 'r'))
 
         self.assertEqual(len(reader.samples), 0)
         for _ in reader:

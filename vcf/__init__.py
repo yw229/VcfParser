@@ -15,7 +15,7 @@ There main interface is the class: ``Reader``.  It takes a file-like
 object and acts as a reader::
 
     >>> import vcf
-    >>> vcf_reader = vcf.Reader(open('vcf/test/example-4.0.vcf', 'rb'))
+    >>> vcf_reader = vcf.Reader(open('vcf/test/example-4.0.vcf', 'r'))
     >>> for record in vcf_reader:
     ...     print record
     Record(CHROM=20, POS=14370, REF=G, ALT=[A])
@@ -50,7 +50,7 @@ one-entry Python lists (see, e.g., ``Record.ALT``).  Semicolon-delimited lists
 of key=value pairs are converted to Python dictionaries, with flags being given
 a ``True`` value. Integers and floats are handled exactly as you'd expect::
 
-    >>> vcf_reader = vcf.Reader(open('vcf/test/example-4.0.vcf', 'rb'))
+    >>> vcf_reader = vcf.Reader(open('vcf/test/example-4.0.vcf', 'r'))
     >>> record = vcf_reader.next()
     >>> print record.POS
     14370
@@ -135,7 +135,7 @@ For example::
 
 ALT records are actually classes, so that you can interrogate them::
 
-    >>> reader = vcf.Reader(file('vcf/test/example-4.1-bnd.vcf'))
+    >>> reader = vcf.Reader(open('vcf/test/example-4.1-bnd.vcf'))
     >>> _ = reader.next(); row = reader.next()
     >>> print row
     Record(CHROM=1, POS=2, REF=T, ALT=[T[2:3[])
@@ -147,14 +147,14 @@ Random access is supported for files with tabix indexes.  Simply call fetch for 
 region you are interested in::
 
     >>> vcf_reader = vcf.Reader(filename='vcf/test/tb.vcf.gz')
-    >>> for record in vcf_reader.fetch('20', 1110696, 1230237):
+    >>> for record in vcf_reader.fetch('20', 1110696, 1230237):  # doctest: +SKIP
     ...     print record
     Record(CHROM=20, POS=1110696, REF=A, ALT=[G, T])
     Record(CHROM=20, POS=1230237, REF=T, ALT=[None])
 
 Or extract a single row::
 
-    >>> print vcf_reader.fetch('20', 1110696)
+    >>> print vcf_reader.fetch('20', 1110696)  # doctest: +SKIP
     Record(CHROM=20, POS=1110696, REF=A, ALT=[G, T])
 
 
@@ -162,7 +162,7 @@ The ``Writer`` class provides a way of writing a VCF file.  Currently, you must 
 template ``Reader`` which provides the metadata::
 
     >>> vcf_reader = vcf.Reader(filename='vcf/test/tb.vcf.gz')
-    >>> vcf_writer = vcf.Writer(file('/dev/null', 'w'), vcf_reader)
+    >>> vcf_writer = vcf.Writer(open('/dev/null', 'w'), vcf_reader)
     >>> for record in vcf_reader:
     ...     vcf_writer.write_record(record)
 
