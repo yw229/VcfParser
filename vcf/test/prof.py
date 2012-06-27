@@ -1,4 +1,4 @@
-import vcf
+import vcf as vcf
 import cProfile
 import timeit
 import pstats
@@ -17,7 +17,7 @@ if sys.argv[1] == 'profile':
     p.strip_dirs().sort_stats('time').print_stats()
 
 elif sys.argv[1] == 'time':
-    n = 5
+    n = 1
     t = timeit.timeit('parse_1kg()',  "from __main__ import parse_1kg", number=n)
     print t/n
 else:

@@ -16,6 +16,11 @@ try:
 except ImportError:
     pysam = None
 
+try:
+    import cparse
+except ImportError:
+    cparse = None
+
 
 # Metadata parsers/constants
 RESERVED_INFO = {
@@ -846,7 +851,11 @@ class Reader(object):
 
     def _parse_samples(self, samples, samp_fmt, site):
         '''Parse a sample entry according to the format specified in the FORMAT
-        column.'''
+        column.
+
+        NOTE: this method has a cython equivalent and care must be taken
+        to keep the two methods equivalent
+        '''
 
         # check whether we already know how to parse this format
         if samp_fmt in self._format_cache:
@@ -856,6 +865,10 @@ class Reader(object):
             sf, samp_fmt_types, samp_fmt_nums = self._parse_sample_format(samp_fmt)
             self._format_cache[samp_fmt] = (sf, samp_fmt_types, samp_fmt_nums)
             samp_fmt = sf
+
+        if cparse:
+            return cparse.parse_samples(
+                self.samples, samples, samp_fmt, samp_fmt_types, samp_fmt_nums, site)
 
         samp_data = []
         _map = self._map
