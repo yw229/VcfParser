@@ -13,43 +13,43 @@ vcf.Writer
 .. autoclass:: vcf.Writer
    :members:
 
-vcf._Record
+vcf.model._Record
 -----------
 
-.. autoclass:: vcf.parser._Record
+.. autoclass:: vcf.model._Record
    :members:
 
-vcf._Call
+vcf.model._Call
 ---------
 
-.. autoclass:: vcf.parser._Call
+.. autoclass:: vcf.model._Call
    :members:
 
-vcf._AltRecord
+vcf.model._AltRecord
 -----------
 
-.. autoclass:: vcf.parser._AltRecord
+.. autoclass:: vcf.model._AltRecord
    :members:
 
-vcf._Substitution
+vcf.model._Substitution
 -----------
 
-.. autoclass:: vcf.parser._Substitution
+.. autoclass:: vcf.model._Substitution
    :members:
 
-vcf._SV
+vcf.model._SV
 -----------
 
-.. autoclass:: vcf.parser._SV
+.. autoclass:: vcf.model._SV
    :members:
 
-vcf._SingleBreakend
+vcf.model._SingleBreakend
 -----------
 
-.. autoclass:: vcf.parser._SingleBreakend
+.. autoclass:: vcf.model._SingleBreakend
    :members:
 
-vcf._Breakend
+vcf.model._Breakend
 -----------
 
 .. autoclass:: vcf.parser._Breakend

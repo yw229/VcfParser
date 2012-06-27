@@ -7,3 +7,4 @@ docs/_build
 1kg.prof
 .noseids
 .tox
+.DS_Store`
