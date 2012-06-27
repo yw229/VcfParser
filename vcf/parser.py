@@ -1080,7 +1080,7 @@ class Writer(object):
         return str(x) if x is not None else none
 
     def _stringify_pair(self, x, y, none='.', delim=','):
-        if isinstance(y, bool):
+        if y and isinstance(y, bool):
             return str(x)
         return "%s=%s" % (str(x), self._stringify(y, none=none, delim=delim))
 
