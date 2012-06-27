@@ -1030,6 +1030,7 @@ class Writer(object):
     def __init__(self, stream, template, lineterminator="\r\n"):
         self.writer = csv.writer(stream, delimiter="\t", lineterminator=lineterminator)
         self.template = template
+        self.stream = stream
 
         two = '##{key}=<ID={0},Description="{1}">\n'
         four = '##{key}=<ID={0},Number={num},Type={2},Description="{3}">\n'
@@ -1064,6 +1065,20 @@ class Writer(object):
             for sample in record.samples]
         self.writer.writerow(ffs + samples)
 
+    def flush(self):
+        """Flush the writer"""
+        try:
+            self.stream.flush()
+        except AttributeError:
+            pass
+
+    def close(self):
+        """Close the writer"""
+        try:
+            self.stream.close()
+        except AttributeError:
+            pass
+
     def _fix_field_count(self, num_str):
         """Restore header number to original state"""
         if num_str not in self.counts:
@@ -1093,8 +1108,8 @@ class Writer(object):
         return str(x) if x is not None else none
 
     def _stringify_pair(self, x, y, none='.', delim=','):
-        if y and isinstance(y, bool):
-            return str(x)
+        if isinstance(y, bool):
+            return str(x) if y else ""
         return "%s=%s" % (str(x), self._stringify(y, none=none, delim=delim))
 
     def _map(self, func, iterable, none='.'):
