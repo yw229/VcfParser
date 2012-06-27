@@ -5,9 +5,9 @@ cdef _map(func, iterable, bad='.'):
     return [func(x) if x != bad else None
             for x in iterable]
 
-cdef char *INTEGER = 'Integer'
-cdef char *FLOAT = 'Float'
-cdef char *NUMERIC = 'Numeric'
+INTEGER = 'Integer'
+FLOAT = 'Float'
+NUMERIC = 'Numeric'
 
 def parse_samples(
         list names, list samples, list samp_fmt,

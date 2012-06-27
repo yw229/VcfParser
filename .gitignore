@@ -7,4 +7,6 @@ docs/_build
 1kg.prof
 .noseids
 .tox
-.DS_Store`
+.DS_Store
+vcf/cparse.c
+vcf/cparse.so

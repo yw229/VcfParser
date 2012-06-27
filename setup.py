@@ -1,7 +1,12 @@
 from setuptools import setup
 from distutils.core import setup
 from distutils.extension import Extension
-from Cython.Distutils import build_ext
+
+try:
+    from Cython.Distutils import build_ext
+    CYTHON = True
+except:
+    CYTHON = False
 
 requires = []
 
@@ -31,6 +36,10 @@ for line in open('vcf/__init__.py'):
     if (line.startswith('VERSION')):
         exec(line.strip())
 
+extras = {}
+if CYTHON:
+    extras['cmdclass'] = {'build_ext': build_ext}
+    extras['ext_modules'] = [Extension("vcf.cparse", ["vcf/cparse.pyx"])]
 
 setup(
     name='PyVCF',
@@ -70,6 +79,5 @@ setup(
     package_data = {
         '': ['*.vcf', '*.gz', '*.tbi'],
         },
-    cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension("vcf.cparse", ["vcf/cparse.pyx"])]
+    **extras
 )
