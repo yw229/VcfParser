@@ -17,8 +17,8 @@ New features should have test code sent with them.
 Changes
 =======
 
-0.5.0 Release (pending)
------------------------
+0.5.0 Release
+-------------
 
 VCF 4.1 support: 
  * support missing genotype #28 (thanks @martijnvermaat)
