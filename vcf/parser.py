@@ -1067,11 +1067,17 @@ class Writer(object):
 
     def flush(self):
         """Flush the writer"""
-        self.stream.flush()
+        try:
+            self.stream.flush()
+        except AttributeError:
+            pass
 
     def close(self):
         """Close the writer"""
-        self.stream.close()
+        try:
+            self.stream.close()
+        except AttributeError:
+            pass
 
     def _fix_field_count(self, num_str):
         """Restore header number to original state"""
