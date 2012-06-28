@@ -1,11 +1,11 @@
 import collections
-
+import sys
 
 class _Call(object):
+    """ A genotype call, a cell entry in a VCF file"""
 
     __slots__ = ['site', 'sample', 'data', 'gt_nums', 'called']
 
-    """ A genotype call, a cell entry in a VCF file"""
     def __init__(self, site, sample, data):
         #: The ``_Record`` for this ``_Call``
         self.site = site
@@ -22,10 +22,8 @@ class _Call(object):
             # FIXME how do we know if a non GT call is called?
             self.called = None
 
-
     def __repr__(self):
         return "Call(sample=%s, %s)" % (self.sample, str(self.data))
-
 
     def __eq__(self, other):
         """ Two _Calls are equal if their _Records are equal
@@ -364,14 +362,14 @@ class _Record(object):
                 return "ts"
             elif len(self.ALT) == 1:
                 return "tv"
-            else: # multiple ALT alleles.  unclear
+            else:  # multiple ALT alleles.  unclear
                 return "unknown"
         elif self.is_indel:
             if self.is_deletion:
                 return "del"
             elif len(self.ALT) == 1:
                 return "ins"
-            else: # multiple ALT alleles.  unclear
+            else:  # multiple ALT alleles.  unclear
                 return "unknown"
         elif self.is_sv:
             if self.INFO['SVTYPE'] == "BND":
@@ -519,7 +517,7 @@ class _SV(_AltRecord):
 
 
 def make_calldata_tuple(fields):
-    """ Return a namedtuple for a given sample format """
+    """ Return a namedtuple for a given call format """
 
     class CallData(collections.namedtuple('calldata', fields)):
         __slots__ = ()
@@ -528,8 +526,8 @@ def make_calldata_tuple(fields):
         _nums = []
 
         def __str__(self):
-            dat = ", ".join(["%s=%s" % (x,y)
-                for (x,y) in zip(self._fields, self)])
+            dat = ", ".join(["%s=%s" % (x, y)
+                for (x, y) in zip(self._fields, self)])
             return "CallData(" + dat + ')'
 
     return CallData
