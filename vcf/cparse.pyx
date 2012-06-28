@@ -10,7 +10,7 @@ FLOAT = 'Float'
 NUMERIC = 'Numeric'
 
 def parse_samples(
-        list names, list samples, list samp_fmt,
+        list names, list samples, samp_fmt,
         list samp_fmt_types, list samp_fmt_nums, site):
 
     cdef char *name, *fmt, *entry_type, *sample
@@ -19,57 +19,57 @@ def parse_samples(
     cdef dict sampdict
     cdef list sampvals
     n_samples = len(samples)
-    n_formats = len(samp_fmt)
+    n_formats = len(samp_fmt._fields)
 
     for i in range(n_samples):
         name = names[i]
         sample = samples[i]
 
         # parse the data for this sample
-        sampdict = dict([(x, None) for x in samp_fmt])
+        sampdat = [None] * n_formats
 
         sampvals = sample.split(':')
 
         for j in range(n_formats):
             if j >= len(sampvals):
                 break
-            fmt = samp_fmt[j]
             vals = sampvals[j]
-            entry_type = samp_fmt_types[j]
-            # TODO: entry_num is None for unbounded lists
-            entry_num = samp_fmt_nums[j]
 
             # short circuit the most common
             if vals == '.' or vals == './.':
-                sampdict[fmt] = None
+                sampdat[j] = None
                 continue
+
+            entry_type = samp_fmt_types[j]
+            # TODO: entry_num is None for unbounded lists
+            entry_num = samp_fmt_nums[j]
 
             # we don't need to split single entries
             if entry_num == 1 or ',' not in vals:
 
                 if entry_type == INTEGER:
-                    sampdict[fmt] = int(vals)
+                    sampdat[j] = int(vals)
                 elif entry_type == FLOAT or entry_type == NUMERIC:
-                    sampdict[fmt] = float(vals)
+                    sampdat[j] = float(vals)
                 else:
-                    sampdict[fmt] = vals
+                    sampdat[j] = vals
 
                 if entry_num != 1:
-                    sampdict[fmt] = (sampdict[fmt])
+                    sampdat[j] = (sampdat[j])
 
                 continue
 
             vals = vals.split(',')
 
             if entry_type == INTEGER:
-                sampdict[fmt] = _map(int, vals)
+                sampdat[j] = _map(int, vals)
             elif entry_type == FLOAT or entry_type == NUMERIC:
-                sampdict[fmt] = _map(float, vals)
+                sampdat[j] = _map(float, vals)
             else:
-                sampdict[fmt] = vals
+                sampdat[j] = vals
 
         # create a call object
-        call = _Call(site, name, sampdict)
+        call = _Call(site, name, samp_fmt(*sampdat))
         samp_data.append(call)
 
     return samp_data

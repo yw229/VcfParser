@@ -37,9 +37,9 @@ class TestVcfSpecs(unittest.TestCase):
 
                 # issue 19, in the example ref the GQ is length 1
                 if c.called:
-                    self.assertEqual(type(c.data['GQ']),  type(1))
-                    if 'HQ' in c.data and c.data['HQ'] is not None:
-                        self.assertEqual(type(c.data['HQ']),  type([]))
+                    self.assertEqual(type(c.data.GQ),  type(1))
+                    if 'HQ' in c.data and c.data.HQ is not None:
+                        self.assertEqual(type(c.data.HQ),  type([]))
 
 
 
@@ -218,6 +218,7 @@ class TestWriter(unittest.TestCase):
         for record in records:
             writer.write_record(record)
         out.seek(0)
+        print (out.getvalue())
         reader2 = vcf.Reader(out)
 
         self.assertEquals(reader.samples, reader2.samples)

@@ -69,7 +69,7 @@ examine properties of interest::
     >>> print record.nucl_diversity, record.aaf
     0.6 0.5
     >>> print record.get_hets()
-    [Call(sample=NA00002, GT=1|0, HQ=[51, 51], DP=8, GQ=48)]
+    [Call(sample=NA00002, CallData(GT=1|0, GQ=48, DP=8, HQ=[51, 51]))]
     >>> print record.is_snp, record.is_indel, record.is_transition, record.is_deletion
     True False True False
     >>> print record.var_type, record.var_subtype
@@ -102,7 +102,7 @@ call data in ``data``::
      >>> print call.sample
      NA00001
      >>> print call.data
-     {'GT': '0|0', 'HQ': [58, 50], 'DP': 3, 'GQ': 49}
+     CallData(GT=0|0, GQ=49, DP=3, HQ=[58, 50])
 
 Please note that as of release 0.4.0, attributes known to have single values (such as
 ``DP`` and ``GQ`` above) are returned as values.  Other attributes are returned

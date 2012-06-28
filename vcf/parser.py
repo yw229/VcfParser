@@ -21,7 +21,7 @@ try:
 except ImportError:
     cparse = None
 
-from model import _Call, _Record
+from model import _Call, _Record, make_calldata_tuple
 from model import _Substitution, _Breakend, _SingleBreakend, _SV
 
 
@@ -321,12 +321,9 @@ class Reader(object):
 
     def _parse_sample_format(self, samp_fmt):
         """ Parse the format of the calls in this _Record """
-        samp_fmt = samp_fmt.split(':')
+        samp_fmt = make_calldata_tuple(samp_fmt.split(':'))
 
-        samp_fmt_types = []
-        samp_fmt_nums = []
-
-        for fmt in samp_fmt:
+        for fmt in samp_fmt._fields:
             try:
                 entry_type = self.formats[fmt].type
                 entry_num = self.formats[fmt].num
@@ -336,9 +333,9 @@ class Reader(object):
                     entry_type = RESERVED_FORMAT[fmt]
                 except KeyError:
                     entry_type = 'String'
-            samp_fmt_types.append(entry_type)
-            samp_fmt_nums.append(entry_num)
-        return samp_fmt, samp_fmt_types, samp_fmt_nums
+            samp_fmt._types.append(entry_type)
+            samp_fmt._nums.append(entry_num)
+        return samp_fmt
 
     def _parse_samples(self, samples, samp_fmt, site):
         '''Parse a sample entry according to the format specified in the FORMAT
@@ -349,60 +346,61 @@ class Reader(object):
         '''
 
         # check whether we already know how to parse this format
-        if samp_fmt in self._format_cache:
-            samp_fmt, samp_fmt_types, samp_fmt_nums = \
-                    self._format_cache[samp_fmt]
-        else:
-            sf, samp_fmt_types, samp_fmt_nums = self._parse_sample_format(samp_fmt)
-            self._format_cache[samp_fmt] = (sf, samp_fmt_types, samp_fmt_nums)
-            samp_fmt = sf
+        if samp_fmt not in self._format_cache:
+            self._format_cache[samp_fmt] = self._parse_sample_format(samp_fmt)
+
+        samp_fmt = self._format_cache[samp_fmt]
 
         if cparse:
             return cparse.parse_samples(
-                self.samples, samples, samp_fmt, samp_fmt_types, samp_fmt_nums, site)
+                self.samples, samples, samp_fmt, samp_fmt._types, samp_fmt._nums, site)
 
         samp_data = []
         _map = self._map
 
+        nfields = len(samp_fmt._fields)
+
         for name, sample in itertools.izip(self.samples, samples):
 
             # parse the data for this sample
-            sampdict = dict([(x, None) for x in samp_fmt])
+            sampdat = [None] * nfields
 
-            for fmt, entry_type, entry_num, vals in itertools.izip(
-                    samp_fmt, samp_fmt_types, samp_fmt_nums, sample.split(':')):
+            for i, vals in enumerate(sample.split(':')):
 
                 # short circuit the most common
                 if vals == '.' or vals == './.':
-                    sampdict[fmt] = None
+                    sampdat[i] = None
                     continue
+
+                entry_num = samp_fmt._nums[i]
+                entry_type = samp_fmt._types[i]
 
                 # we don't need to split single entries
                 if entry_num == 1 or ',' not in vals:
 
                     if entry_type == 'Integer':
-                        sampdict[fmt] = int(vals)
+                        sampdat[i] = int(vals)
                     elif entry_type == 'Float':
-                        sampdict[fmt] = float(vals)
+                        sampdat[i] = float(vals)
                     else:
-                        sampdict[fmt] = vals
+                        sampdat[i] = vals
 
                     if entry_num != 1:
-                        sampdict[fmt] = (sampdict[fmt])
+                        sampdat[i] = (sampdat[i])
 
                     continue
 
                 vals = vals.split(',')
 
                 if entry_type == 'Integer':
-                    sampdict[fmt] = _map(int, vals)
+                    sampdat[i] = _map(int, vals)
                 elif entry_type == 'Float' or entry_type == 'Numeric':
-                    sampdict[fmt] = _map(float, vals)
+                    sampdat[i] = _map(float, vals)
                 else:
-                    sampdict[fmt] = vals
+                    sampdat[i] = vals
 
             # create a call object
-            call = _Call(site, name, sampdict)
+            call = _Call(site, name, samp_fmt(*sampdat))
             samp_data.append(call)
 
         return samp_data
@@ -589,9 +587,9 @@ class Writer(object):
         return ';'.join([self._stringify_pair(x,y) for x, y in info.iteritems()])
 
     def _format_sample(self, fmt, sample):
-        if sample.data["GT"] is None:
+        if sample.data.GT is None:
             return "./."
-        return ':'.join(self._stringify(sample.data[f]) for f in fmt.split(':'))
+        return ':'.join([self._stringify(x) for x in sample.data])
 
     def _stringify(self, x, none='.', delim=','):
         if type(x) == type([]):

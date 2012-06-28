@@ -1,3 +1,6 @@
+import collections
+
+
 class _Call(object):
 
     __slots__ = ['site', 'sample', 'data', 'gt_nums', 'called']
@@ -10,13 +13,19 @@ class _Call(object):
         self.sample = sample
         #: Dictionary of data from the VCF file
         self.data = data
-        self.gt_nums = self.data.get('GT')
-        #: True if the GT is not ./.
-        self.called = self.gt_nums is not None
+        try:
+            self.gt_nums = self.data.GT
+            #: True if the GT is not ./.
+            self.called = self.gt_nums is not None
+        except AttributeError:
+            self.gt_nums = None
+            # FIXME how do we know if a non GT call is called?
+            self.called = None
+
 
     def __repr__(self):
-        return "Call(sample=%s, GT=%s%s)" % (self.sample, self.gt_nums,
-                "".join([", %s=%s" % (X, self.data[X]) for X in self.data if X != 'GT']))
+        return "Call(sample=%s, %s)" % (self.sample, str(self.data))
+
 
     def __eq__(self, other):
         """ Two _Calls are equal if their _Records are equal
@@ -76,7 +85,7 @@ class _Call(object):
 
     def __getitem__(self, key):
         """ Lookup value, backwards compatibility """
-        return self.data[key]
+        return getattr(self.data, key)
 
     @property
     def is_variant(self):
@@ -507,3 +516,20 @@ class _SV(_AltRecord):
 
     def __repr__(self):
         return str(self)
+
+
+def make_calldata_tuple(fields):
+    """ Return a namedtuple for a given sample format """
+
+    class CallData(collections.namedtuple('calldata', fields)):
+        __slots__ = ()
+
+        _types = []
+        _nums = []
+
+        def __str__(self):
+            dat = ", ".join(["%s=%s" % (x,y)
+                for (x,y) in zip(self._fields, self)])
+            return "CallData(" + dat + ')'
+
+    return CallData
