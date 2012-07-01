@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 import collections
 import sys
 
@@ -408,13 +409,15 @@ class _Record(object):
 
 class _AltRecord(object):
     '''An alternative allele record: either replacement string, SV placeholder, or breakend'''
+    __metaclass__ = ABCMeta
 
     def __init__(self, type):
         #: String to describe the type of variant, by default "SNV" or "MNV", but can be extended to any of the types described in the ALT lines of the header (e.g. "DUP", "DEL", "INS"...)
         self.type = type
 
+    @abstractmethod
     def __str__(self):
-        assert False, "_AltRecord is an abstract class, you should be using a subclass instead"
+        raise NotImplementedError
 
     def __eq__(self, other):
         return self.type == other.type
