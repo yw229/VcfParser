@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 import collections
 import sys
 
@@ -408,13 +409,16 @@ class _Record(object):
 
 class _AltRecord(object):
     '''An alternative allele record: either replacement string, SV placeholder, or breakend'''
+    __metaclass__ = ABCMeta
 
-    def __init__(self, type):
+    def __init__(self, type, **kwargs):
+        super(_AltRecord, self).__init__(**kwargs)
         #: String to describe the type of variant, by default "SNV" or "MNV", but can be extended to any of the types described in the ALT lines of the header (e.g. "DUP", "DEL", "INS"...)
         self.type = type
 
+    @abstractmethod
     def __str__(self):
-        assert False, "_AltRecord is an abstract class, you should be using a subclass instead"
+        raise NotImplementedError
 
     def __eq__(self, other):
         return self.type == other.type
@@ -423,11 +427,11 @@ class _AltRecord(object):
 class _Substitution(_AltRecord):
     '''A basic ALT record, where a REF sequence is replaced by an ALT sequence'''
 
-    def __init__(self, nucleotides):
+    def __init__(self, nucleotides, **kwargs):
         if len(nucleotides) == 1:
-            super(_Substitution, self).__init__("SNV")
+            super(_Substitution, self).__init__(type="SNV", **kwargs)
         else:
-            super(_Substitution, self).__init__("MNV")
+            super(_Substitution, self).__init__(type="MNV", **kwargs)
         #: Alternate sequence
         self.sequence = str(nucleotides)
 
@@ -450,8 +454,8 @@ class _Substitution(_AltRecord):
 class _Breakend(_AltRecord):
     '''A breakend which is paired to a remote location on or off the genome'''
 
-    def __init__(self, chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly):
-        super(_Breakend, self).__init__("BND")
+    def __init__(self, chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly, **kwargs):
+        super(_Breakend, self).__init__(type="BND", **kwargs)
         #: The chromosome of breakend's mate.
         self.chr = str(chr)
         #: The coordinate of breakend's mate.
@@ -499,15 +503,15 @@ class _Breakend(_AltRecord):
 class _SingleBreakend(_Breakend):
     '''A single breakend'''
 
-    def __init__(self, orientation, connectingSequence):
-        super(_SingleBreakend, self).__init__(None, None, orientation, None, connectingSequence, None)
+    def __init__(self, orientation, connectingSequence, **kwargs):
+        super(_SingleBreakend, self).__init__(None, None, orientation, None, connectingSequence, None, **kwargs)
 
 
 class _SV(_AltRecord):
     '''An SV placeholder'''
 
-    def __init__(self, type):
-        super(_SV, self).__init__(type)
+    def __init__(self, type, **kwargs):
+        super(_SV, self).__init__(type, **kwargs)
 
     def __str__(self):
         return "<" + self.type + ">"

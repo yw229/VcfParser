@@ -179,7 +179,7 @@ class Reader(object):
             or files are attempted to be recogized by the file extension, or gzipped
             can be forced with ``compressed=True``
         """
-        super(VCFReader, self).__init__()
+        super(Reader, self).__init__()
 
         if not (fsock or filename):
             raise Exception('You must provide at least fsock or filename')
@@ -405,7 +405,7 @@ class Reader(object):
 
         return samp_data
 
-    def parseALT(self, str):
+    def _parse_alt(self, str):
         if re.search('[\[\]]', str) is not None:
             # Paired breakend
             items = re.split('[\[\]]', str)
@@ -448,7 +448,7 @@ class Reader(object):
             ID = None
 
         ref = row[3]
-        alt = self._map(self.parseALT, row[4].split(','))
+        alt = self._map(self._parse_alt, row[4].split(','))
 
         try:
             qual = int(row[5])
