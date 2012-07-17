@@ -138,11 +138,12 @@ class ErrorBiasFilter(Base):
     def bias_test(self, calls):
         calls = [x for x in calls if x.called]
         #TODO: single genotype assumption
+        print calls
         try:
             # freebayes
             ra = robjects.IntVector([x['RO'][0] for x in calls])
             aa = robjects.IntVector([x['AO'][0] for x in calls])
-        except KeyError:
+        except AttributeError:
             # GATK
             ra = robjects.IntVector([x['AD'][0] for x in calls])
             aa = robjects.IntVector([x['AD'][1] for x in calls])
