@@ -39,7 +39,7 @@ for record in reader:
 
     for sample in record.samples:
         row = [sample.sample]
-        row += [flatten(sample.data.__getattribute__(x)) for x in formats]
+        row += [flatten(getattr(sample.data, x)) for x in formats]
         row += [record.FILTER or '.']
         row += fixed
         row += info_row
