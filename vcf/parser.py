@@ -581,7 +581,9 @@ class Writer(object):
         return ','.join(self._map(str, alt))
 
     def _format_filter(self, flt):
-        return self._stringify(flt, none='PASS', delim=';')
+        if flt == []:
+            return 'PASS'
+        return self._stringify(flt, none='.', delim=';')
 
     def _format_info(self, info):
         if not info:
