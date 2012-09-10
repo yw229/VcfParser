@@ -151,13 +151,7 @@ class _Record(object):
         self.FORMAT = self.FORMAT + ':' + fmt
 
     def add_filter(self, flt):
-        if self.FILTER is None \
-        or self.FILTER == 'PASS'\
-        or self.FILTER == '.':
-            self.FILTER = ''
-        else:
-            self.FILTER = self.FILTER + ';'
-        self.FILTER = self.FILTER + flt
+        self.FILTER.append(flt)
 
     def add_info(self, info, value=True):
         self.INFO[info] = value

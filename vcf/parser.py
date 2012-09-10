@@ -458,9 +458,11 @@ class Reader(object):
             except ValueError:
                 qual = None
 
-        filt = row[6].split(';') if ';' in row[6] else row[6]
-        if filt == 'PASS':
-            filt = None
+        filt = row[6]
+        if filt == 'PASS' or filt == '.':
+            filt = []
+        else:
+            filt = filt.split(';')
         info = self._parse_info(row[7])
 
         try:
