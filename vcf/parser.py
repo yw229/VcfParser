@@ -591,7 +591,7 @@ class Writer(object):
         return ';'.join([self._stringify_pair(x,y) for x, y in info.iteritems()])
 
     def _format_sample(self, fmt, sample):
-        if sample.data.GT is None:
+        if getattr(sample.data, 'GT', None) is None:
             return "./."
         return ':'.join([self._stringify(x) for x in sample.data])
 
