@@ -757,6 +757,7 @@ class TestUtils(unittest.TestCase):
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFreebayesOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSamtoolsOutput))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestBcfToolsOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
