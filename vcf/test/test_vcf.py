@@ -205,7 +205,7 @@ class Test1kg(unittest.TestCase):
             pass
 
 
-class TestWriter(unittest.TestCase):
+class TestGatkOutputWriter(unittest.TestCase):
 
     def testWrite(self):
 
@@ -227,6 +227,31 @@ class TestWriter(unittest.TestCase):
 
         for l, r in zip(records, reader2):
             self.assertEquals(l.samples, r.samples)
+
+
+class TestBcfToolsOutputWriter(unittest.TestCase):
+
+    def testWrite(self):
+
+        reader = vcf.Reader(fh('bcftools.vcf'))
+        out = StringIO()
+        writer = vcf.Writer(out, reader)
+
+        records = list(reader)
+
+        for record in records:
+            writer.write_record(record)
+        out.seek(0)
+        print (out.getvalue())
+        reader2 = vcf.Reader(out)
+
+        self.assertEquals(reader.samples, reader2.samples)
+        self.assertEquals(reader.formats, reader2.formats)
+        self.assertEquals(reader.infos, reader2.infos)
+
+        for l, r in zip(records, reader2):
+            self.assertEquals(l.samples, r.samples)
+
 
 class TestRecord(unittest.TestCase):
 
@@ -757,7 +782,9 @@ class TestUtils(unittest.TestCase):
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFreebayesOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSamtoolsOutput))
-suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriter))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestBcfToolsOutput))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutputWriter))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestBcfToolsOutputWriter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFilter))
