@@ -198,7 +198,7 @@ class Reader(object):
             if sys.version > '3':
                 self._reader = codecs.getreader('ascii')(self._reader)
 
-        self.reader = (line for line in self._reader if line.rstrip())
+        self.reader = (line.strip() for line in self._reader if line.strip())
 
         #: metadata fields from header (string or hash, depending)
         self.metadata = None
@@ -234,7 +234,6 @@ class Reader(object):
         line = self.reader.next()
         while line.startswith('##'):
             self._header_lines.append(line)
-            line = line.strip()
 
             if line.startswith('##INFO'):
                 key, val = parser.read_info(line)
@@ -253,7 +252,7 @@ class Reader(object):
                 self.formats[key] = val
 
             else:
-                key, val = parser.read_meta(line.strip())
+                key, val = parser.read_meta(line)
                 if key in SINGULAR_METADATA:
                     self.metadata[key] = val
                 else:
@@ -263,7 +262,7 @@ class Reader(object):
 
             line = self.reader.next()
 
-        fields = re.split('\t| +', line.rstrip())
+        fields = re.split('\t| +', line)
         self.samples = fields[9:]
         self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
 
@@ -438,7 +437,7 @@ class Reader(object):
     def next(self):
         '''Return the next record in the file.'''
         line = self.reader.next()
-        row = re.split('\t| +', line.strip())
+        row = re.split('\t| +', line)
         chrom = row[0]
         if self._prepend_chr:
             chrom = 'chr' + chrom
