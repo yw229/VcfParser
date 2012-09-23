@@ -185,18 +185,20 @@ class Reader(object):
             raise Exception('You must provide at least fsock or filename')
 
         if fsock:
-            self.reader = fsock
+            self._reader = fsock
             if filename is None and hasattr(fsock, 'name'):
                 filename = fsock.name
                 compressed = compressed or filename.endswith('.gz')
         elif filename:
             compressed = compressed or filename.endswith('.gz')
-            self.reader = open(filename, 'rb' if compressed else 'rt')
+            self._reader = open(filename, 'rb' if compressed else 'rt')
         self.filename = filename
         if compressed:
-            self.reader = gzip.GzipFile(fileobj=self.reader)
+            self._reader = gzip.GzipFile(fileobj=self._reader)
             if sys.version > '3':
-                self.reader = codecs.getreader('ascii')(self.reader)
+                self._reader = codecs.getreader('ascii')(self._reader)
+
+        self.reader = (line for line in self._reader if line.rstrip())
 
         #: metadata fields from header (string or hash, depending)
         self.metadata = None
