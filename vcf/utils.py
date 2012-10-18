@@ -10,7 +10,15 @@ def walk_together(*readers):
         inputs are sorted in the same way and use the same reference
         otherwise behaviour is undefined.
     """
-    nexts = [reader.next() for reader in readers]
+    # if one of the VCFs has no records, StopIteration is
+    # raised immediately, so we need to check for that and
+    # deal appropriately
+    nexts = []
+    for reader in readers:
+        try:
+            nexts.append(reader.next())
+        except StopIteration:
+            nexts.append(None)
 
     while True:
         min_next = min([x for x in nexts if x is not None])
