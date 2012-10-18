@@ -39,7 +39,9 @@ for record in reader:
 
     for sample in record.samples:
         row = [sample.sample]
-        row += [flatten(getattr(sample.data, x)) for x in formats]
+        # Format fields not present will simply end up "blank"
+        # in the output
+        row += [flatten(getattr(sample.data, x, None)) for x in formats]
         row += [record.FILTER or '.']
         row += fixed
         row += info_row
