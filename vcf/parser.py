@@ -437,7 +437,7 @@ class Reader(object):
     def next(self):
         '''Return the next record in the file.'''
         line = self.reader.next()
-        row = re.split('\t| +', line)
+        row = re.split('\t+', line)
         chrom = row[0]
         if self._prepend_chr:
             chrom = 'chr' + chrom
