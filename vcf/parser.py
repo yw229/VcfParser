@@ -172,12 +172,19 @@ class _vcf_metadata_parser(object):
 class Reader(object):
     """ Reader for a VCF v 4.0 file, an iterator returning ``_Record objects`` """
 
-    def __init__(self, fsock=None, filename=None, compressed=False, prepend_chr=False):
+    def __init__(self, fsock=None, filename=None, compressed=False, prepend_chr=False,
+                 strict_whitespace=False):
         """ Create a new Reader for a VCF file.
 
             You must specify either fsock (stream) or filename.  Gzipped streams
             or files are attempted to be recogized by the file extension, or gzipped
             can be forced with ``compressed=True``
+
+            'prepend_chr=True' will put 'chr' before all the CHROM values, useful
+            for different sources.
+
+            'strict_whitespace=True' will split records on tabs only (as with VCF
+            spec) which allows you to parse files with spaces in the sample names.
         """
         super(Reader, self).__init__()
 
@@ -217,6 +224,11 @@ class Reader(object):
         self._prepend_chr = prepend_chr
         self._parse_metainfo()
         self._format_cache = {}
+
+        if strict_whitespace:
+            self._separator = '\t'
+        else:
+            self._separator = '\t| +'
 
     def __iter__(self):
         return self
@@ -437,7 +449,7 @@ class Reader(object):
     def next(self):
         '''Return the next record in the file.'''
         line = self.reader.next()
-        row = re.split('\t+', line)
+        row = re.split(self._separator, line)
         chrom = row[0]
         if self._prepend_chr:
             chrom = 'chr' + chrom
