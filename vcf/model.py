@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 import collections
 import sys
 
+
 class _Call(object):
     """ A genotype call, a cell entry in a VCF file"""
 
@@ -20,7 +21,7 @@ class _Call(object):
             self.called = self.gt_nums is not None
         except AttributeError:
             self.gt_nums = None
-            # FIXME how do we know if a non GT call is called?
+            #62 a call without a genotype is not defined as called or not
             self.called = None
 
     def __repr__(self):
@@ -70,10 +71,14 @@ class _Call(object):
         if self.called:
             alleles = self.gt_alleles
             if all(X == alleles[0] for X in alleles[1:]):
-                if alleles[0] == "0": return 0
-                else: return 2
-            else: return 1
-        else: return None
+                if alleles[0] == "0":
+                    return 0
+                else:
+                    return 2
+            else:
+                return 1
+        else:
+            return None
 
     @property
     def phased(self):
@@ -145,7 +150,7 @@ class _Record(object):
         return "Record(CHROM=%(CHROM)s, POS=%(POS)s, REF=%(REF)s, ALT=%(ALT)s)" % self.__dict__
 
     def __cmp__(self, other):
-        return cmp( (self.CHROM, self.POS), (other.CHROM, other.POS))
+        return cmp((self.CHROM, self.POS), (other.CHROM, other.POS))
 
     def add_format(self, fmt):
         self.FORMAT = self.FORMAT + ':' + fmt
@@ -199,7 +204,6 @@ class _Record(object):
         # skip if more than one alternate allele. assumes bi-allelic
         if len(self.ALT) > 1:
             return None
-        hom_ref = self.num_hom_ref
         het = self.num_het
         hom_alt = self.num_hom_alt
         num_chroms = float(2.0 * self.num_called)
@@ -244,7 +248,8 @@ class _Record(object):
     @property
     def is_snp(self):
         """ Return whether or not the variant is a SNP """
-        if len(self.REF) > 1: return False
+        if len(self.REF) > 1:
+            return False
         for alt in self.ALT:
             if alt is None or alt.type != "SNV":
                 return False
@@ -257,7 +262,8 @@ class _Record(object):
         """ Return whether or not the variant is an INDEL """
         is_sv = self.is_sv
 
-        if len(self.REF) > 1 and not is_sv: return True
+        if len(self.REF) > 1 and not is_sv:
+            return True
         for alt in self.ALT:
             if alt is None:
                 return True
@@ -284,7 +290,8 @@ class _Record(object):
     def is_transition(self):
         """ Return whether or not the SNP is a transition """
         # if multiple alts, it is unclear if we have a transition
-        if len(self.ALT) > 1: return False
+        if len(self.ALT) > 1:
+            return False
 
         if self.is_snp:
             # just one alt allele
@@ -294,14 +301,17 @@ class _Record(object):
                 (self.REF == "C" and alt_allele == "T") or
                 (self.REF == "T" and alt_allele == "C")):
                 return True
-            else: return False
-        else: return False
+            else:
+                return False
+        else:
+            return False
 
     @property
     def is_deletion(self):
         """ Return whether or not the INDEL is a deletion """
         # if multiple alts, it is unclear if we have a transition
-        if len(self.ALT) > 1: return False
+        if len(self.ALT) > 1:
+            return False
 
         if self.is_indel:
             # just one alt allele
@@ -310,8 +320,10 @@ class _Record(object):
                 return True
             if len(self.REF) > len(alt_allele):
                 return True
-            else: return False
-        else: return False
+            else:
+                return False
+        else:
+            return False
 
     @property
     def var_type(self):

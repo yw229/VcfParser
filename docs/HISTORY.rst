@@ -17,6 +17,16 @@ New features should have test code sent with them.
 Changes
 =======
 
+0.6.0 Release
+-------------
+
+* Backwards incompatible change: _Call.data is now a 
+  namedtuple (previously it was a dict)
+* Optional cython version, much improved performance.  
+* Improvements to writer (thanks @cmclean)
+* Improvements to inheritance of classes (thanks @lennax)
+
+
 0.5.0 Release
 -------------
 

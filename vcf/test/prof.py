@@ -1,4 +1,4 @@
-import vcf
+import vcf as vcf
 import cProfile
 import timeit
 import pstats
