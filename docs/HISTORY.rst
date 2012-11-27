@@ -17,6 +17,16 @@ New features should have test code sent with them.
 Changes
 =======
 
+0.6.1 Release
+-------------
+
+* Add strict whitespace mode for well formed VCFs with spaces 
+  in sample names (thanks Marco)
+* Ignore blank lines in files (thanks Martijn)
+* Tweaks for handling missing data (thanks Sean)
+* bcftools tests (thanks Martijn)
+* record.FILTER is always a list
+
 0.6.0 Release
 -------------
 
