@@ -310,7 +310,12 @@ class Reader(object):
 
             if entry_type == 'Integer':
                 vals = entry[1].split(',')
-                val = self._map(int, vals)
+                try:
+                    val = self._map(int, vals)
+                # Allow specified integers to be flexibly parsed as floats.
+                # Handles cases with incorrectly specified header types.
+                except ValueError:
+                    val = self._map(float, vals)
             elif entry_type == 'Float':
                 vals = entry[1].split(',')
                 val = self._map(float, vals)
@@ -392,7 +397,10 @@ class Reader(object):
                 if entry_num == 1 or ',' not in vals:
 
                     if entry_type == 'Integer':
-                        sampdat[i] = int(vals)
+                        try:
+                            sampdat[i] = int(vals)
+                        except ValueError:
+                            sampdat[i] = float(vals)
                     elif entry_type == 'Float':
                         sampdat[i] = float(vals)
                     else:
@@ -406,7 +414,10 @@ class Reader(object):
                 vals = vals.split(',')
 
                 if entry_type == 'Integer':
-                    sampdat[i] = _map(int, vals)
+                    try:
+                        sampdat[i] = _map(int, vals)
+                    except ValueError:
+                        sampdat[i] = _map(float, vals)
                 elif entry_type == 'Float' or entry_type == 'Numeric':
                     sampdat[i] = _map(float, vals)
                 else:
