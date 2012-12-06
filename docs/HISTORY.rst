@@ -17,6 +17,11 @@ New features should have test code sent with them.
 Changes
 =======
 
+0.6.2 Release
+-------------
+
+* issues #78, #79 (thanks Sean, Brad) 
+
 0.6.1 Release
 -------------
 
