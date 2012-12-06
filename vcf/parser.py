@@ -328,7 +328,7 @@ class Reader(object):
                     val = True
 
             try:
-                if self.infos[ID].num == 1 and entry_type != 'String':
+                if self.infos[ID].num == 1 and entry_type not in ( 'String', 'Flag'):
                     val = val[0]
             except KeyError:
                 pass
