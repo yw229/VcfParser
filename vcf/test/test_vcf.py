@@ -218,7 +218,11 @@ class TestGatkOutputWriter(unittest.TestCase):
         for record in records:
             writer.write_record(record)
         out.seek(0)
-        print (out.getvalue())
+        out_str = out.getvalue()
+        for line in out_str.split("\n"):
+            if line.startswith("##contig"):
+                assert "<ID=" in line, "Found dictionary in contig line: {0}".format(line)
+        print (out_str)
         reader2 = vcf.Reader(out)
 
         self.assertEquals(reader.samples, reader2.samples)
