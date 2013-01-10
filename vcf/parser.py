@@ -158,7 +158,7 @@ class _vcf_metadata_parser(object):
         # Removing initial hash marks and final equal sign
         key = items[0][2:-1]
         hashItems = items[1].split(',')
-        val = dict(item.split("=") for item in hashItems)
+        val = OrderedDict(item.split("=") for item in hashItems)
         return key, val
 
     def read_meta(self, meta_string):

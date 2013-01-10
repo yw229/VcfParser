@@ -273,7 +273,7 @@ class TestWriterDictionaryMeta(unittest.TestCase):
         out_str = out.getvalue()
         for line in out_str.split("\n"):
             if line.startswith("##PEDIGREE"):
-                assert line.startswith('##PEDIGREE=<'), "Found dictionary in meta line: {0}".format(line)
+                self.assertEquals(line, '##PEDIGREE=<Derived="Tumor",Original="Germline">')
             if line.startswith("##SAMPLE"):
                 assert line.startswith('##SAMPLE=<'), "Found dictionary in meta line: {0}".format(line)
 
