@@ -221,7 +221,7 @@ class TestGatkOutputWriter(unittest.TestCase):
         out_str = out.getvalue()
         for line in out_str.split("\n"):
             if line.startswith("##contig"):
-                assert "<ID=" in line, "Found dictionary in contig line: {0}".format(line)
+                assert line.startswith('##contig=<'), "Found dictionary in contig line: {0}".format(line)
         print (out_str)
         reader2 = vcf.Reader(out)
 
@@ -255,6 +255,27 @@ class TestBcfToolsOutputWriter(unittest.TestCase):
 
         for l, r in zip(records, reader2):
             self.assertEquals(l.samples, r.samples)
+
+
+class TestWriterDictionaryMeta(unittest.TestCase):
+
+    def testWrite(self):
+
+        reader = vcf.Reader(fh('example-4.1-bnd.vcf'))
+        out = StringIO()
+        writer = vcf.Writer(out, reader)
+
+        records = list(reader)
+
+        for record in records:
+            writer.write_record(record)
+        out.seek(0)
+        out_str = out.getvalue()
+        for line in out_str.split("\n"):
+            if line.startswith("##PEDIGREE"):
+                assert line.startswith('##PEDIGREE=<'), "Found dictionary in meta line: {0}".format(line)
+            if line.startswith("##SAMPLE"):
+                assert line.startswith('##SAMPLE=<'), "Found dictionary in meta line: {0}".format(line)
 
 
 class TestRecord(unittest.TestCase):
@@ -789,6 +810,7 @@ suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSamtoolsOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestBcfToolsOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutputWriter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestBcfToolsOutputWriter))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriterDictionaryMeta))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFilter))
