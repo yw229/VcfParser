@@ -158,7 +158,7 @@ class _vcf_metadata_parser(object):
         # Removing initial hash marks and final equal sign
         key = items[0][2:-1]
         hashItems = items[1].split(',')
-        val = dict(item.split("=") for item in hashItems)
+        val = OrderedDict(item.split("=") for item in hashItems)
         return key, val
 
     def read_meta(self, meta_string):
@@ -549,14 +549,15 @@ class Writer(object):
 
         two = '##{key}=<ID={0},Description="{1}">\n'
         four = '##{key}=<ID={0},Number={num},Type={2},Description="{3}">\n'
-        contig_format = '##contig=<ID={ID},length={length},assembly={assembly}>\n'
         _num = self._fix_field_count
         for (key, vals) in template.metadata.iteritems():
             if key in SINGULAR_METADATA:
                 vals = [vals]
             for val in vals:
-                if key == "contig":
-                    stream.write(contig_format.format(**val))
+                if isinstance(val, dict):
+                    values = ','.join('{0}={1}'.format(key, value)
+                                      for key, value in val.items())
+                    stream.write('##{0}=<{1}>\n'.format(key, values))
                 else:
                     stream.write('##{0}={1}\n'.format(key, val))
         for line in template.infos.itervalues():
