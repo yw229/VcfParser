@@ -48,7 +48,10 @@ def parse_samples(
             if entry_num == 1 or ',' not in vals:
 
                 if entry_type == INTEGER:
-                    sampdat[j] = int(vals)
+                    try:
+                        sampdat[j] = int(vals)
+                    except ValueError:
+                        sampdat[j] = float(vals)
                 elif entry_type == FLOAT or entry_type == NUMERIC:
                     sampdat[j] = float(vals)
                 else:
@@ -62,7 +65,10 @@ def parse_samples(
             vals = vals.split(',')
 
             if entry_type == INTEGER:
-                sampdat[j] = _map(int, vals)
+                try:
+                    sampdat[j] = _map(int, vals)
+                except ValueError:
+                    sampdat[j] = map(float, vals)
             elif entry_type == FLOAT or entry_type == NUMERIC:
                 sampdat[j] = _map(float, vals)
             else:
