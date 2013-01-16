@@ -17,6 +17,12 @@ New features should have test code sent with them.
 Changes
 =======
 
+0.6.3 Release
+-------------
+
+* cython port of #79
+* correct writing of meta lines #84 
+
 0.6.2 Release
 -------------
 

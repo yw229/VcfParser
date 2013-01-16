@@ -10,3 +10,4 @@ docs/_build
 .DS_Store
 vcf/cparse.c
 vcf/cparse.so
+.coverage
