@@ -571,6 +571,22 @@ class TestRecord(unittest.TestCase):
             self.assertEqual(expected, qual)
             self.assertEqual(type(expected), qtype)
 
+    def test_info_multiple_values(self):
+        reader = vcf.Reader(fh('example-4.1-info-multiple-values.vcf'))
+        var = reader.next()
+        # check Float type INFO field with multiple values
+        expected = [19.3, 47.4, 14.0]
+        actual = var.INFO['RepeatCopies']
+        self.assertEqual(expected, actual)
+        # check Integer type INFO field with multiple values
+        expected = [42, 14, 56]
+        actual = var.INFO['RepeatSize']
+        self.assertEqual(expected, actual)
+        # check String type INFO field with multiple values
+        expected = ['TCTTATCTTCTTACTTTTCATTCCTTACTCTTACTTACTTAC', 'TTACTCTTACTTAC', 'TTACTCTTACTTACTTACTCTTACTTACTTACTCTTACTTACTTACTCTTATCTTC']
+        actual = var.INFO['RepeatConsensus']
+        self.assertEqual(expected, actual)
+
 
 class TestCall(unittest.TestCase):
 

@@ -323,12 +323,13 @@ class Reader(object):
                 val = True
             elif entry_type == 'String':
                 try:
-                    val = entry[1]
+                    vals = entry[1].split(',') # commas are reserved characters indicating multiple values
+                    val = self._map(str, vals)
                 except IndexError:
                     val = True
 
             try:
-                if self.infos[ID].num == 1 and entry_type not in ( 'String', 'Flag'):
+                if self.infos[ID].num == 1 and entry_type not in ( 'Flag', ):
                     val = val[0]
             except KeyError:
                 pass
