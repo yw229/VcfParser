@@ -232,6 +232,11 @@ class TestGatkOutputWriter(unittest.TestCase):
         for l, r in zip(records, reader2):
             self.assertEquals(l.samples, r.samples)
 
+            # test for call data equality, since equality on the sample calls
+            # may not always mean their data are all equal
+            for l_call, r_call in zip(l.samples, r.samples):
+                self.assertEqual(l_call.data, r_call.data)
+
 
 class TestBcfToolsOutputWriter(unittest.TestCase):
 
@@ -255,6 +260,11 @@ class TestBcfToolsOutputWriter(unittest.TestCase):
 
         for l, r in zip(records, reader2):
             self.assertEquals(l.samples, r.samples)
+
+            # test for call data equality, since equality on the sample calls
+            # may not always mean their data are all equal
+            for l_call, r_call in zip(l.samples, r.samples):
+                self.assertEqual(l_call.data, r_call.data)
 
 
 class TestWriterDictionaryMeta(unittest.TestCase):

@@ -620,9 +620,30 @@ class Writer(object):
         return ';'.join([self._stringify_pair(x,y) for x, y in info.iteritems()])
 
     def _format_sample(self, fmt, sample):
-        if getattr(sample.data, 'GT', None) is None:
-            return "./."
-        return ':'.join([self._stringify(x) for x in sample.data])
+        try:
+            # Try to get the GT value first.
+            gt = getattr(sample.data, 'GT')
+            # PyVCF stores './.' GT values as None, so we need to revert it back
+            # to './.' when writing.
+            if gt is None:
+                gt = './.'
+        except AttributeError:
+            # Failing that, try to check whether 'GT' is specified in the FORMAT
+            # field. If yes, use the recommended empty value ('./.')
+            if 'GT' in fmt:
+                gt = './.'
+            # Otherwise use an empty string as the value
+            else:
+                gt = ''
+        # If gt is an empty string (i.e. not stored), write all other data
+        if not gt:
+            return ':'.join([self._stringify(x) for x in sample.data])
+        # Otherwise use the GT values from above and combine it with the rest of
+        # the data.
+        # Note that this follows the VCF spec, where GT is always the first
+        # item whenever it is present.
+        else:
+            return ':'.join([gt] + [self._stringify(x) for x in sample.data[1:]])
 
     def _stringify(self, x, none='.', delim=','):
         if type(x) == type([]):
