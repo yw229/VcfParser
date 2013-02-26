@@ -205,6 +205,17 @@ class Test1kg(unittest.TestCase):
             pass
 
 
+class Test1kgSites(unittest.TestCase):
+
+    def test_reader(self):
+        """The samples attribute should be the empty list."""
+        reader = vcf.Reader(fh('1kg.sites.vcf', 'r'))
+
+        self.assertEqual(reader.samples, [])
+        for record in reader:
+            self.assertEqual(record.samples, [])
+
+
 class TestGatkOutputWriter(unittest.TestCase):
 
     def testWrite(self):
@@ -841,6 +852,7 @@ suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFilter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kgSites))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRecord))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCall))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRegression))
