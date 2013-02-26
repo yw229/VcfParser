@@ -192,6 +192,8 @@ class Test1kg(unittest.TestCase):
     def testParse(self):
         reader = vcf.Reader(fh('1kg.vcf.gz', 'rb'))
 
+        assert 'FORMAT' in reader._column_headers
+
         self.assertEqual(len(reader.samples), 629)
         for _ in reader:
             pass
@@ -211,9 +213,29 @@ class Test1kgSites(unittest.TestCase):
         """The samples attribute should be the empty list."""
         reader = vcf.Reader(fh('1kg.sites.vcf', 'r'))
 
+        assert 'FORMAT' not in reader._column_headers
+
         self.assertEqual(reader.samples, [])
         for record in reader:
             self.assertEqual(record.samples, [])
+
+    def test_writer(self):
+        """FORMAT should not be written if not present in the template and no
+        extra tab character should be printed if there are no FORMAT fields."""
+        reader = vcf.Reader(fh('1kg.sites.vcf', 'r'))
+        out = StringIO()
+        writer = vcf.Writer(out, reader, lineterminator='\n')
+
+        for record in reader:
+            writer.write_record(record)
+        out.seek(0)
+        out_str = out.getvalue()
+        for line in out_str.split('\n'):
+            if line.startswith('##'):
+                continue
+            if line.startswith('#CHROM'):
+                assert 'FORMAT' not in line
+            assert not line.endswith('\t')
 
 
 class TestGatkOutputWriter(unittest.TestCase):
