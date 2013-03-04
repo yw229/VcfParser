@@ -220,6 +220,7 @@ class Reader(object):
         self.samples = None
         self._sample_indexes = None
         self._header_lines = []
+        self._column_headers = []
         self._tabix = None
         self._prepend_chr = prepend_chr
         self._parse_metainfo()
@@ -274,7 +275,8 @@ class Reader(object):
 
             line = self.reader.next()
 
-        fields = re.split('\t| +', line)
+        fields = re.split('\t| +', line[1:])
+        self._column_headers = fields[:9]
         self.samples = fields[9:]
         self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
 
@@ -538,8 +540,6 @@ class Reader(object):
 class Writer(object):
     """ VCF Writer """
 
-    fixed_fields = "#CHROM POS ID REF ALT QUAL FILTER INFO FORMAT".split()
-
     # Reverse keys and values in header field count dictionary
     counts = dict((v,k) for k,v in field_counts.iteritems())
 
@@ -574,13 +574,16 @@ class Writer(object):
 
     def _write_header(self):
         # TODO: write INFO, etc
-        self.writer.writerow(self.fixed_fields + self.template.samples)
+        self.stream.write('#' + '\t'.join(self.template._column_headers
+                                          + self.template.samples) + '\n')
 
     def write_record(self, record):
         """ write a record to the file """
         ffs = self._map(str, [record.CHROM, record.POS, record.ID, record.REF]) \
               + [self._format_alt(record.ALT), record.QUAL or '.', self._format_filter(record.FILTER),
-                 self._format_info(record.INFO), record.FORMAT]
+                 self._format_info(record.INFO)]
+        if record.FORMAT:
+            ffs.append(record.FORMAT)
 
         samples = [self._format_sample(record.FORMAT, sample)
             for sample in record.samples]

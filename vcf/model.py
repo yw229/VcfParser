@@ -133,7 +133,7 @@ class _Record(object):
         self.alleles = [self.REF]
         self.alleles.extend(self.ALT)
         #: list of ``_Calls`` for each sample ordered as in source VCF
-        self.samples = samples
+        self.samples = samples or []
         self._sample_indexes = sample_indexes
 
     def __eq__(self, other):
