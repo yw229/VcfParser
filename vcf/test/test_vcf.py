@@ -321,6 +321,14 @@ class TestWriterDictionaryMeta(unittest.TestCase):
                 assert line.startswith('##SAMPLE=<'), "Found dictionary in meta line: {0}".format(line)
 
 
+class TestSamplesSpace(unittest.TestCase):
+    filename = 'samples-space.vcf'
+    samples = ['NA 00001', 'NA 00002', 'NA 00003']
+    def test_samples(self):
+        self.reader = vcf.Reader(fh(self.filename), strict_whitespace=True)
+        self.assertEqual(self.reader.samples, self.samples)
+
+
 class TestRecord(unittest.TestCase):
 
     def test_num_calls(self):
@@ -875,6 +883,7 @@ suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFilter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kgSites))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSamplesSpace))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRecord))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCall))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRegression))

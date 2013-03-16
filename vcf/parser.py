@@ -205,6 +205,11 @@ class Reader(object):
             if sys.version > '3':
                 self._reader = codecs.getreader('ascii')(self._reader)
 
+        if strict_whitespace:
+            self._separator = '\t'
+        else:
+            self._separator = '\t| +'
+
         self.reader = (line.strip() for line in self._reader if line.strip())
 
         #: metadata fields from header (string or hash, depending)
@@ -225,11 +230,6 @@ class Reader(object):
         self._prepend_chr = prepend_chr
         self._parse_metainfo()
         self._format_cache = {}
-
-        if strict_whitespace:
-            self._separator = '\t'
-        else:
-            self._separator = '\t| +'
 
     def __iter__(self):
         return self
@@ -275,7 +275,7 @@ class Reader(object):
 
             line = self.reader.next()
 
-        fields = re.split('\t| +', line[1:])
+        fields = re.split(self._separator, line[1:])
         self._column_headers = fields[:9]
         self.samples = fields[9:]
         self._sample_indexes = dict([(x,i) for (i,x) in enumerate(self.samples)])
