@@ -97,6 +97,7 @@ class _vcf_metadata_parser(object):
         self.contig_pattern = re.compile(r'''\#\#contig=<
             ID=(?P<id>[^,]+),
             length=(?P<length>-?\d+)
+            .*
             >''', re.VERBOSE)
         self.meta_pattern = re.compile(r'''##(?P<key>.+?)=(?P<val>.+)''')
 
