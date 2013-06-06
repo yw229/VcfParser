@@ -67,6 +67,7 @@ _Filter = collections.namedtuple('Filter', ['id', 'desc'])
 _Alt = collections.namedtuple('Alt', ['id', 'desc'])
 _Format = collections.namedtuple('Format', ['id', 'num', 'type', 'desc'])
 _SampleInfo = collections.namedtuple('SampleInfo', ['samples', 'gt_bases', 'gt_types', 'gt_phases'])
+_Contig = collections.namedtuple('Contig', ['id', 'length'])
 
 
 class _vcf_metadata_parser(object):
@@ -92,6 +93,10 @@ class _vcf_metadata_parser(object):
             Number=(?P<number>-?\d+|\.|[AG]),
             Type=(?P<type>.+),
             Description="(?P<desc>.*)"
+            >''', re.VERBOSE)
+        self.contig_pattern = re.compile(r'''\#\#contig=<
+            ID=(?P<id>[^,]+),
+            length=(?P<length>-?\d+)
             >''', re.VERBOSE)
         self.meta_pattern = re.compile(r'''##(?P<key>.+?)=(?P<val>.+)''')
 
@@ -152,6 +157,20 @@ class _vcf_metadata_parser(object):
                        match.group('type'), match.group('desc'))
 
         return (match.group('id'), form)
+    
+    def read_contig(self, contig_string):
+        '''Read a meta-contigrmation INFO line.'''
+        match = self.contig_pattern.match(contig_string)
+        if not match:
+            raise SyntaxError(
+                "One of the contig lines is malformed: %s" % contig_string)
+
+        length = self.vcf_field_count(match.group('length'))
+
+        contig = _Contig(match.group('id'), length)
+
+        return (match.group('id'), contig)
+
 
     def read_meta_hash(self, meta_string):
         items = re.split("[<>]", meta_string)
@@ -222,6 +241,8 @@ class Reader(object):
         self.alts = None
         #: FORMAT fields from header
         self.formats = None
+        #: contig fields from header
+        self.contigs = None
         self.samples = None
         self._sample_indexes = None
         self._header_lines = []
@@ -239,7 +260,7 @@ class Reader(object):
 
         The end user shouldn't have to use this.  She can access the metainfo
         directly with ``self.metadata``.'''
-        for attr in ('metadata', 'infos', 'filters', 'alts', 'formats'):
+        for attr in ('metadata', 'infos', 'filters', 'alts', 'contigs', 'formats'):
             setattr(self, attr, OrderedDict())
 
         parser = _vcf_metadata_parser()
@@ -263,6 +284,10 @@ class Reader(object):
             elif line.startswith('##FORMAT'):
                 key, val = parser.read_format(line)
                 self.formats[key] = val
+            
+            elif line.startswith('##contig'):
+                key, val = parser.read_contig(line)
+                self.contigs[key] = val
 
             else:
                 key, val = parser.read_meta(line)
