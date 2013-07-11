@@ -183,6 +183,7 @@ class _vcf_metadata_parser(object):
         k = ''
         v = ''
         for c in items[1]:
+
             if state == 0:  # reading item key
                 if c == '=':
                     state = 1  # end of key, start reading value
