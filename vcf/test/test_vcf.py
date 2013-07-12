@@ -3,6 +3,7 @@ import unittest
 import doctest
 import os
 import commands
+import cPickle
 from StringIO import StringIO
 
 import vcf
@@ -638,6 +639,11 @@ class TestRecord(unittest.TestCase):
         actual = var.INFO['RepeatConsensus']
         self.assertEqual(expected, actual)
 
+    def test_pickle(self):
+        reader = vcf.Reader(fh('example-4.0.vcf'))
+        for var in reader:
+            assert cPickle.loads(cPickle.dumps(var)) == var
+
 
 class TestCall(unittest.TestCase):
 
@@ -687,6 +693,7 @@ class TestCall(unittest.TestCase):
                 self.assertEqual([0,0,0], gt_types)
             elif var.POS == 1234567:
                 self.assertEqual([None,1,2], gt_types)
+
 
 class TestTabix(unittest.TestCase):
 
