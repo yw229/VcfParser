@@ -177,8 +177,37 @@ class _vcf_metadata_parser(object):
         items = re.split("[<>]", meta_string)
         # Removing initial hash marks and final equal sign
         key = items[0][2:-1]
-        hashItems = items[1].split(',')
-        val = OrderedDict(item.split("=") for item in hashItems)
+        # N.B., items can have quoted values, so cannot just split on comma
+        val = OrderedDict()
+        state = 0
+        k = ''
+        v = ''
+        for c in items[1]:
+
+            if state == 0:  # reading item key
+                if c == '=':
+                    state = 1  # end of key, start reading value
+                else:
+                    k += c  # extend key
+            elif state == 1:  # reading item value
+                if v == '' and c == '"':
+                    v += c  # include quote mark in value
+                    state = 2  # start reading quoted value
+                elif c == ',':
+                    val[k] = v  # store parsed item
+                    state = 0  # read next key
+                    k = ''
+                    v = ''
+                else:
+                    v += c
+            elif state == 2:  # reading quoted item value
+                if c == '"':
+                    v += c  # include quote mark in value
+                    state = 1  # end quoting
+                else:
+                    v += c
+        if k != '':
+            val[k] = v
         return key, val
 
     def read_meta(self, meta_string):

@@ -867,6 +867,16 @@ class TestUtils(unittest.TestCase):
 
 
 
+class TestGATKMeta(unittest.TestCase):
+
+    def test_meta(self):
+        # expect no exceptions raised
+        reader = vcf.Reader(fh('gatk_26_meta.vcf'))
+        assert 'GATKCommandLine' in reader.metadata
+        assert reader.metadata['GATKCommandLine'][0]['CommandLineOptions'] == '"analysis_type=LeftAlignAndTrimVariants"'
+        assert reader.metadata['GATKCommandLine'][1]['CommandLineOptions'] == '"analysis_type=VariantAnnotator annotation=[HomopolymerRun, VariantType, TandemRepeatAnnotator]"'
+
+
 
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFreebayesOutput))
