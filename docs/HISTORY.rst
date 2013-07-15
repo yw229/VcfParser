@@ -17,6 +17,17 @@ New features should have test code sent with them.
 Changes
 =======
 
+0.6.4 Release
+-------------
+
+* Handle INFO fields with multiple values, thanks
+* Support writing records without GT data #88, thanks @bow
+* Pickleable call data #112, thanks @superbobry
+* Write files without FORMAT #95 thanks Martijn
+* Strict whitespace mode, thanks Martijn, Lee Lichtenstein and Manawsi Gupta
+* Add support for contigs in header, thanks @gcnh and Martijn
+* Fix GATK header parsing, thanks @alimanfoo
+
 0.6.3 Release
 -------------
 
