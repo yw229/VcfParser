@@ -541,7 +541,9 @@ class Reader(object):
                 qual = None
 
         filt = row[6]
-        if filt == 'PASS' or filt == '.':
+        if filt == '.':
+            filt = None
+        elif filt == 'PASS':
             filt = []
         else:
             filt = filt.split(';')
