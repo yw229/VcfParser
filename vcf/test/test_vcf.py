@@ -236,6 +236,18 @@ class Test1kgSites(unittest.TestCase):
             assert not line.endswith('\t')
 
 
+class TestGoNL(unittest.TestCase):
+
+    def testParse(self):
+        reader = vcf.Reader(fh('gonl.chr20.release4.gtc.vcf'))
+        for _ in reader:
+            pass
+
+    def test_contig_line(self):
+        reader = vcf.Reader(fh('gonl.chr20.release4.gtc.vcf'))
+        self.assertEqual(reader.contigs['1'].length, 249250621)
+
+
 class TestGatkOutputWriter(unittest.TestCase):
 
     def testWrite(self):
@@ -897,6 +909,7 @@ suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFilter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kgSites))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGoNL))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSamplesSpace))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRecord))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCall))
