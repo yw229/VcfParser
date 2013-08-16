@@ -163,7 +163,10 @@ class _Record(object):
         self.FORMAT = self.FORMAT + ':' + fmt
 
     def add_filter(self, flt):
-        self.FILTER.append(flt)
+        if self.FILTER is None:
+            self.FILTER = [flt]
+        else:
+            self.FILTER.append(flt)
 
     def add_info(self, info, value=True):
         self.INFO[info] = value

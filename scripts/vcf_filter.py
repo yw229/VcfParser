@@ -162,7 +162,7 @@ def main():
         if output_record:
             # use PASS only if other filter names appear in the FILTER column
             #FIXME: is this good idea?
-            if record.FILTER == '.' and not drop_filtered: record.FILTER = 'PASS'
+            if record.FILTER is None and not drop_filtered: record.FILTER = 'PASS'
             output.write_record(record)
 
 if __name__ == '__main__': main()

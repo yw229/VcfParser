@@ -339,6 +339,20 @@ class TestSamplesSpace(unittest.TestCase):
         self.assertEqual(self.reader.samples, self.samples)
 
 
+class TestMixedFiltering(unittest.TestCase):
+    filename = 'mixed-filtering.vcf'
+    def test_mixed_filtering(self):
+        """
+        Test mix of FILTER values (pass, filtered, no filtering).
+        """
+        reader = vcf.Reader(fh(self.filename))
+        self.assertEqual(next(reader).FILTER, [])
+        self.assertEqual(next(reader).FILTER, ['q10'])
+        self.assertEqual(next(reader).FILTER, [])
+        self.assertEqual(next(reader).FILTER, None)
+        self.assertEqual(next(reader).FILTER, ['q10', 'q50'])
+
+
 class TestRecord(unittest.TestCase):
 
     def test_num_calls(self):
@@ -911,6 +925,7 @@ suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kgSites))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGoNL))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSamplesSpace))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestMixedFiltering))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRecord))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCall))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRegression))
