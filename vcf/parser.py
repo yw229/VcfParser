@@ -627,6 +627,8 @@ class Writer(object):
             stream.write(two.format(key="FILTER", *line))
         for line in template.alts.itervalues():
             stream.write(two.format(key="ALT", *line))
+        for line in template.contigs.itervalues():
+            stream.write('##contig=<ID={0},length={1}>\n'.format(*line))
 
         self._write_header()
 

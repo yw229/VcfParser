@@ -271,6 +271,7 @@ class TestGatkOutputWriter(unittest.TestCase):
         self.assertEquals(reader.samples, reader2.samples)
         self.assertEquals(reader.formats, reader2.formats)
         self.assertEquals(reader.infos, reader2.infos)
+        self.assertEquals(reader.contigs, reader2.contigs)
 
         for l, r in zip(records, reader2):
             self.assertEquals(l.samples, r.samples)
