@@ -248,6 +248,31 @@ class TestGoNL(unittest.TestCase):
         self.assertEqual(reader.contigs['1'].length, 249250621)
 
 
+class TestInfoTypeCharacter(unittest.TestCase):
+    def test_parse(self):
+        reader = vcf.Reader(fh('info-type-character.vcf'))
+        record = next(reader)
+        self.assertEqual(record.INFO['FLOAT_1'], 123.456)
+        self.assertEqual(record.INFO['CHAR_1'], 'Y')
+        self.assertEqual(record.INFO['FLOAT_N'], [123.456])
+        self.assertEqual(record.INFO['CHAR_N'], ['Y'])
+
+    def test_write(self):
+        reader = vcf.Reader(fh('info-type-character.vcf'))
+        out = StringIO()
+        writer = vcf.Writer(out, reader)
+
+        records = list(reader)
+
+        for record in records:
+            writer.write_record(record)
+        out.seek(0)
+        reader2 = vcf.Reader(out)
+
+        for l, r in zip(records, reader2):
+            self.assertEquals(l.INFO, r.INFO)
+
+
 class TestGatkOutputWriter(unittest.TestCase):
 
     def testWrite(self):
