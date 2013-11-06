@@ -473,9 +473,15 @@ class _Breakend(_AltRecord):
     def __init__(self, chr, pos, orientation, remoteOrientation, connectingSequence, withinMainAssembly, **kwargs):
         super(_Breakend, self).__init__(type="BND", **kwargs)
         #: The chromosome of breakend's mate.
-        self.chr = str(chr)
+        if chr is not None:
+            self.chr = str(chr)
+        else:
+            self.chr = None  # Single breakend
         #: The coordinate of breakend's mate.
-        self.pos = int(pos)
+        if pos is not None:
+            self.pos = int(pos)
+        else:
+            self.pos = None
         #: The orientation of breakend's mate. If the sequence 3' of the breakend's mate is connected, True, else if the sequence 5' of the breakend's mate is connected, False.
         self.remoteOrientation = remoteOrientation
         #: If the breakend mate is within the assembly, True, else False if the breakend mate is on a contig in an ancillary assembly file.
