@@ -350,7 +350,7 @@ class Reader(object):
             return {}
 
         entries = info_str.split(';')
-        retdict = OrderedDict()
+        retdict = {}
 
         for entry in entries:
             entry = entry.split('=')
@@ -606,6 +606,12 @@ class Writer(object):
         self.template = template
         self.stream = stream
 
+        # Order keys for INFO fields defined in the header (undefined fields
+        # get a maximum key).
+        self.info_order = collections.defaultdict(
+            lambda: len(template.infos),
+            dict(zip(template.infos.iterkeys(), itertools.count())))
+
         two = '##{key}=<ID={0},Description="{1}">\n'
         four = '##{key}=<ID={0},Number={num},Type={2},Description="{3}">\n'
         _num = self._fix_field_count
@@ -681,7 +687,11 @@ class Writer(object):
     def _format_info(self, info):
         if not info:
             return '.'
-        return ';'.join([self._stringify_pair(x,y) for x, y in info.iteritems()])
+        def order_key(field):
+            # Order by header definition first, alphabetically second.
+            return self.info_order[field], field
+        return ';'.join(self._stringify_pair(f, info[f]) for f in
+                        sorted(info, key=order_key))
 
     def _format_sample(self, fmt, sample):
         try:

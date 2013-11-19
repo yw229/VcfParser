@@ -248,6 +248,43 @@ class TestGoNL(unittest.TestCase):
         self.assertEqual(reader.contigs['1'].length, 249250621)
 
 
+class TestInfoOrder(unittest.TestCase):
+
+    def _assert_order(self, definitions, fields):
+        """
+        Elements common to both lists should be in the same order. Elements
+        only in `fields` should be last and in alphabetical order.
+        """
+        used_definitions = [d for d in definitions if d in fields]
+        self.assertEqual(used_definitions, fields[:len(used_definitions)])
+        self.assertEqual(fields[len(used_definitions):],
+                         sorted(fields[len(used_definitions):]))
+
+    def test_writer(self):
+        """
+        Order of INFO fields should be compatible with the order of their
+        definition in the header and undefined fields should be last and in
+        alphabetical order.
+        """
+        reader = vcf.Reader(fh('1kg.sites.vcf', 'r'))
+        out = StringIO()
+        writer = vcf.Writer(out, reader, lineterminator='\n')
+
+        for record in reader:
+            writer.write_record(record)
+        out.seek(0)
+        out_str = out.getvalue()
+
+        definitions = []
+        for line in out_str.split('\n'):
+            if line.startswith('##INFO='):
+                definitions.append(line.split('ID=')[1].split(',')[0])
+            if not line or line.startswith('#'):
+                continue
+            fields = [f.split('=')[0] for f in line.split('\t')[7].split(';')]
+            self._assert_order(definitions, fields)
+
+
 class TestInfoTypeCharacter(unittest.TestCase):
     def test_parse(self):
         reader = vcf.Reader(fh('info-type-character.vcf'))
