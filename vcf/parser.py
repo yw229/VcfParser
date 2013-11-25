@@ -29,25 +29,30 @@ from model import _Substitution, _Breakend, _SingleBreakend, _SV
 RESERVED_INFO = {
     'AA': 'String', 'AC': 'Integer', 'AF': 'Float', 'AN': 'Integer',
     'BQ': 'Float', 'CIGAR': 'String', 'DB': 'Flag', 'DP': 'Integer',
-    'END': 'Integer', 'H2': 'Flag', 'MQ': 'Float', 'MQ0': 'Integer',
-    'NS': 'Integer', 'SB': 'String', 'SOMATIC': 'Flag', 'VALIDATED': 'Flag',
+    'END': 'Integer', 'H2': 'Flag', 'H3': 'Flag', 'MQ': 'Float',
+    'MQ0': 'Integer', 'NS': 'Integer', 'SB': 'String', 'SOMATIC': 'Flag',
+    'VALIDATED': 'Flag', '1000G': 'Flag',
 
-    # VCF 4.1 Additions
-    'IMPRECISE':'Flag', 'NOVEL':'Flag', 'END':'Integer', 'SVTYPE':'String',
-    'CIPOS':'Integer','CIEND':'Integer','HOMLEN':'Integer','HOMSEQ':'Integer',
-    'BKPTID':'String','MEINFO':'String','METRANS':'String','DGVID':'String',
-    'DBVARID':'String','MATEID':'String','PARID':'String','EVENT':'String',
-    'CILEN':'Integer','CN':'Integer','CNADJ':'Integer','CICN':'Integer',
-    'CICNADJ':'Integer'
+    # Keys used for structural variants
+    'IMPRECISE': 'Flag', 'NOVEL': 'Flag', 'SVTYPE': 'String',
+    'SVLEN': 'Integer', 'CIPOS': 'Integer', 'CIEND': 'Integer',
+    'HOMLEN': 'Integer', 'HOMSEQ': 'String', 'BKPTID': 'String',
+    'MEINFO': 'String', 'METRANS': 'String', 'DGVID': 'String',
+    'DBVARID': 'String', 'DBRIPID': 'String', 'MATEID': 'String',
+    'PARID': 'String', 'EVENT': 'String', 'CILEN': 'Integer',
+    'DPADJ': 'Integer', 'CN': 'Integer', 'CNADJ': 'Integer',
+    'CICN': 'Integer', 'CICNADJ': 'Integer'
 }
 
 RESERVED_FORMAT = {
     'GT': 'String', 'DP': 'Integer', 'FT': 'String', 'GL': 'Float',
-    'GQ': 'Float', 'HQ': 'Float',
+    'GLE': 'String', 'PL': 'Integer', 'GP': 'Float', 'GQ': 'Integer',
+    'HQ': 'Integer', 'PS': 'Integer', 'PQ': 'Integer', 'EC': 'Integer',
+    'MQ': 'Integer',
 
-    # VCF 4.1 Additions
-    'CN':'Integer','CNQ':'Float','CNL':'Float','NQ':'Integer','HAP':'Integer',
-    'AHAP':'Integer'
+    # Keys used for structural variants
+    'CN': 'Integer', 'CNQ': 'Float', 'CNL': 'Float', 'NQ': 'Integer',
+    'HAP': 'Integer', 'AHAP': 'Integer'
 }
 
 # Spec is a bit weak on which metadata lines are singular, like fileformat
