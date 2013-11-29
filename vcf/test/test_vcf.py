@@ -449,11 +449,11 @@ class TestRecord(unittest.TestCase):
             if var.POS == 17330:
                 self.assertEqual(1.0/6.0, aaf)
             if var.POS == 1110696:
-                self.assertEqual(None, aaf)
+                self.assertEqual([2.0/6.0, 4.0/6.0], aaf)
             if var.POS == 1230237:
                 self.assertEqual(0.0/6.0, aaf)
             elif var.POS == 1234567:
-                self.assertEqual(None, aaf)
+                self.assertEqual([2.0/4.0, 1.0/4.0], aaf)
 
     def test_pi(self):
         reader = vcf.Reader(fh('example-4.0.vcf'))
