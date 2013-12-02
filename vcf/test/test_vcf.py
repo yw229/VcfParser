@@ -445,13 +445,13 @@ class TestRecord(unittest.TestCase):
         for var in reader:
             aaf = var.aaf
             if var.POS == 14370:
-                self.assertEqual(3.0/6.0, aaf)
+                self.assertEqual([3.0/6.0], aaf)
             if var.POS == 17330:
-                self.assertEqual(1.0/6.0, aaf)
+                self.assertEqual([1.0/6.0], aaf)
             if var.POS == 1110696:
                 self.assertEqual([2.0/6.0, 4.0/6.0], aaf)
             if var.POS == 1230237:
-                self.assertEqual(0.0/6.0, aaf)
+                self.assertEqual([0.0/6.0], aaf)
             elif var.POS == 1234567:
                 self.assertEqual([2.0/4.0, 1.0/4.0], aaf)
 
