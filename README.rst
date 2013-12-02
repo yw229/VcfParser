@@ -66,7 +66,7 @@ examine properties of interest::
     >>> print record.num_hom_ref, record.num_het, record.num_hom_alt
     1 1 1
     >>> print record.nucl_diversity, record.aaf
-    0.6 0.5
+    0.6 [0.5]
     >>> print record.get_hets()
     [Call(sample=NA00002, CallData(GT=1|0, GQ=48, DP=8, HQ=[51, 51]))]
     >>> print record.is_snp, record.is_indel, record.is_transition, record.is_deletion

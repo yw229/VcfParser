@@ -210,19 +210,6 @@ class _Record(object):
         """ A list of allele frequencies of alternate alleles.
            NOTE: Denominator calc'ed from _called_ genotypes.
         """
-        if len(self.ALT) > 1:
-            return self.multi_aaf
-        het = self.num_het
-        hom_alt = self.num_hom_alt
-        num_chroms = float(2.0 * self.num_called)
-        return [float(het + 2 * hom_alt) / float(num_chroms)]
-
-    @property
-    def multi_aaf(self):
-        """
-        The allele frequency of alternate alleles for multi-allelic loci.
-        Return a list of frequencies for each alternate allele.
-        """
         num_chroms = 2.0 * self.num_called
         allele_counts = collections.Counter()
         for s in self.samples:
