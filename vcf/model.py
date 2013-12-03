@@ -2,6 +2,11 @@ from abc import ABCMeta, abstractmethod
 import collections
 import sys
 
+try:
+    from collections import Counter
+except ImportError:
+    from counter import Counter
+
 
 class _Call(object):
     """ A genotype call, a cell entry in a VCF file"""
@@ -211,7 +216,7 @@ class _Record(object):
            NOTE: Denominator calc'ed from _called_ genotypes.
         """
         num_chroms = 2.0 * self.num_called
-        allele_counts = collections.Counter()
+        allele_counts = Counter()
         for s in self.samples:
             if s.gt_type is not None:
                 allele_counts.update([s.gt_alleles[0]])

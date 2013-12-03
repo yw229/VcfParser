@@ -16,9 +16,12 @@ try:
 except ImportError:
     requires.append('argparse')
 
-
+import collections
 try:
-    import collections
+    collections.Counter
+except AttributeError:
+    requires.append('counter')
+try:
     collections.OrderedDict
 except AttributeError:
     requires.append('ordereddict')
