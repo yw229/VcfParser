@@ -950,6 +950,42 @@ class TestUtils(unittest.TestCase):
                 assert recs[0] is not None
                 assert recs[1] is not None
 
+        # case with working custom equality function
+
+        # without custom function, exception should be raised
+
+        reader1 = vcf.Reader(fh('example-4.0.vcf'))
+        reader2 = vcf.Reader(fh('walk_refcall.vcf'))
+        self.assertRaisesRegexp(AttributeError, "'NoneType' object has no "
+                "attribute 'type'", next, utils.walk_together(reader1, reader2))
+
+        # with custom function, iteration works
+
+        reader1 = vcf.Reader(fh('example-4.0.vcf'))
+        reader2 = vcf.Reader(fh('walk_refcall.vcf'))
+
+        def custom_eq(rec1, rec2):
+            # check for equality only on CHROM, POS, and REF
+            if rec1 is None or rec2 is None:
+                return False
+            return rec1.CHROM == rec2.CHROM and rec1.POS == rec2.POS and \
+                    rec1.REF == rec2.REF
+
+        nrecs, ncomps = 0, 0
+        for x in utils.walk_together(reader1, reader2, eq_func=custom_eq):
+            assert len(x) == 2
+            # avoid assert() when one record is None
+            if x[0] is not None and x[1] is not None:
+                assert (custom_eq(x[0], x[1]) and custom_eq(x[1], x[0]))
+                ncomps += 1
+            # still increment counter to ensure iteration is finished for all
+            # records
+            nrecs += 1
+        # check number of records total
+        assert nrecs == 5
+        # check how many records found in all files
+        assert ncomps == 4
+
     def test_trim(self):
         tests = [('TAA GAA', 'T G'),
                  ('TA TA', 'T T'),

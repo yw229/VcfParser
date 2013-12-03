@@ -2,14 +2,25 @@
 Utilities for VCF files.
 """
 
+import operator
 
-def walk_together(*readers):
+
+def walk_together(*readers, **kwargs):
     """ Simultaneously iteratate two or more VCF readers and return
         lists of concurrent records from each
         reader, with None if no record present.  Caller must check the
         inputs are sorted in the same way and use the same reference
         otherwise behaviour is undefined.
     """
+    # if defined, custom equality functions must take the same arguments
+    # as operator.eq
+    if 'eq_func' in kwargs:
+        eq_func = kwargs['eq_func']
+    # by default, we use the equality operator (==), which compares
+    # equality in CHROM, POS, REF, and ALT
+    else:
+        eq_func = operator.eq
+
     # if one of the VCFs has no records, StopIteration is
     # raised immediately, so we need to check for that and
     # deal appropriately
@@ -23,15 +34,12 @@ def walk_together(*readers):
     while True:
         min_next = min([x for x in nexts if x is not None])
 
-        # this line uses equality on Records, which checks the ALTs
-        # not sure what to do with records that have overlapping but different
-        # variation
-        yield [x if x is None or x == min_next else None for x in nexts]
+        yield [x if x is None or eq_func(x, min_next) else None for x in nexts]
 
         # update nexts that we just yielded
         for i, n in enumerate(nexts):
 
-            if n is not None and n == min_next:
+            if n is not None and eq_func(n, min_next):
                 try:
                     nexts[i] = readers[i].next()
                 except StopIteration:
