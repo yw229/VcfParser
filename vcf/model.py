@@ -207,17 +207,16 @@ class _Record(object):
 
     @property
     def aaf(self):
-        """ The allele frequency of the alternate allele.
-           NOTE 1: Punt if more than one alternate allele.
-           NOTE 2: Denominator calc'ed from _called_ genotypes.
+        """ A list of allele frequencies of alternate alleles.
+           NOTE: Denominator calc'ed from _called_ genotypes.
         """
-        # skip if more than one alternate allele. assumes bi-allelic
-        if len(self.ALT) > 1:
-            return None
-        het = self.num_het
-        hom_alt = self.num_hom_alt
-        num_chroms = float(2.0 * self.num_called)
-        return float(het + 2 * hom_alt) / float(num_chroms)
+        num_chroms = 2.0 * self.num_called
+        allele_counts = collections.Counter()
+        for s in self.samples:
+            if s.gt_type is not None:
+                allele_counts.update([s.gt_alleles[0]])
+                allele_counts.update([s.gt_alleles[1]])
+        return [allele_counts[str(i)]/num_chroms for i in range(1, len(self.ALT)+1)]
 
     @property
     def nucl_diversity(self):
@@ -234,7 +233,7 @@ class _Record(object):
         # skip if more than one alternate allele. assumes bi-allelic
         if len(self.ALT) > 1:
             return None
-        p = self.aaf
+        p = self.aaf[0]
         q = 1.0 - p
         num_chroms = float(2.0 * self.num_called)
         return float(num_chroms / (num_chroms - 1.0)) * (2.0 * p * q)
