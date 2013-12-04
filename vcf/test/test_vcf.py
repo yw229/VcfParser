@@ -956,8 +956,8 @@ class TestUtils(unittest.TestCase):
 
         reader1 = vcf.Reader(fh('example-4.0.vcf'))
         reader2 = vcf.Reader(fh('walk_refcall.vcf'))
-        self.assertRaisesRegexp(AttributeError, "'NoneType' object has no "
-                "attribute 'type'", next, utils.walk_together(reader1, reader2))
+        self.assertRaises(AttributeError, next,
+                          utils.walk_together(reader1, reader2))
 
         # with custom function, iteration works
 
@@ -1009,24 +1009,26 @@ class TestGATKMeta(unittest.TestCase):
         assert reader.metadata['GATKCommandLine'][1]['CommandLineOptions'] == '"analysis_type=VariantAnnotator annotation=[HomopolymerRun, VariantType, TandemRepeatAnnotator]"'
 
 
-
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestVcfSpecs))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFreebayesOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSamtoolsOutput))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestBcfToolsOutput))
-suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutputWriter))
-suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestInfoTypeCharacter))
-suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestBcfToolsOutputWriter))
-suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriterDictionaryMeta))
-suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
-suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
-suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFilter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kg))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(Test1kgSites))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGoNL))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestInfoOrder))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestInfoTypeCharacter))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGatkOutputWriter))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestBcfToolsOutputWriter))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestWriterDictionaryMeta))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSamplesSpace))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestMixedFiltering))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRecord))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCall))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTabix))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestOpenMethods))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestFilter))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestRegression))
-suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestVcfSpecs))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestUtils))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGATKMeta))
