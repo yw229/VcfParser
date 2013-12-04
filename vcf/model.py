@@ -148,6 +148,11 @@ class _Record(object):
         self.samples = samples or []
         self._sample_indexes = sample_indexes
 
+    # For Python 2
+    def __cmp__(self, other):
+        return cmp((self.CHROM, self.POS), (other.CHROM, other.POS))
+
+    # For Python 3
     def __eq__(self, other):
         """ _Records are equal if they describe the same variant (same position, alleles) """
         return (self.CHROM == other.CHROM and
@@ -155,14 +160,15 @@ class _Record(object):
                 self.REF == other.REF and
                 self.ALT == other.ALT)
 
+    # For Python 3
+    def __lt__(self, other):
+        return (self.CHROM, self.POS) < (other.CHROM, other.POS)
+
     def __iter__(self):
         return iter(self.samples)
 
     def __str__(self):
         return "Record(CHROM=%(CHROM)s, POS=%(POS)s, REF=%(REF)s, ALT=%(ALT)s)" % self.__dict__
-
-    def __cmp__(self, other):
-        return cmp((self.CHROM, self.POS), (other.CHROM, other.POS))
 
     def add_format(self, fmt):
         self.FORMAT = self.FORMAT + ':' + fmt
