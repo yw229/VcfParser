@@ -6,6 +6,7 @@ try:
     from collections import Counter
 except ImportError:
     from counter import Counter
+    print collections.__file__
 
 
 class _Call(object):

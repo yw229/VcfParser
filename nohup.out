@@ -1,0 +1,70 @@
+Traceback (most recent call last):
+  File "run3.py", line 23, in <module>
+Traceback (most recent call last):
+  File "run4.py", line 25, in <module>
+    ex.PrintVcfUpsertFormat()
+  File "/nethome/ywang/PyVCF/updateVcfMongo.py", line 87, in PrintVcfUpsertFormat
+Traceback (most recent call last):
+  File "run.py", line 21, in <module>
+    ex.PrintVcfUpsertINFO()
+    result = self.UpsertFormatVcfMongo()
+  File "/nethome/ywang/PyVCF/updateVcfMongo.py", line 58, in UpsertFormatVcfMongo
+  File "/nethome/ywang/PyVCF/updateVcfMongo.py", line 92, in PrintVcfUpsertINFO
+    vcfColl.update({'Sample_ID':singleSampleSet.sample,'CHROM':r.CHROM,'POS':r.POS,'REF':r.REF,'alt':str(r.ALT)},{'$set':FormatMap}, upsert = True, multi =  True )
+    result = self.UpsertInfoVcfMongo()
+  File "/nethome/ywang/PyVCF/updateVcfMongo.py", line 73, in UpsertInfoVcfMongo
+    vcfColl.update({'Sample_ID':r.samples[i].sample,'CHROM':r.CHROM,'POS':r.POS,'alt':str(r.ALT),'REF':r.REF },{'$set': infoD }, upsert = True, multi =  True )
+    ex.PrintVcfInsert()
+  File "/nethome/ywang/PyVCF/updateVcfMongo.py", line 77, in PrintVcfInsert
+  File "/data/NYGC/Software/python/lib/python2.7/site-packages/pymongo-2.6.2-py2.7-linux-x86_64.egg/pymongo/collection.py", line 487, in update
+    result = self.InsertIntoVcfMongo()
+  File "/nethome/ywang/PyVCF/updateVcfMongo.py", line 26, in InsertIntoVcfMongo
+    for i in range(l):									vcfColl.insert({'Sample_ID':r.samples[i].sample,'CHROM':r.CHROM,'POS':r.POS,'REF':r.REF,'alt':str(r.ALT),'QUAL':r.QUAL } )	
+Traceback (most recent call last):
+  File "/data/NYGC/Software/python/lib/python2.7/site-packages/pymongo-2.6.2-py2.7-linux-x86_64.egg/pymongo/collection.py", line 487, in update
+  File "/data/NYGC/Software/python/lib/python2.7/site-packages/pymongo-2.6.2-py2.7-linux-x86_64.egg/pymongo/collection.py", line 362, in insert
+  File "run2.py", line 20, in <module>
+    check_keys, self.__uuid_subtype), safe)
+    check_keys, self.__uuid_subtype), safe)
+    self.database.connection)
+  File "/data/NYGC/Software/python/lib/python2.7/site-packages/pymongo-2.6.2-py2.7-linux-x86_64.egg/pymongo/mongo_client.py", line 976, in _send_message
+  File "/data/NYGC/Software/python/lib/python2.7/site-packages/pymongo-2.6.2-py2.7-linux-x86_64.egg/pymongo/mongo_client.py", line 976, in _send_message
+  File "/data/NYGC/Software/python/lib/python2.7/site-packages/pymongo-2.6.2-py2.7-linux-x86_64.egg/pymongo/mongo_client.py", line 976, in _send_message
+    ex.PrintVcfUpsert()
+  File "/nethome/ywang/PyVCF/updateVcfMongo.py", line 82, in PrintVcfUpsert
+    result = self.UpsertIntoVcfMongo()
+  File "/nethome/ywang/PyVCF/updateVcfMongo.py", line 40, in UpsertIntoVcfMongo
+    vcfColl.update({'Sample_ID':r.samples[i].sample,'CHROM':r.CHROM,'POS':r.POS,'REF':r.REF,'alt':str(r.ALT) },{'$set':{'QUAL':r.QUAL}}, upsert = True, multi =  True )
+  File "/data/NYGC/Software/python/lib/python2.7/site-packages/pymongo-2.6.2-py2.7-linux-x86_64.egg/pymongo/collection.py", line 487, in update
+    check_keys, self.__uuid_subtype), safe)
+  File "/data/NYGC/Software/python/lib/python2.7/site-packages/pymongo-2.6.2-py2.7-linux-x86_64.egg/pymongo/mongo_client.py", line 976, in _send_message
+    raise AutoReconnect(str(e))
+    raise AutoReconnect(str(e))
+    raise AutoReconnect(str(e))
+    raise AutoReconnect(str(e))
+pymongo.errors.AutoReconnect: [Errno 104] Connection reset by peer
+pymongo.errors.AutoReconnect: [Errno 104] Connection reset by peer
+pymongo.errors.AutoReconnect: [Errno 104] Connection reset by peer
+pymongo.errors.AutoReconnect: [Errno 104] Connection reset by peer
+
+gzip: 
+gzip: stdout: Broken pipe
+stdout: Broken pipe
+
+gzip: 
+gzip: 
+gzip: stdout: Broken pipe
+
+gzip: 
+gzip: stdout: Broken pipe
+stdout: Broken pipe
+
+gzip: stdout: Broken pipe
+stdout: Broken pipe
+stdout: Broken pipe
+
+gzip: stdout: Broken pipe
+
+gzip: stdout: Broken pipe
+
+gzip: stdout: Broken pipe

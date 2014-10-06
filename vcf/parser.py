@@ -6,6 +6,8 @@ import sys
 import itertools
 import codecs
 
+
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -253,10 +255,19 @@ class Reader(object):
                 compressed = compressed or filename.endswith('.gz')
         elif filename:
             compressed = compressed or filename.endswith('.gz')
-            self._reader = open(filename, 'rb' if compressed else 'rt')
+            #self._reader = open(filename, 'rb' if compressed else 'rt')
+	    from subprocess import Popen, PIPE
+	    f = Popen(['zcat',filename],stdout = PIPE)
+	    self._reader = f.stdout 
+
         self.filename = filename
+
         if compressed:
-            self._reader = gzip.GzipFile(fileobj=self._reader)
+#            self._reader = gzip.GzipFile(fileobj=self._reader)
+
+	    from subprocess import Popen, PIPE
+            f = Popen(['zcat',filename], stdout=PIPE) 
+            self._reader = f.stdout 			
             if sys.version > '3':
                 self._reader = codecs.getreader('ascii')(self._reader)
 
